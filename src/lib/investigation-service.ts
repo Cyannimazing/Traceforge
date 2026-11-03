@@ -14,9 +14,11 @@ import type {SolanaPoolReserveResult} from './solana-pool-reserves';
 import {clockReferenceTime,type EvidenceClock} from './evidence-clock';
 import type {PersistentReportCache} from './report-cache';
 import type {SnapshotEnrichment} from './snapshot-enrichment';
+import type {BscHolderFallbackResult} from './bsc-holder-fallback';
+import type {EvmReserveChain,EvmPoolReserveResult} from './evm-pool-reserves';
 
 export type ScanOptions = { mode?: 'deep' | 'market' | 'holders'; expanded?: boolean; fresh?: boolean; signal?: AbortSignal; onEvent?: (event: ScanEvent) => void };
-type Dependencies = { enrichSnapshot?:(report:Report,options:{signal?:AbortSignal})=>Promise<SnapshotEnrichment>; publicScan: (chain: Chain, token: string, options: {mode?: 'deep' | 'market' | 'holders'; signal?: AbortSignal}) => Promise<Report>; makeClient: (signal?: AbortSignal) => BitqueryClient; publicHistory?: (chain: Chain, token: string, options: PublicHistoryOptions) => Promise<PublicHistoryResult>; historicalEvidence?: (chain:Chain,token:string,options:PublicHistoryOptions)=>Promise<PublicHistoryResult|undefined>; solanaPublic?: (token:string,options:{signal?:AbortSignal})=>Promise<SolanaPublicResult>; poolLaunch?:(chain:Chain,token:string,pool:string,options:{signal?:AbortSignal;validationTime?:number})=>Promise<PoolLaunchResult>; poolReserves?:(pool:string,token:string,options:{signal?:AbortSignal})=>Promise<SolanaPoolReserveResult>; resolveClock?:(options:{signal?:AbortSignal})=>Promise<EvidenceClock>; now?: () => number };
+type Dependencies = { evmPoolReserves?:(chain:EvmReserveChain,pool:string,token:string,options:{holders?:string[];signal?:AbortSignal})=>Promise<EvmPoolReserveResult>; bscHolders?:(report:Report,options:{signal?:AbortSignal})=>Promise<BscHolderFallbackResult>; enrichSnapshot?:(report:Report,options:{signal?:AbortSignal})=>Promise<SnapshotEnrichment>; publicScan: (chain: Chain, token: string, options: {mode?: 'deep' | 'market' | 'holders'; signal?: AbortSignal}) => Promise<Report>; makeClient: (signal?: AbortSignal) => BitqueryClient; publicHistory?: (chain: Chain, token: string, options: PublicHistoryOptions) => Promise<PublicHistoryResult>; historicalEvidence?: (chain:Chain,token:string,options:PublicHistoryOptions)=>Promise<PublicHistoryResult|undefined>; solanaPublic?: (token:string,options:{signal?:AbortSignal})=>Promise<SolanaPublicResult>; poolLaunch?:(chain:Chain,token:string,pool:string,options:{signal?:AbortSignal;validationTime?:number})=>Promise<PoolLaunchResult>; poolReserves?:(pool:string,token:string,options:{signal?:AbortSignal})=>Promise<SolanaPoolReserveResult>; resolveClock?:(options:{signal?:AbortSignal})=>Promise<EvidenceClock>; now?: () => number };
 type Cached = { expires: number; report: InvestigationReport };
 const batch = <T>(items: T[], size: number) => Array.from({length:Math.ceil(items.length/size)},(_,i)=>items.slice(i*size,(i+1)*size));
 
@@ -82,9 +84,20 @@ export function createInvestigationService(deps: Dependencies & {persistentCache
         if(clock)stage('clock-check',clock.basis==='provider-quorum'?'complete':'unavailable',clock.basis==='provider-quorum'?'Provider comparison time established. Original capture and event times are preserved.':'Provider clocks could not be corroborated. Local timestamp checks remain active.');
         options.signal?.throwIfAborted();
         stage('public-data','complete','Public provider responses received. Unavailable fields remain unknown.');
+        let bscSnapshot:BscHolderFallbackResult|undefined;
+        if(chain==='bsc'&&mode!=='market'&&!publicReport.holders.length&&deps.bscHolders){
+          stage('holder-rpc','running','Verifying BNB Chain holder candidates and balances at one finalized block.');
+          try{bscSnapshot=await deps.bscHolders(publicReport,{signal:options.signal});}catch{options.signal?.throwIfAborted();}
+          if(bscSnapshot){
+            publicReport={...publicReport,sources:[...publicReport.sources,...bscSnapshot.sources]};
+            if(bscSnapshot.holders?.length&&bscSnapshot.snapshot)publicReport={...publicReport,holders:bscSnapshot.holders.flatMap(h=>h.share===null?[]:[{address:h.address,share:h.share,contract:null,locked:null,tag:''}]),holderCount:bscSnapshot.holderCount??null,totalSupply:bscSnapshot.totalSupply??publicReport.totalSupply};
+          }
+          stage('holder-rpc',bscSnapshot?.holders?.length?'complete':'unavailable',bscSnapshot?.holders?.length?`${bscSnapshot.holders.length} positive balances verified. Candidate scope and finalized block are retained.`:'Current BNB Chain holder balances could not be verified; missing values remain unknown.');
+        }
         const captured = new Date(now()).toISOString();
         const input: InvestigationInput = { chain,token,holders:publicReport.holders.map(h=>({address:chain==='solana'?h.address:h.address.toLowerCase(),share:h.share})),trades:[],transfers:[],identities:publicReport.identities || [],labels:[],launchVerified:false,complete:false,reasons:[],fetchedAt:captured,holderLimit:limit,buyerLimit:limit,fundingHops:mode==='deep'?1:0,truncated:false };
         if(clock){input.clock=clock;input.reasons.push(clock.detail);}
+        if(bscSnapshot){input.labels.push(...bscSnapshot.labels);input.reasons.push(...bscSnapshot.reasons);input.truncated ||= bscSnapshot.truncated;}
         const sourceTimes: Report['sources'] = [];
         for (const h of publicReport.holders) {
           let category: LabelRecord['category'] | undefined;
@@ -233,6 +246,8 @@ export function createInvestigationService(deps: Dependencies & {persistentCache
         }
         // EVM explorer holders may replace the early GoPlus list. Probe the actual final snapshot.
         enrichmentTask ||= startEnrichment();
+        const evmPool=publicReport.market?.pairAddress||prior?.report.market?.pairAddress;
+        const evmReserveTask=chain!=='solana'&&evmPool&&deps.evmPoolReserves?deps.evmPoolReserves(chain,evmPool,token,{holders:publicReport.holders.map(h=>h.address),signal:options.signal}).catch(()=>undefined):Promise.resolve(undefined);
         const historical=await historicalTask;
         options.signal?.throwIfAborted();
         if(historical){
@@ -266,6 +281,14 @@ export function createInvestigationService(deps: Dependencies & {persistentCache
         if(input.truncated)input.reasons.push('One or more row or wallet caps were reached. Expand scope where available; results are not exhaustive.');
         if(!input.identities.length)input.reasons.push('Creator and current authority identities were not returned. They are not inferred from the oldest holder or first trader.');
         const investigation = analyzeInvestigation(input);
+        if(bscSnapshot?.snapshot){
+          const snapshot=bscSnapshot.snapshot,source=publicReport.sources.find(s=>s.name==='BSC RPC finalized holder balances');
+          for(const balance of snapshot.balances){
+            const wallet=investigation.wallets.find(w=>w.address.toLowerCase()===balance.address.toLowerCase());if(!wallet)continue;
+            const id=`holding:bsc:${balance.address.toLowerCase()}`;
+            investigation.evidence.push({id,kind:'holding',timestamp:source?.fetchedAt||captured,amountRaw:balance.amountRaw,decimals:snapshot.decimals,token,source:'BSC RPC finalized holder balances',description:`balanceOf(${balance.address}) = ${balance.amountRaw} raw units at finalized block ${snapshot.block} (${snapshot.blockHash}). Same-block total supply ${snapshot.totalSupplyRaw}, decimals ${snapshot.decimals}. Candidate discovery is bounded; this is not a complete ownership census.`});wallet.evidenceIds.push(id);
+          }
+        }
         if(solana?.sources.some(source=>source.name==='Solana RPC Holders'&&source.status==='available')){
           for(const wallet of investigation.wallets){
             const accounts=solana.tokenAccounts.filter(account=>account.owner===wallet.address&&account.mint===token&&account.slot===solana.snapshot.ownersSlot);
@@ -293,6 +316,15 @@ export function createInvestigationService(deps: Dependencies & {persistentCache
         else if(mode==='deep'&&prior)result=mergeDeepReport(prior.report,result);
         const reserves=await reserveTask;
         if(reserves){result.poolReserves=reserves;const snapshot=reserves.snapshot;if(snapshot){result.sources.push({name:snapshot.source,status:'available',fetchedAt:snapshot.observedAt,detail:`Verified PumpSwap pool and vault snapshot at finalized slot ${snapshot.slot}. ${snapshot.limitations.join(' ')}`});result.investigation.evidence.push({id:snapshot.evidenceId,kind:'label',timestamp:snapshot.observedAt,source:snapshot.source,description:`Verified pool reserves at finalized slot ${snapshot.slot}. Base ${snapshot.base.amountRaw} raw units; quote ${snapshot.quote.amountRaw} raw units. Virtual quote ${snapshot.virtualQuoteReservesRaw}. ${snapshot.feeAssumption}`});}}
+        const evmReserves=await evmReserveTask;
+        if(evmReserves){
+          result.evmPoolReserves=evmReserves;const snapshot=evmReserves.snapshot;
+          if(evmReserves.status==='verified'&&snapshot){
+            result.sources.push({name:snapshot.source,status:'available',fetchedAt:snapshot.observedAt,detail:`Official V2 factory membership, pool identities, balances and reserves verified at finalized block ${snapshot.blockNumber} (${snapshot.blockHash}). ${snapshot.limitations.join(' ')}`});
+            result.investigation.evidence.push({id:snapshot.evidenceId,kind:'label',timestamp:snapshot.observedAt,source:snapshot.source,description:`Finalized ${snapshot.protocol} pool ${snapshot.pool} at ${snapshot.blockRef}. Scanned token reserve ${snapshot.base.reserveRaw}, quote reserve ${snapshot.quote.reserveRaw} raw units; actual pool balances match: ${snapshot.base.reserveRaw===snapshot.base.balanceRaw&&snapshot.quote.reserveRaw===snapshot.quote.balanceRaw}. Total supply ${snapshot.totalSupplyRaw} raw units. Same-block holder balances: ${snapshot.holders.filter(h=>h.status==='observed').map(h=>`${h.address}: ${h.balanceRaw}`).join('; ')}. A zero-fee constant-product scenario is not an executable trade quote or sellability test.`});
+          }else result.sources.push({name:'EVM RPC finalized V2 reserves',status:'unavailable',detail:evmReserves.reasons.join(' ')});
+          stage('pool-reserves',evmReserves.status==='verified'?'complete':'unavailable',evmReserves.status==='verified'?'V2 pool reserves and current holder balances verified at one finalized block. Sell-impact scenario remains conditional.':'Current compatible pool reserves could not be verified.');
+        }
         const enrichment=await enrichmentTask;
         options.signal?.throwIfAborted();
         if(enrichment){

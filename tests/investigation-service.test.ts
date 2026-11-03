@@ -6,7 +6,26 @@ import { parseScanRequest } from '../src/lib/scan-request';
 import type { SolanaPublicResult } from '../src/lib/solana-public';
 import type { PoolLaunchResult } from '../src/lib/pool-launch';
 import type {EvidenceClock} from '../src/lib/evidence-clock';
+import type {EvmPoolReserveSnapshot} from '../src/lib/evm-pool-reserves';
 const report: Report = { chain:'ethereum',token:'0xabc',name:'Test',symbol:'TEST',fetchedAt:'2026-01-01T00:00:00Z',market:null,holders:[{address:'wallet',share:1,contract:false,locked:false,tag:''}],holderCount:1,checks:[],sources:[] };
+
+test('BSC empty indexed holders use finalized RPC balances and do not retain a contradictory zero count',async()=>{
+ const address='0x'+'a'.repeat(40),token='0x'+'b'.repeat(40),at=report.fetchedAt;
+ const publicReport={...report,chain:'bsc' as const,token,holders:[],holderCount:0};let seenHolders=0;
+ const service=createInvestigationService({now:()=>Date.parse(at),publicScan:async()=>publicReport,makeClient:()=>({configured:false,request:async()=>null}),bscHolders:async()=>({holders:[{address,share:88,balance:88}],holderCount:null,totalSupply:100,trades:[],transfers:[],identities:[],labels:[],reasons:['Bounded candidates'],truncated:true,sources:[{name:'BSC RPC finalized holder balances',status:'available',detail:'Verified finalized balances',fetchedAt:at}],snapshot:{block:10,blockHash:'0x'+'c'.repeat(64),blockTimestamp:at,decimals:0,totalSupplyRaw:'100',balances:[{address,amountRaw:'88'}]}}),enrichSnapshot:async(r)=>{seenHolders=r.holders.length;return {};}});
+ const result=await service.scan('bsc',token);
+ assert.equal(result.holders.length,1);assert.equal(result.holderCount,null);assert.equal(seenHolders,1);
+ const wallet=result.investigation.wallets.find(w=>w.address===address)!;assert.equal(wallet.share,88);
+ assert(wallet.evidenceIds.some(id=>result.investigation.evidence.some(e=>e.id===id&&e.kind==='holding'&&e.amountRaw==='88'&&e.source==='BSC RPC finalized holder balances')));
+ assert.equal(result.riskMetrics?.metrics.find(m=>m.id==='largest-holder-supply')?.value,88);
+});
+
+test('a final EVM reserve proof reaches scoring and stops a high-impact token despite partial launch history',async()=>{
+ const token='0x'+'1'.repeat(40),pool='0x'+'2'.repeat(40),owner='0x'+'3'.repeat(40),quote='0x'+'4'.repeat(40),at=report.fetchedAt;
+ const snapshot:EvmPoolReserveSnapshot={chain:'bsc',protocol:'pancakeswap-v2',token,pool,factory:'0xca143ce32fe78f1f7019d7d551a6402fc5350c73',base:{address:token,reserveRaw:'10',balanceRaw:'10',decimals:0},quote:{address:quote,reserveRaw:'100',balanceRaw:'100',decimals:0},totalSupplyRaw:'1000',holders:[{address:owner,status:'observed',balanceRaw:'880'}],holdersTruncated:false,blockNumber:10,blockHash:'0x'+'a'.repeat(64),blockTimestamp:at,blockRef:'bsc:10',observedAt:at,finality:'finalized',source:'EVM RPC finalized V2 reserves',evidenceId:'evm:pool:10',constantProductEligible:true,feeBps:null,limitations:[]};let checked:string[]=[];
+ const service=createInvestigationService({now:()=>Date.parse(at),publicScan:async()=>({...report,chain:'bsc',token,totalSupply:1000,holders:[{address:owner,share:88,contract:false,locked:null,tag:''},{address:pool,share:1,contract:true,locked:null,tag:'pool'}],market:{chainId:'bsc',pairAddress:pool,baseToken:{address:token}},sources:[{name:'GoPlus Security',status:'available',fetchedAt:at,detail:''},{name:'DEX Screener',status:'available',fetchedAt:at,detail:''}]}),makeClient:()=>({configured:false,request:async()=>null}),evmPoolReserves:async(chain,p,t,options)=>{assert.deepEqual([chain,p,t],['bsc',pool,token]);checked=options.holders||[];return {status:'verified',snapshot,reasons:[]};}});
+ const result=await service.scan('bsc',token);assert(checked.includes(owner));assert.equal(result.evmPoolReserves?.status,'verified');assert(result.investigation.evidence.some(e=>e.id===snapshot.evidenceId&&e.source===snapshot.source));assert.equal(result.trustRating?.decision,'AVOID');assert.equal(result.investigation.assessment.status,'critical');assert.equal(result.investigation.coverage.launchVerified,false);
+});
 
 test('snapshot enrichment reaches report without substituting contract security flags',async()=>{
  const activity={source:'EVM RPC wallet activity',observedAt:report.fetchedAt,wallets:[],truncated:false};

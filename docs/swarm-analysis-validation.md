@@ -128,3 +128,7 @@ Browser verification: six factor rows rendered on the Grok report; the concentra
 ## Decision-model reconstruction follow-up
 
 The separately reconstructed decision model and its production verification are documented in [the judge audit](swarm-judge-reconstruction-2026-11-03.md). Supported identical inputs match all77 retained scored provider outputs, including the Grok score87 distribution0.3% /19.6% /80.1%. This establishes observed numeric-branch compatibility, not identical retrieved features or calibrated safety confidence. The app preserves unknown measurements and qualified critical overrides. Full independent input parity is still incomplete.
+
+## BSC zero-holder failure and EVM reserve follow-up
+
+The same-token failure for `0xf4d17f21eb7bd0a678a7450622f3bf8810f6cbee` is documented in [the BSC validation](bsc-holder-gap-validation.md). A contradictory GoPlus zero is now withheld, finalized RPC checks recovered 14 positive balances, and independently verified V2 reserves support the existing high-impact AVOID stop rule. Missing launch history no longer hides that current hazard. Generic contracts are not automatically equated with infrastructure. Current evidence and historical clocks stay distinct through refresh, and old reserve proofs cannot replace newly verified results. This closes that reproduced data/verdict failure; it does not claim universal source availability or exact private-model parity.

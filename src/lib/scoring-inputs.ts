@@ -2,6 +2,7 @@ import type {Evidence,InvestigationReport} from './investigation-types';
 import type {WalletActivitySnapshot} from './wallet-activity';
 import type {SolanaTokenAccount} from './solana-public';
 import {holderScope} from './holder-scope';
+import {isSupportedEvmPoolFactory} from './evm-pool-reserves';
 import {buildCurrentHolderGraph} from './current-holder-graph';
 import {computeRiskMetrics} from './risk-metrics';
 import {clockReferenceTime} from './evidence-clock';
@@ -31,10 +32,10 @@ export function buildScoringInputs(report:InvestigationReport):FactorMeasurement
  const snapshotReference=Date.parse(report.fetchedAt);
  const snapshotDate=(at:string|undefined)=>!!at&&Number.isFinite(snapshotReference)&&Number.isFinite(Date.parse(at))&&Date.parse(at)<=snapshotReference+120_000;
  const freshDate=(at:string|undefined)=>snapshotDate(at)&&Date.parse(at!)>=snapshotReference-600_000;
- const evidence=new Map(report.investigation.evidence.filter(e=>e.attribution!=='provider-reported'&&e.source.trim()&&validDate(e.timestamp)).map(e=>[e.id,e]));
+ const evidence=new Map(report.investigation.evidence.filter(e=>e.attribution!=='provider-reported'&&e.source.trim()&&(e.kind==='holding'||e.kind==='label'?snapshotDate(e.timestamp):validDate(e.timestamp))).map(e=>[e.id,e]));
  const metrics=computeRiskMetrics(report);
  if(report.providerAnalysis||metrics.metrics.find(m=>m.id==='largest-holder-supply')?.value==null)return ids.map(id=>result.get(id)!);
- const sourceNames=report.chain==='solana'?['Solana RPC Holders']:['Blockscout Holders','GoPlus Security'];
+ const sourceNames=report.chain==='solana'?['Solana RPC Holders']:['Blockscout Holders','GoPlus Security','BSC RPC finalized holder balances'];
  const snapshotSource=report.sources.some(s=>sourceNames.includes(s.name)&&s.status==='available'&&snapshotDate(s.fetchedAt));
  const wallets=new Map(report.investigation.wallets.map(w=>[normalize(w.address),w]));
  const qualifiedHolders=report.holders.filter(h=>snapshotSource||wallets.get(normalize(h.address))?.evidenceIds.some(id=>{const e=evidence.get(id);return e?.kind==='holding'&&(!e.token||normalize(e.token)===normalize(report.token));}));
@@ -133,6 +134,25 @@ export function buildScoringInputs(report:InvestigationReport):FactorMeasurement
    const den=(x+q)*(x+q),impact=Number((den-x*x)*1_000_000_000_000n/den)/1_000_000_000_000;
    const links=graph.edges.filter(e=>owners.has(e.from)&&owners.has(e.to)).flatMap(e=>e.evidenceIds);
    result.set('swarm',bounded('swarm',impact,impact,[pool.evidenceId,...holdingIds(largest),...links],`Conditional zero-fee terminal-price scenario for the largest documented current-holder group (${largest.length} addresses): sell ${q} raw token units into ${x} raw base reserves at ${pool.blockRef}, ${pool.observedAt}. Formula 1 - x²/(x+q)². Fees are unverified; no execution quote, routing, other pools, arbitrage or unidentified ownership is modeled.`));
+  }
+ }
+ const evm=report.evmPoolReserves?.snapshot;
+ const evmBlockCurrent=evm&&snapshotDate(evm.blockTimestamp)&&Date.parse(evm.blockTimestamp)>=snapshotReference-900_000;
+ if(report.chain!=='solana'&&report.evmPoolReserves?.status==='verified'&&evm&&evm.chain===report.chain&&evm.finality==='finalized'&&evmBlockCurrent&&evm.constantProductEligible&&isSupportedEvmPoolFactory(evm.chain,evm.factory)&&freshDate(evm.observedAt)&&normalize(evm.token)===normalize(report.token)&&normalize(evm.base.address)===normalize(report.token)&&normalize(evm.quote.address)!==normalize(report.token)&&report.market?.pairAddress&&normalize(evm.pool)===normalize(report.market.pairAddress)&&evm.blockRef&&Number.isSafeInteger(evm.blockNumber)&&evm.blockNumber>=0&&/^0x[\da-f]{64}$/i.test(evm.blockHash)&&evm.source.trim()&&report.sources.some(s=>s.name===evm.source&&s.status==='available'&&freshDate(s.fetchedAt))&&evidence.get(evm.evidenceId)?.source===evm.source){
+  const x=raw(evm.base.reserveRaw),quote=raw(evm.quote.reserveRaw),supply=raw(evm.totalSupplyRaw),largest=groups[0],owners=new Set(largest),balances=new Map<string,bigint>();let conflict=false;
+  for(const row of evm.holders){
+   const address=normalize(row.address);if(!owners.has(address))continue;
+   const amount=row.status==='observed'&&row.balanceRaw!==undefined?raw(row.balanceRaw):null;
+   if(amount===null||amount<0n||(supply!==null&&amount>supply)||(balances.has(address)&&balances.get(address)!==amount)){conflict=true;continue;}balances.set(address,amount);
+  }
+  const q=[...balances.values()].reduce((n,a)=>n+a,0n),observedShare=largest.reduce((sum,a)=>sum+(shares.get(a)||0),0);
+  const rawShare=supply!==null&&supply>0n?Number(q)/Number(supply)*100:NaN;
+  const scaledSupply=supply!==null&&Number.isInteger(evm.base.decimals)&&evm.base.decimals>=0&&evm.base.decimals<=255?Number(supply)/10**evm.base.decimals:NaN;
+  if(!Number.isFinite(rawShare)||Math.abs(rawShare-observedShare)>1e-6||!Number.isFinite(scaledSupply)||typeof report.totalSupply!=='number'||report.totalSupply<=0||Math.abs(scaledSupply/report.totalSupply-1)>1e-9)conflict=true;
+  if(!conflict&&largest.every(address=>balances.has(address))&&x!==null&&x>0n&&quote!==null&&quote>0n&&q>0n&&supply!==null&&q+x<=supply&&evm.base.balanceRaw===evm.base.reserveRaw&&evm.quote.balanceRaw===evm.quote.reserveRaw){
+   const den=(x+q)*(x+q),impact=Number((den-x*x)*1_000_000_000_000n/den)/1_000_000_000_000;
+   const links=graph.edges.filter(e=>owners.has(e.from)&&owners.has(e.to)).flatMap(e=>e.evidenceIds);
+   result.set('swarm',bounded('swarm',impact,impact,[evm.evidenceId,...holdingIds(largest),...links],`Hypothetical zero-fee constant-product terminal-price scenario for the largest documented current-holder group (${largest.length} addresses). Same-finalized-block balance ${q} raw token units against ${x} raw token reserves at ${evm.blockRef}, ${evm.observedAt}. Formula 1 - x²/(x+q)². Token transfers, sellability, fees, routing and arbitrage are not established by reserve reads. This is a risk scenario, not an executable sale quote.`));
   }
  }
  return ids.map(id=>result.get(id)!);

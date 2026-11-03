@@ -58,6 +58,9 @@ export async function scanToken(chain: Chain, token: string, options: {mode?: 'd
   const security =
     payload?.code === 1 ? payload.result?.[token.toLowerCase()] || null : null;
   const count = security?.holder_count;
+  const reportedHolders=normalizeHolders(security?.holders);
+  const indexedCount=parseCount(count);
+  const inconsistentHolders=indexedCount===0&&(reportedHolders.length>0||(parseCount(security?.creator_balance)??0)>0||(parseCount(security?.owner_balance)??0)>0);
   const totalSupply=parseCount(security?.total_supply);
   const securityAt = cache.get(securityUrl)?.fetchedAt || new Date().toISOString();
   const identities: NonNullable<Report['identities']> = [];
@@ -75,8 +78,8 @@ export async function scanToken(chain: Chain, token: string, options: {mode?: 'd
       market?.baseToken.symbol || String(security?.token_symbol || "TOKEN"),
     fetchedAt: new Date().toISOString(),
     market,
-    holders: normalizeHolders(security?.holders),
-    holderCount: parseCount(count),
+    holders: reportedHolders,
+    holderCount: inconsistentHolders?null:indexedCount,
     totalSupply:totalSupply!==null&&totalSupply>0?totalSupply:null,
     checks: analyzeSecurity(security).map(check => ({...check, source: "GoPlus Security", fetchedAt: security ? securityAt : undefined})),
     identities,
@@ -102,7 +105,7 @@ export async function scanToken(chain: Chain, token: string, options: {mode?: 'd
         detail: !chainInfo.id
           ? "This GoPlus EVM endpoint does not cover Solana. See the direct Solana RPC sources for mint and freeze authority checks."
           : security
-            ? "Provider-reported contract flags and top holders; this is not an independent audit."
+            ? `Provider-reported contract flags and top holders; this is not an independent audit.${inconsistentHolders?' Holder count is inconsistent with reported positive balances; zero is withheld pending independent verification.':''}`
             : options.mode === 'market' ? 'Security refresh was not requested.' : "Security data not returned. Checks remain unknown.",
       },
     ],

@@ -7,6 +7,17 @@ export function getDisplayAssessment(report: InvestigationReport): Investigation
  const inv=report.investigation;
  if(!report.providerAnalysis){
   const rating=trustRating(report);
+  // A verified hard stop outranks the narrower observed-scope model. Otherwise,
+  // promote only a strict model winner proven across every unresolved bound.
+  // Neither missing evidence nor a cached/provider verdict is a stop rule.
+  if(rating.decision==='AVOID'&&rating.hard?.length){
+   return {status:'critical',title:'Avoid',summary:rating.hard.join(' ')};
+  }
+  if(rating.coreVerified&&rating.judge?.decision==='AVOID'&&rating.judge.modelDecision==='AVOID'&&rating.judge.ranges){
+   return {status:'critical',title:'Avoid',summary:rating.judge.confidence===null
+    ?'The independent decision model selects AVOID throughout the modeled input range. Some inputs remain unresolved, so no single confidence percentage is reported.'
+    :'The independent decision model selects AVOID for the evaluated evidence. Inspect the measurements and rules behind this decision.'};
+  }
   const observed=observedDecision(report,rating);
   if(observed?.judge.p){
    const decision=observed.judge.decision;

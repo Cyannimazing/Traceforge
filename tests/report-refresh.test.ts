@@ -11,6 +11,22 @@ const wallet=(address:string,share:number|null,balance?:number):InvestigatedWall
 function report():InvestigationReport {const r=structuredClone(fixtureReport);r.fixture=false;r.sources=[{name:'Bitquery Holders',status:'available',detail:'Snapshot',fetchedAt:r.fetchedAt},{name:'Bitquery Recent trades',status:'available',detail:'Historical sample',fetchedAt:r.fetchedAt}];return r;}
 function fresh(old:InvestigationReport):InvestigationReport {const r=structuredClone(old);r.fetchedAt=at;r.holders=[];r.investigation.wallets=[];r.investigation.evidence=[];r.investigation.timeline=[];r.investigation.relationships=[];r.investigation.findings=[];r.sources=[{name:'Bitquery Holders',status:'available',detail:'Fresh snapshot',fetchedAt:at}];return r;}
 
+test('holder refresh carries reserve results and preserves older results only when no new result was requested',()=>{
+ const old=report();old.poolReserves={status:'unknown',reasons:['Earlier Solana attempt']};old.evmPoolReserves={status:'unknown',reasons:['Earlier EVM attempt']};
+ const absent=fresh(old);delete absent.poolReserves;delete absent.evmPoolReserves;
+ const retained=mergeReportRefresh(old,absent,'holders');assert.deepEqual(retained.poolReserves,old.poolReserves);assert.deepEqual(retained.evmPoolReserves,old.evmPoolReserves);
+ const next=fresh(old);next.poolReserves={status:'unknown',reasons:['Current Solana failure']};next.evmPoolReserves={status:'unknown',reasons:['Current EVM failure']};
+ const replaced=mergeReportRefresh(old,next,'holders');assert.deepEqual(replaced.poolReserves,next.poolReserves);assert.deepEqual(replaced.evmPoolReserves,next.evmPoolReserves);
+});
+
+test('available security flags without holder rows cannot erase the last successful BSC balance snapshot',()=>{
+ const old=report();old.chain='bsc';old.sources=[{name:'BSC RPC finalized holder balances',status:'available',fetchedAt:old.fetchedAt,detail:'Finalized balances'}];
+ const next=fresh(old);next.sources=[{name:'GoPlus Security',status:'available',fetchedAt:at,detail:'Contract flags only; holders absent'},{name:'BSC RPC finalized holder balances',status:'unavailable',detail:'RPC temporarily unavailable'}];next.holderCount=null;
+ for(const merge of [(a:InvestigationReport,b:InvestigationReport)=>mergeReportRefresh(a,b,'holders'),mergeDeepReport]){
+  const result=merge(old,next);assert.deepEqual(result.holders,old.holders);assert(result.investigation.coverage.reasons.some(r=>r.startsWith('Holder snapshot is stale:')));
+ }
+});
+
 test('holder and deep merges recompute metrics and categorical verdict from the resulting evidence',()=>{
  const old=report();old.chain='solana';old.holders=[{address:'holder',share:3,contract:false,locked:null,tag:''}];old.investigation.wallets=[wallet('holder',3)];old.investigation.findings=[];old.investigation.evidence=[];old.investigation.coverage.reasons=[];
  old.checks=['solana_mint_authority','solana_freeze_authority'].map(key=>({key,title:key,status:'clear',value:'Revoked',description:'',source:'Solana RPC authorities',fetchedAt:old.fetchedAt}));
@@ -95,9 +111,9 @@ test('refresh ignores another chain or case-distinct Solana token',()=>{
  const old=report(),next=fresh(old);next.chain='base';assert.equal(mergeReportRefresh(old,next,'holders'),old);
  old.chain='solana';old.token='AbCase';next.chain='solana';next.token='abCase';assert.equal(mergeReportRefresh(old,next,'holders'),old);
 });
-test('successful empty GoPlus snapshot clears prior shares without inventing zero balances',()=>{
+test('empty GoPlus security data alone cannot establish that all previous holders disappeared',()=>{
  const old=report(),next=fresh(old);next.sources=[{name:'GoPlus Security',status:'available',detail:'Empty holder sample',fetchedAt:at},{name:'Bitquery Holders',status:'unavailable',detail:'Unavailable'}];
- const result=mergeReportRefresh(old,next,'holders');assert(result.investigation.wallets.every(w=>w.share===null&&w.balance===undefined));assert.equal(result.holders.length,0);assert(!result.investigation.coverage.reasons.some(r=>r.startsWith('Holder snapshot is stale:')));
+ const result=mergeReportRefresh(old,next,'holders');assert.deepEqual(result.holders,old.holders);assert(result.investigation.coverage.reasons.some(r=>r.startsWith('Holder snapshot is stale:')));
 });
 test('EVM address case differences update the same wallet and exact zero remains zero',()=>{
  const old=report();old.investigation.wallets=[wallet('0xAbC',3,9)];const next=fresh(old);next.investigation.wallets=[wallet('0xabc',0,0)];

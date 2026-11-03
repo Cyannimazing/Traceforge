@@ -126,9 +126,10 @@ export default function ReportOverview({ report, selection, onSelect, onInspect,
   const reasons = breakdown.risks.filter(finding=>!finding.id.startsWith('funder:'));
   const fundingPatterns = breakdown.risks.filter(finding=>finding.id.startsWith('funder:'));
   const rating=useMemo(()=>trustRating(report),[report]);
-  const observed=useMemo(()=>observedDecision(report,rating),[report,rating]);
-  const decision = agentReview?.decision||observed?.judge.decision||rating.decision;
-  const simpleReason=agentReview?.summary||rating.hard?.[0]||rating.soft?.[0]||(observed?.judge.p?decision==='OK'?'No stop rule was triggered in the observed activity.':'The observed activity raised warning signs.':rating.score===null?'Some wallet checks are incomplete.':rating.decision==='CLEAN'||rating.decision==='OK'?'No major warning found in the completed checks.':'The completed checks found warning signs.');
+  const observedResult=useMemo(()=>observedDecision(report,rating),[report,rating]);
+  const decision = assessment.status==='critical'?'AVOID':agentReview?.decision||observedResult?.judge.decision||rating.decision;
+  const observed=observedResult?.judge.decision===decision?observedResult:null;
+  const simpleReason=rating.hard?.[0]||(assessment.status==='critical'?assessment.summary:agentReview?.summary)||rating.soft?.[0]||(observed?.judge.p?decision==='OK'?'No stop rule was triggered in the observed activity.':'The observed activity raised warning signs.':rating.score===null?'Some wallet checks are incomplete.':rating.decision==='CLEAN'||rating.decision==='OK'?'No major warning found in the completed checks.':'The completed checks found warning signs.');
   const scoreText=rating.score!==null?String(rating.score):'Unavailable';
   const points=(n:number)=>Number(n.toFixed(1)).toLocaleString();
   const confidencePercent=observed?.judge.confidence==null?null:Math.round(observed.judge.confidence*1000)/10;
@@ -142,6 +143,7 @@ export default function ReportOverview({ report, selection, onSelect, onInspect,
    why.push({title:'Large-sale model',detail:`A hypothetical sale by the largest group moves the raw pool price ${(observed.impact*100).toFixed(1)}% in the model, before fees or token restrictions. This is not a verified trade quote.`});
    why.push({title:'Wallet activity checked',detail:`Fresh-wallet exposure is ${(factor('fresh').value*100).toFixed(1)}% among ${observed.scope.readableFreshWallets} readable non-creator wallets; ${observed.scope.unreadFreshWallets} unread wallets are excluded. Early-buyer findings use retrieved records, not complete launch history.`});
   }else{
+   if(largestHolding?.status==='observed'&&largestHolding.value!==null)why.push({title:'Large holder balance',detail:`The largest returned holder holds ${largestHolding.value.toFixed(2)}% of supply after excluding verified infrastructure. The balance is source-attributed in this report.`});
    if(unresolved.has('fresh'))why.push({title:'Some holder histories are unread',detail:'Lifetime activity has not been verified for every current holder, so the fresh-wallet check is incomplete.'});
    if(unresolved.has('insiders')||unresolved.has('snipers'))why.push({title:'Early buying is unverified',detail:'The retrieved records do not cover the complete launch. First-minute buyers and pre-trading transfers are still unresolved.'});
    if(unresolved.has('dev'))why.push({title:'Creator funding is not fully traced',detail:'The complete funding trail is missing, so the total held by the creator and creator-funded wallets cannot be confirmed.'});
@@ -153,8 +155,8 @@ export default function ReportOverview({ report, selection, onSelect, onInspect,
 
   return <section ref={root} className="report-overview" aria-label="Wallet network and assessment" data-paused={!animate}>
     <div className={`ro-assessment ro-status-${decision==='AVOID'?'critical':decision==='OK'||decision==='CLEAN'?'clear':'caution'}`}>
-      <header className="ro-verdict-heading"><h2>Verdict</h2><span className="ro-coverage">{observed?.judge.p?'Observed activity':inv.coverage.status === 'complete' ? 'Checks complete' : inv.coverage.status === 'partial' ? 'Incomplete checks' : 'Evidence unavailable'}</span></header>
-      <div className="ro-rating"><strong className="ro-decision">{decision}</strong><div className="ro-evidence-confidence" aria-label={confidencePercent===null?'Model confidence unavailable':`Model confidence: ${confidencePercent}%`}><span>Model confidence</span><strong>{confidencePercent===null?'Unavailable':<>{confidencePercent.toLocaleString(undefined,{maximumFractionDigits:1})}<small>%</small></>}</strong></div></div>
+      <header className="ro-verdict-heading"><h2>Verdict</h2><span className="ro-coverage">{rating.hard?.length?'Stop rule triggered':observed?.judge.p?'Observed activity':inv.coverage.status === 'complete' ? 'Checks complete' : inv.coverage.status === 'partial' ? 'Incomplete checks' : 'Evidence unavailable'}</span></header>
+      <div className="ro-rating"><strong className="ro-decision">{decision}</strong>{decision==='AVOID'&&confidencePercent===null?<div className="ro-rule-basis"><span>Decision basis</span><strong>{rating.hard?.length?'Stop rule triggered':'Severe measured risks'}</strong></div>:<div className="ro-evidence-confidence" aria-label={confidencePercent===null?'Model confidence unavailable':`Model confidence: ${confidencePercent}%`}><span>Model confidence</span><strong>{confidencePercent===null?'Unavailable':<>{confidencePercent.toLocaleString(undefined,{maximumFractionDigits:1})}<small>%</small></>}</strong></div>}</div>
       <p className="ro-simple-reason">{simpleReason}</p>
       {why.length>0&&<section className="ro-plain-reasons" aria-label={`Why ${decision.toLowerCase()}?`}><h3>Why {decision.toLowerCase()}?</h3><ul>{why.map((reason,index)=><li key={`${reason.title}:${index}`}><strong>{reason.title}</strong><p>{reason.detail}</p></li>)}</ul></section>}
       <details className="ro-analysis-details"><summary>Analysis details</summary><div className="ro-analysis-body">

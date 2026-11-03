@@ -20,7 +20,7 @@ export function agentEvidenceContext(report:InvestigationReport){
  const sourceCurrent=report.sources.some(s=>s.name===controlSource&&s.status==='available'&&fresh(s.fetchedAt));
  const qualifiedControls=report.checks.filter(c=>!report.providerAnalysis&&!stale.controls&&sourceCurrent&&c.source===controlSource&&fresh(c.fetchedAt));
  const unresolved=required.filter(key=>!qualifiedControls.some(c=>c.key===key&&c.status!=='unknown')||qualifiedControls.some(c=>c.key===key&&c.status==='unknown'));
- const holderSourceNames=report.chain==='solana'?['Solana RPC Holders']:['Blockscout Holders','GoPlus Security'];
+ const holderSourceNames=report.chain==='solana'?['Solana RPC Holders']:['Blockscout Holders','GoPlus Security','BSC RPC finalized holder balances'];
  const holderSource=report.sources.some(s=>holderSourceNames.includes(s.name)&&s.status==='available'&&fresh(s.fetchedAt));
  const holderShares=new Map<string,number>();let invalidHolders=false;
  for(const h of report.holders){

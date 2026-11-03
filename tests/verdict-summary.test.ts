@@ -4,6 +4,8 @@ import { fixtureReport } from '../src/lib/investigation-fixture';
 import { getDisplayAssessment } from '../src/lib/verdict-summary';
 import {normalizeSwarmReport} from '../src/lib/swarm';
 import {bridgeSwarmReport} from '../src/lib/swarm-bridge';
+import {trustRating} from '../src/lib/trust-rating';
+import type {InvestigationReport} from '../src/lib/investigation-types';
 
 function report() {
   const value=structuredClone(fixtureReport);
@@ -85,4 +87,45 @@ test('passing controls alone do not establish distribution or wallet activity',(
 
 test('a passing subset and no holder snapshot cannot claim no flags',()=>{
  const value=report();value.chain='solana';value.checks=[{key:'solana_mint_authority',title:'Mint',status:'clear',value:'Revoked',description:''}];assert.equal(getDisplayAssessment(value).status,'caution');
+});
+
+/** One current holder owns the non-pool float; launch evidence is positive but incomplete. */
+function adverseReport():InvestigationReport {
+ const at='2026-11-03T06:00:00Z',launch='2026-11-01T06:00:00Z';
+ const r:InvestigationReport={chain:'solana',token:'mint',name:'Adverse test',symbol:'TEST',fetchedAt:at,market:null,holderCount:2,totalSupply:100,
+  checks:['solana_mint_authority','solana_freeze_authority','solana_extensions'].map(key=>({key,title:key,status:'clear',value:'Checked',description:'',source:'Solana RPC authorities',fetchedAt:at})),
+  sources:['Solana RPC Holders','Solana RPC authorities'].map(name=>({name,status:'available',fetchedAt:at,detail:''})),
+  holders:[{address:'owner',share:25,contract:false,locked:null,tag:''},{address:'pool',share:75,contract:true,locked:null,tag:''}],
+  investigation:{wallets:[{address:'owner',share:25,categories:['creator','sniper'],evidenceIds:['identity:creator:owner','buy']},{address:'pool',share:75,categories:['pool'],evidenceIds:['label:pool:pool']}],
+   evidence:[{id:'identity:creator:owner',kind:'authority',transaction:'creation',timestamp:launch,source:'RPC',description:'Creator'},
+    {id:'label:pool:pool',kind:'label',timestamp:at,source:'RPC',description:'Pool'},
+    {id:'buy',kind:'trade',transaction:'buy',token:'mint',amount:1,timestamp:'2026-11-01T06:00:30Z',source:'RPC',description:'Buy'},
+    {id:'early',kind:'transfer',transaction:'early',from:'external',to:'owner',token:'mint',amount:1,timestamp:'2026-11-01T05:59:00Z',source:'RPC',description:'Prelaunch receipt'}],
+   relationships:[],timeline:[{id:'buy',timestamp:'2026-11-01T06:00:30Z',kind:'buy',wallet:'owner',evidenceId:'buy'}],findings:[],assessment:{status:'insufficient',title:'Incomplete',summary:'History partial'},
+   coverage:{status:'partial',launchVerified:true,earliestTradeAt:launch,truncated:true,holderLimit:100,buyerLimit:100,fundingHops:1,source:'RPC',fetchedAt:at,reasons:['Remaining history not retrieved']}},
+  walletActivity:{source:'Solana RPC wallet activity',observedAt:at,truncated:false,wallets:[{address:'owner',count:11,exact:false,fresh:false,basis:'solana-address-signatures',reason:''}]},
+  solana:{authorities:{mint:{},freeze:{}},extensions:[],snapshot:{commitment:'finalized',selectedTokenAccounts:1,unresolvedTokenAccounts:0,fetchedAt:at},tokenAccounts:[{address:'account',owner:'owner',mint:'mint',amountRaw:'25000',decimals:3,slot:1,timestamp:at,state:'initialized',extensions:[]}]},
+  poolReserves:{status:'verified',reasons:[],snapshot:{protocol:'pumpswap',pool:'pool',program:'program',base:{mint:'mint',vault:'base',amountRaw:'75000',decimals:3,tokenProgram:'spl',mintExtensions:[],vaultExtensions:[]},quote:{mint:'quote',vault:'quote',amountRaw:'100000',decimals:3,tokenProgram:'spl',mintExtensions:[],vaultExtensions:[]},slot:1,observedAt:at,commitment:'finalized',source:'RPC reserve',blockRef:'slot1',evidenceId:'reserves',virtualQuoteReservesRaw:'0',effectiveQuoteAmountRaw:'100000',protocolFeesRaw:'0',creatorFeesRaw:'0',creatorFeeBpsRaw:'0',constantProductEligible:true,feeBps:null,feeAssumption:'Fees unverified',limitations:[]}}};
+ return r;
+}
+
+test('proven adverse model decision remains AVOID despite incomplete history and unknown confidence',()=>{
+ const r=adverseReport(),rating=trustRating(r);
+ assert.equal(rating.coreVerified,true);assert.deepEqual(rating.hard,[]);
+ assert.equal(rating.decision,'CAUTION');assert.equal(rating.judge?.modelDecision,'AVOID');assert.equal(rating.judge?.decision,'AVOID');assert.equal(rating.judge?.confidence,null);
+ const result=getDisplayAssessment(r);assert.equal(result.status,'critical');assert.equal(result.title,'Avoid');
+ assert.match(result.summary,/modeled input range/);assert.doesNotMatch(result.summary,/\d+(?:\.\d+)?%/);
+});
+
+test('unresolved model winner and unavailable core evidence do not manufacture AVOID',()=>{
+ const r=adverseReport();r.poolReserves=undefined;
+ assert.equal(trustRating(r).judge?.modelDecision,null);assert.equal(getDisplayAssessment(r).status,'caution');
+ const unavailable=adverseReport();unavailable.checks.forEach(c=>{c.source='Unverified';});
+ assert.equal(trustRating(unavailable).coreVerified,false);assert.equal(getDisplayAssessment(unavailable).status,'caution');
+});
+
+test('source-qualified critical controls retain their reason ahead of the statistical model',()=>{
+ const r=adverseReport();r.checks[1].status='critical';r.checks[1].value='Active';
+ const rating=trustRating(r),result=getDisplayAssessment(r);assert(rating.hard?.length);
+ assert.equal(result.status,'critical');assert.equal(result.summary,rating.hard!.join(' '));assert.doesNotMatch(result.summary,/\d+(?:\.\d+)?%/);
 });

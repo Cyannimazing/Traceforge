@@ -15,6 +15,8 @@ import type {PublicHistoryOptions,PublicHistoryResult} from './public-history';
 import {createSearchCoordinator} from './search-coordinator';
 import {createSnapshotEnrichment} from './snapshot-enrichment';
 import {ReportCache} from './report-cache';
+import {createBscHolderFallback} from './bsc-holder-fallback';
+import {createEvmPoolReserves} from './evm-pool-reserves';
 import {resolve} from 'node:path';
 
 const reportCacheScope=globalThis as typeof globalThis&{traceforgeReportCache?:ReportCache};
@@ -44,7 +46,9 @@ async function extendedSolanaHistory(options:PublicHistoryOptions):Promise<Publi
 export const independentInvestigationService = createInvestigationService({
   persistentCache:{get:(chain,token,limit)=>savedReports().get(chain,token,limit),set:(chain,token,limit,entry)=>savedReports().set(chain,token,limit,entry)},
   publicScan: scanToken,
-  enrichSnapshot:createSnapshotEnrichment({rpcUrls:{...rpcUrls,solana:process.env.SOLANA_RPC_URL,bsc:process.env.BSC_RPC_URL}}),
+  bscHolders:createBscHolderFallback({rpcUrl:process.env.BSC_RPC_URL}),
+  evmPoolReserves:(chain,pool,token,options)=>createEvmPoolReserves({rpcUrl:chain==='bsc'?process.env.BSC_RPC_URL:rpcUrls[chain]})(chain,pool,token,options),
+  enrichSnapshot:createSnapshotEnrichment({rpcUrls:{...rpcUrls,solana:process.env.SOLANA_RPC_URL,bsc:process.env.BSC_RPC_URL||'https://bsc-rpc.publicnode.com'}}),
   poolReserves:createSolanaPoolReserves({rpcUrl:process.env.SOLANA_RPC_URL}),
   resolveClock:createEvidenceClock(),
   publicHistory:(chain,token,options)=>publicHistory(chain,token,{...options,skipFunding:(chain==='ethereum'||chain==='base')&&!!rpcUrls[chain]}),

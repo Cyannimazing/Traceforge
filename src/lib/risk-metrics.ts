@@ -21,7 +21,7 @@ export function computeRiskMetrics(report:InvestigationReport,options:{poolScena
  const snapshotDate=(at:string)=>Number.isFinite(Date.parse(report.fetchedAt))&&Number.isFinite(Date.parse(at))&&Date.parse(at)<=Date.parse(report.fetchedAt)+120_000;
  const independent=(e:Evidence)=>e.attribution!=='provider-reported'&&!!e.source.trim()&&(e.kind==='holding'||e.kind==='label'?snapshotDate(e.timestamp):validDate(e.timestamp));
  const evidence=new Map(report.investigation.evidence.filter(independent).map(e=>[e.id,e]));
- const holderSourceNames=report.chain==='solana'?['Solana RPC Holders']:['Blockscout Holders','GoPlus Security'];
+ const holderSourceNames=report.chain==='solana'?['Solana RPC Holders']:['Blockscout Holders','GoPlus Security','BSC RPC finalized holder balances'];
  const holdingsSources=report.sources.filter(s=>s.status==='available'&&snapshotDate(s.fetchedAt||'')&&holderSourceNames.includes(s.name));
  const holdings=new Map<string,{wallet:InvestigatedWallet;share:number;ids:string[];sources:string[]}>();
  let invalid=false;const snapshotShares=new Map<string,number>();

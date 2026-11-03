@@ -3,11 +3,44 @@ import assert from 'node:assert/strict';
 import type {InvestigationReport,WalletCategory} from '../src/lib/investigation-types';
 import type {WalletActivitySnapshot} from '../src/lib/wallet-activity';
 import {buildScoringInputs} from '../src/lib/scoring-inputs';
+import {trustRating} from '../src/lib/trust-rating';
+import {mergeReportRefresh} from '../src/lib/report-refresh';
+import type {EvmPoolReserveSnapshot} from '../src/lib/evm-pool-reserves';
 const at='2026-11-03T06:00:00Z',launch='2026-11-01T06:00:00Z';
 function report():InvestigationReport&{walletActivity?:WalletActivitySnapshot}{return {chain:'solana',token:'mint',name:'',symbol:'',fetchedAt:at,market:null,holderCount:null,totalSupply:100,checks:[],sources:[{name:'Solana RPC Holders',status:'available',fetchedAt:at,detail:''}],holders:[],investigation:{wallets:[],evidence:[],relationships:[],timeline:[],findings:[],assessment:{status:'clear',title:'',summary:''},coverage:{status:'partial',launchVerified:false,truncated:true,holderLimit:100,buyerLimit:100,fundingHops:1,source:'RPC',fetchedAt:at,reasons:[]}}};}
 function holder(r:ReturnType<typeof report>,address:string,share:number,categories:WalletCategory[]=[]){r.holders.push({address,share,contract:false,locked:null,tag:''});r.investigation.wallets.push({address,share,balance:share,categories,evidenceIds:[]});}
 function transfer(r:ReturnType<typeof report>,id:string,from:string,to:string,token='SOL',timestamp=at){r.investigation.evidence.push({id,kind:'transfer',transaction:id,from,to,token,amount:1,timestamp,source:'RPC',description:'Observed transfer'});r.investigation.relationships.push({id,from,to,kind:token==='SOL'?'funding':'transfer',evidenceIds:[id],description:''});}
 function factor(r:ReturnType<typeof report>,id:string){return buildScoringInputs(r).find(f=>f.id===id)!;}
+
+function evmScenario(){
+ const r=report(),token='0x'+'1'.repeat(40),pool='0x'+'2'.repeat(40),owner='0x'+'3'.repeat(40),quote='0x'+'4'.repeat(40),factory='0xca143ce32fe78f1f7019d7d551a6402fc5350c73';
+ r.chain='bsc';r.token=token;r.totalSupply=1000;r.sources=[{name:'BSC RPC finalized holder balances',status:'available',fetchedAt:at,detail:''},{name:'DEX Screener',status:'available',fetchedAt:at,detail:''},{name:'EVM RPC finalized V2 reserves',status:'available',fetchedAt:at,detail:''}];
+ r.market={chainId:'bsc',pairAddress:pool,baseToken:{address:token}};holder(r,owner,88);holder(r,pool,1,['pool']);
+ const snapshot:EvmPoolReserveSnapshot={chain:'bsc',protocol:'pancakeswap-v2',token,pool,factory,base:{address:token,reserveRaw:'10',balanceRaw:'10',decimals:0},quote:{address:quote,reserveRaw:'100',balanceRaw:'100',decimals:0},totalSupplyRaw:'1000',holders:[{address:owner,status:'observed',balanceRaw:'880'}],holdersTruncated:false,blockNumber:10,blockHash:'0x'+'a'.repeat(64),blockTimestamp:at,blockRef:'bsc:10:0x'+'a'.repeat(64),observedAt:at,finality:'finalized',source:'EVM RPC finalized V2 reserves',evidenceId:'evm:pool:10',constantProductEligible:true,feeBps:null,limitations:[]};
+ r.evmPoolReserves={status:'verified',snapshot,reasons:[]};r.investigation.evidence.push({id:snapshot.evidenceId,kind:'label',timestamp:at,source:snapshot.source,description:'Finalized reserves and exact holder balances'});return r;
+}
+test('verified EVM reserves and same-block holder balance trigger sell-impact AVOID despite unknown history',()=>{
+ const r=evmScenario(),f=factor(r,'swarm');assert(f.lower>.99);assert.equal(f.lower,f.upper);assert.equal(trustRating(r).decision,'AVOID');assert.equal(trustRating(r).score,null);assert.match(f.detail,/scenario|hypothetical/i);
+});
+test('EVM impact rejects stale, mismatched, conflicting and unsupported reserve evidence',()=>{
+ for(const invalid of ['stale','pool','token','balance','source','reserve','factory','supply','chain','failed-holder','stale-block','future-block','reserve-supply']){
+  const r=evmScenario(),s=r.evmPoolReserves!.snapshot!;
+  if(invalid==='stale')s.observedAt='2026-11-02T00:00:00Z';
+  if(invalid==='pool')s.pool='0x'+'5'.repeat(40);
+  if(invalid==='token')s.base.address='0x'+'5'.repeat(40);
+  if(invalid==='balance')s.holders[0].balanceRaw='700';
+  if(invalid==='source')r.sources=r.sources.filter(source=>source.name!==s.source);
+  if(invalid==='reserve')s.base.balanceRaw='20';
+  if(invalid==='factory')s.factory='0x'+'5'.repeat(40);
+  if(invalid==='supply')s.totalSupplyRaw='2000';
+  if(invalid==='chain')s.chain='ethereum';
+  if(invalid==='failed-holder')s.holders[0].status='unknown';
+  if(invalid==='stale-block')s.blockTimestamp='2026-11-02T00:00:00Z';
+  if(invalid==='future-block')s.blockTimestamp='2026-11-03T06:03:00Z';
+  if(invalid==='reserve-supply'){s.base.balanceRaw='200';s.base.reserveRaw='200';}
+  assert.equal(factor(r,'swarm').value,null,invalid);assert.notEqual(trustRating(r).decision,'AVOID',invalid);
+ }
+});
 
 test('six factors have bounded unknowns instead of treating absent observations as clean zeros',()=>{const r=report(),values=buildScoringInputs(r);assert.deepEqual(values.map(v=>v.id),['swarm','fresh','insiders','concentration','snipers','dev']);for(const v of values){assert.equal(v.value,null);assert.equal(v.lower,0);assert.equal(v.upper,1);}});
 
@@ -70,4 +103,28 @@ test('refreshed current activity uses report snapshot time while history keeps i
 test('floating-point supply dust cannot mark a measurement exact with unequal bounds',()=>{
  const r=report();holder(r,'a',99.99999999999999);
  const f=factor(r,'concentration');assert.notEqual(f.value,null);assert.equal(f.value,f.lower);assert.equal(f.value,f.upper);
+});
+
+test('five-minute holder refresh retains its new reserve proof without moving the historical evidence clock',()=>{
+ const old=evmScenario(),next=structuredClone(old),updated='2026-11-03T06:05:00Z';
+ old.investigation.timeline=[{id:'old-buy',timestamp:launch,kind:'buy',wallet:old.holders[0].address,evidenceId:'old-buy'}];
+ next.fetchedAt=updated;next.investigation.coverage.fetchedAt=updated;next.sources.forEach(source=>{source.fetchedAt=updated;});
+ const pool=next.evmPoolReserves!.snapshot!;pool.observedAt=updated;pool.blockTimestamp=updated;pool.blockNumber=11;pool.blockHash='0x'+'b'.repeat(64);pool.blockRef=`bsc:11:${pool.blockHash}`;pool.evidenceId='evm:pool:11';
+ next.investigation.evidence=[{id:pool.evidenceId,kind:'label',timestamp:updated,source:pool.source,description:'Refreshed finalized reserves'}];
+ const merged=mergeReportRefresh(old,next,'holders');
+ assert.equal(merged.investigation.coverage.fetchedAt,at);assert.equal(merged.fetchedAt,updated);
+ assert.equal(merged.evmPoolReserves!.snapshot!.blockNumber,11);
+ assert(factor(merged,'swarm').lower>.99);assert.equal(trustRating(merged).decision,'AVOID');
+ // Current snapshots may advance independently, but a transfer beyond the
+ // historical capture must not become a newly established creator connection.
+ const creator='0x'+'9'.repeat(40),identity=`identity:creator:${creator}`;
+ merged.investigation.wallets.push({address:creator,share:null,categories:['creator'],evidenceIds:[identity]});
+ merged.investigation.evidence.push({id:identity,kind:'authority',transaction:'creation',timestamp:launch,source:'RPC',description:'Creator'});
+ transfer(merged,'future-funding',creator,merged.holders[0].address,'BNB',updated);
+ merged.investigation.relationships.at(-1)!.kind='funding';
+ assert.equal(factor(merged,'insiders').lower,0);
+ merged.investigation.evidence.find(e=>e.id==='future-funding')!.timestamp=at;
+ assert(factor(merged,'insiders').lower>.88,'the same receipt becomes usable within the historical capture');
+ pool.observedAt='2026-11-03T06:08:00Z';merged.evmPoolReserves!.snapshot!.observedAt=pool.observedAt;
+ assert.equal(factor(merged,'swarm').value,null,'future reserve snapshots remain rejected');
 });
