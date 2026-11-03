@@ -10,7 +10,7 @@ export async function GET(request:Request) {
     return NextResponse.json(
       {
         error:
-          "Recent token profiles are unavailable. You can still scan an address.",
+          "Recent token profiles and network pools are unavailable. You can still scan an address.",
         refreshAfterMs:retryAfterMs,
       },
       { status: error instanceof DiscoveryUnavailable&&error.rateLimited?429:502,headers:{'Cache-Control':'no-store','Retry-After':String(Math.ceil(retryAfterMs/1000))} },
