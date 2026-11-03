@@ -4,7 +4,7 @@ import {useEffect,useId,useMemo,useRef,useState} from 'react';
 import {gsap} from 'gsap';
 import {ArrowUpRight,Crosshair,Radio} from 'lucide-react';
 import {CHAINS,formatMoney,short,type Chain} from '@/lib/analysis';
-import {discoveryLayout,focusDiscoveryContact} from '@/lib/discovery-layout';
+import {discoveryLayout} from '@/lib/discovery-layout';
 import type {DiscoveryProfile} from './discovery-radar';
 import './discovery-instrument.css';
 
@@ -24,7 +24,6 @@ export default function DiscoveryInstrument({profiles,active,loading,animate,now
  const points=useMemo(()=>discoveryLayout(profiles.map(profileId)),[profiles]);
  const byId=useMemo(()=>new Map(profiles.map(p=>[profileId(p),p])),[profiles]);
  const selectedId=active?profileId(active):null;
- const focusedPoints=useMemo(()=>focusDiscoveryContact(points,selectedId),[points,selectedId]);
  const pointKey=points.map(p=>p.id).join('|');
  const running=animate&&visible&&documentVisible&&!reduced;
  const mix=networks.map(chain=>({chain,count:profiles.filter(p=>p.chain===chain).length}));
@@ -61,21 +60,12 @@ export default function DiscoveryInstrument({profiles,active,loading,animate,now
  },[running,pointKey]);
 
  useEffect(()=>{
-  if(!surface.current)return;
-  const targets=new Map(focusedPoints.map(p=>[p.id,p]));
-  const tweens=Array.from(surface.current.querySelectorAll<SVGGElement>('[data-di-id]')).flatMap(contact=>{
-   const target=targets.get(contact.dataset.diId!);
-   return target?[gsap.to(contact,{attr:{transform:`translate(${precision(target.x)} ${precision(target.y)})`},duration:running?.65:0,ease:'power3.out',overwrite:'auto'})]:[];
-  });
-  // Keep the current position on rapid reselection instead of snapping back.
-  return()=>tweens.forEach(tween=>tween.kill());
- },[focusedPoints,running]);
-
- useEffect(()=>{
   if(!running||!root.current)return;
   const context=gsap.context(()=>{
    const brackets=root.current!.querySelector('.di-contact.is-selected .di-target-brackets');
-   if(brackets)gsap.fromTo(brackets,{opacity:.3,scale:1.15},{opacity:1,scale:1,transformOrigin:'50% 50%',duration:.4,ease:'power3.out'});
+   // Both the dot and brackets share local (0, 0). Animate opacity only:
+   // SVG scale/origin conversion can leave a translated matrix on this path.
+   if(brackets)gsap.fromTo(brackets,{opacity:.3},{opacity:1,duration:.4,ease:'power3.out'});
    const meters=root.current!.querySelectorAll('.di-meter-fill');
    if(meters.length)gsap.fromTo(meters,{scaleX:.12},{scaleX:1,transformOrigin:'left center',duration:.55,stagger:.045,ease:'power3.out'});
   },root);
