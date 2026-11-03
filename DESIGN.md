@@ -8,9 +8,9 @@ The home at `/` contains only the investigation workspace and its source strip, 
 
 Black/charcoal only for the home, with neutral text. A single fixed canvas light field replaces particles, stars and duplicate local backgrounds. Its edge strands share one clock. The central input box has a silent, soft 5.2-second border pulse; no waveform or extra padding. Pointer interaction deforms the ribbons within a bounded region. Source paths animate and respond to focus/selection. No gradients, 3D models, insects or motion toggle. Mobile places the token console first and source rows below in two columns.
 
-Discovery: one full-width instrument followed by up to sixteen tokens in a four-column desktop grid. Two columns on phone. Full-card links run real investigations and preserve native modified-click navigation. Filters, keyboard contact selection and pointer/focus selection synchronize the radar, market readouts and cards. Contacts scatter across the full circle, independent of network; distance has no risk or age meaning. A synchronized GSAP beam, expanding rings, bearing-timed contact echoes and selected-contact brackets provide motion. Real network counts, liquidity, price and volume readouts fill the instrument sides; on mobile they sit below the radar.
+Discovery: one full-width instrument followed by up to sixteen tokens in a four-column desktop grid, two columns on tablets and one on narrow phones. Full-card links run real investigations and preserve native modified-click navigation. Filters, keyboard contact selection and pointer/focus selection synchronize the radar, market readouts and cards. Contacts scatter across the full circle, independent of network; distance has no risk or age meaning. A synchronized GSAP beam, expanding rings, bearing-timed contact echoes and selected-contact brackets provide motion. Real network counts, liquidity, price and volume readouts fill the instrument sides; on mobile they sit below the radar. Both side-widget headings align at the top of their shared row.
 
-Reports: token/market context, full-width verdict/reasons, full-width wallet map, holder table, historical tools. Evidence uses the existing drawer. Age is reported launch age at source scan or DEX pair age at retrieval, never guessed token creation.
+Reports: token/market context, verdict/reasons alongside the wallet map on desktop and stacked on small screens, holder records, historical tools. Evidence uses the existing drawer. Age is reported launch age at source scan or DEX pair age at retrieval, never guessed token creation.
 
 ## Visual system
 
@@ -26,7 +26,7 @@ Provider reports remain distinct from independent verification. Verdict reasons 
 
 ## Table geometry
 
-Minimum 1140px, explicit column widths. Two-line timestamps and separate provider label. Wrapped role badges, right-aligned amounts, separate token units. Only the table region scrolls horizontally on narrow screens; page never overflows.
+Desktop holder ledger uses explicit column widths and an 860px minimum inside its own scroll region. At 700px and below, the same filtered and sorted rows become individual cards with wallet/share, wrapped role labels, observed entry, evidence and group actions, and expandable activity. Card sort buttons remain available when the table is hidden. Touch controls are at least 44px; full addresses wrap within expanded details. The hidden representation is not focusable. Report statistics use a two-column mobile grid; very narrow search forms stack the chain picker and scan action.
 
 ## Verification
 
@@ -35,6 +35,8 @@ Desktop/phone renders, real retrieval times, map/card selection, age/source disc
 Home sizing uses a viewport minimum height and compact responsive source rows, ending at the provider trust strip. The separate Verdict explanation notice has been removed. Content can grow for short screens and large text. Discovery and the report feed do not appear below the home scan. The report feed remains available with completed reports, using only completed non-fixture scans stored on this device, with original retrieval times and no synthetic danger alerts. It rotates every seven seconds while visible, pausing on hover, focus, hidden tabs and reduced motion.
 
 On Discovery, the radar and selected-profile area form one bordered panel. Latest pairs uses a separate panel with the same side edges and a 24px gap. Conditional stale-market notices appear above each card's last action row so addresses and Scan actions align at the bottom of each grid row. Card refresh uses opacity only, preserving those baselines throughout the animation. The radar center uses a reticle rather than a numeric profile count, and fixed profile/contact/listing counts are omitted from the display.
+
+Page edges and detached-panel gaps share `--studio-section-gap`: 24px on larger screens, 16px at widths of 760px and below. Discovery has no extra outer margin to double that spacing. Search-only home retains its viewport-height layout.
 
 The home footer includes a looping integrated-source strip; unconfigured services such as Bitquery are omitted, and source availability is not implied. Discovery cards show compact rectangular verdict badges only when an assessment exists. Unscanned cards carry no placeholder verdict. Existing reports may be looked up with two concurrent requests and no automatic scan; successful lookups expire after sixty seconds and misses/errors retry after twenty seconds while visible. A transient failure preserves the previous successful assessment. Provider scores retain attribution and source times.
 

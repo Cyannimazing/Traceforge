@@ -33,3 +33,40 @@
 @media(max-width:700px){.holder-workspace .hw-compact-table .hw-col-rank{width:42px}.holder-workspace .hw-compact-table th:first-child,.holder-workspace .hw-compact-table td:first-child{padding-left:12px}.holder-workspace .hw-compact-table th:nth-child(2),.holder-workspace .hw-compact-table td:nth-child(2){position:sticky;left:42px;z-index:1;background:var(--hw-surface);box-shadow:1px 0 #303030}.holder-workspace .hw-compact-table th:nth-child(2){background:#101010}.holder-workspace .hw-compact-table tbody tr.hw-selected td{background:#202020}.holder-workspace .hw-compact-table tbody tr:hover td{background:#171717}.holder-workspace .hw-compact-table .hw-expanded-row>td{position:static}.hw-wallet-detail{padding:14px 16px}.hw-wallet-detail dl{gap:14px}.holder-workspace .hw-compact-table .hw-wallet{min-width:0}}
 @media(prefers-reduced-motion:reduce){.holder-workspace *{scroll-behavior:auto}}
 .hw-role-menu{background:#101010;border-color:#3a3a3a;color:#eee;scrollbar-color:#555 #101010}.hw-role-menu button{color:#bbb}.hw-role-menu button[data-active=true],.hw-role-menu button[aria-selected=true]{background:#242424;color:#fff}
+
+/* Phone holders use the same filtered rows and controls, without a wide ledger. */
+.hw-mobile-sort,.hw-mobile-cards{display:none}
+@media(max-width:700px){
+ .holder-workspace .hw-table-scroll{display:none}
+ .holder-workspace .hw-heading{flex-wrap:wrap}.holder-workspace .hw-heading h2{white-space:normal}
+ .holder-workspace .hw-search{min-width:0}.holder-workspace .hw-search input{font-size:16px}
+ .holder-workspace .hw-role-picker{flex:1 1 170px}.holder-workspace .hw-role-picker>button{width:100%;max-width:100%;font-size:14px}
+ .hw-mobile-sort{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:0 16px 14px;border-bottom:1px solid var(--hw-line)}
+ .hw-mobile-sort>span{font-size:12px;color:var(--hw-muted);margin-right:2px}
+ .holder-workspace .hw-mobile-sort>button{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:72px;min-height:44px;padding:8px 12px;background:#101010;border:1px solid #353535;border-radius:var(--ui-radius);color:#bcbcbc;font-size:13px}
+ .holder-workspace .hw-mobile-sort>button[aria-pressed=true]{color:#fff;background:#222;border-color:#777}
+ .hw-mobile-sort>small{flex-basis:100%;font-size:11px;color:#aaa}
+ .hw-mobile-cards{display:grid;gap:12px;padding:14px 12px 0;min-width:0}.hw-mobile-cards:empty{display:none}
+ .hw-mobile-card{min-width:0;border:1px solid #333;background:#0d0d0d;border-radius:var(--ui-radius);padding:14px;overflow:hidden}
+ .hw-mobile-card.hw-selected{border-color:#999;background:#151515}
+ .hw-card-header{display:flex;align-items:flex-start;gap:10px;min-width:0}
+ .holder-workspace .hw-card-wallet{display:flex;align-items:center;gap:7px;flex:1;min-width:0;min-height:44px;padding:0;background:none;border:0;color:var(--hw-text);text-align:left}
+ .hw-card-wallet>span:nth-child(2){min-width:0;flex:1}.hw-card-wallet strong{display:block;font:13px/1.5 var(--font-mono,monospace);overflow-wrap:anywhere}
+ .hw-card-wallet small{display:block;margin-top:3px;font:12px/1.4 var(--font-sans);color:#aaa;overflow-wrap:anywhere}
+ .hw-card-wallet>svg{flex-shrink:0;color:#bcbcbc}.hw-card-rank{font:10px var(--font-mono,monospace);color:#999;align-self:flex-start;padding-top:8px}
+ .hw-card-share{flex-shrink:0;max-width:42%;padding-top:2px;text-align:right}.hw-card-share>span{display:block;font:10px/1.4 var(--font-sans);color:#aaa}.hw-card-share>strong{display:block;font:500 16px/1.6 var(--font-mono,monospace);color:#eee;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+ .hw-card-roles{display:flex;flex-wrap:wrap;gap:5px;margin:12px 0 14px;min-width:0}
+ .holder-workspace .hw-card-roles .hw-role{max-width:100%;padding:4px 7px;border:1px solid #393939;background:#1b1b1b;color:#d7d7d7;font-size:11px;line-height:1.5;white-space:normal;overflow-wrap:anywhere}
+ .holder-workspace .hw-card-roles .hw-role-identity{background:#242424;color:#fff;border-color:#626262}
+ .hw-card-roles>.hw-muted{font-size:12px}.hw-card-roles .hw-role small{color:#bcbcbc}
+ .hw-card-entry{margin:0 0 14px}.hw-card-entry>div{display:grid;grid-template-columns:92px minmax(0,1fr);gap:10px}.hw-card-entry dt{font-size:11px;line-height:1.6;color:#aaa}.hw-card-entry dd{margin:0;min-width:0;overflow-wrap:anywhere}.hw-card-entry strong{font-size:12px;font-weight:500}.hw-card-entry time{display:block;font:11px/1.6 var(--font-sans);color:#aaa;margin-top:2px}
+ .hw-card-actions{display:flex;align-items:center;flex-wrap:wrap;gap:5px 12px;padding:8px 0;border-top:1px solid #2d2d2d;border-bottom:1px solid #2d2d2d}
+ .holder-workspace .hw-card-actions button{display:inline-flex;align-items:center;gap:6px;min-height:44px;min-width:44px;padding:6px 0;border:0;background:none;color:#eee;font-size:12px}
+ .hw-card-actions button strong{font:12px var(--font-mono,monospace)}.hw-card-actions button svg{color:#aaa}.hw-card-no-evidence,.hw-card-no-links{font-size:11px;color:#aaa;line-height:1.6;min-width:0}
+ .holder-workspace .hw-card-expand{display:flex;align-items:center;justify-content:space-between;width:100%;min-height:44px;padding:10px 0 0;border:0;background:none;color:#c9c9c9;font-size:12px;text-align:left}
+ .hw-card-expand[aria-expanded=true] svg{transform:rotate(180deg)}
+ .holder-workspace .hw-card-detail{padding:16px 0 0;border:0}.hw-card-detail dl{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}.hw-card-detail dt{font-size:11px}.hw-card-detail dd{font-size:13px;overflow-wrap:anywhere}.hw-card-full-address{font-family:var(--font-mono,monospace);font-size:11px!important;word-break:break-all}
+ .holder-workspace .hw-card-detail p{font-size:11px;line-height:1.65;margin-top:16px}.holder-workspace .hw-card-detail button{min-height:44px;font-size:12px;margin-top:5px}
+ .holder-workspace .hw-table-note{font-size:12px;overflow-wrap:anywhere}.holder-workspace .hw-coverage-reasons{overflow-wrap:anywhere}
+}
+@media(max-width:360px){.hw-mobile-card{padding:12px}.hw-card-header{gap:7px}.hw-card-wallet>svg{display:none}.hw-card-wallet strong{font-size:12px}.hw-card-share>strong{font-size:14px}.hw-card-entry>div{grid-template-columns:80px minmax(0,1fr);gap:8px}.hw-card-actions{gap:3px 10px}.hw-mobile-sort{padding-left:12px;padding-right:12px}.hw-filters{padding-left:12px;padding-right:12px}}

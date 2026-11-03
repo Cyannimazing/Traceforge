@@ -63,8 +63,10 @@ export default function DiscoveryInstrument({profiles,active,loading,animate,now
  useEffect(()=>{
   if(!running||!root.current)return;
   const context=gsap.context(()=>{
-   gsap.fromTo('.di-contact.is-selected .di-target-brackets',{opacity:.3,scale:1.15},{opacity:1,scale:1,transformOrigin:'50% 50%',duration:.4,ease:'power3.out'});
-   gsap.fromTo('.di-meter-fill',{scaleX:.12},{scaleX:1,transformOrigin:'left center',duration:.55,stagger:.045,ease:'power3.out'});
+   const brackets=root.current!.querySelector('.di-contact.is-selected .di-target-brackets');
+   if(brackets)gsap.fromTo(brackets,{opacity:.3,scale:1.15},{opacity:1,scale:1,transformOrigin:'50% 50%',duration:.4,ease:'power3.out'});
+   const meters=root.current!.querySelectorAll('.di-meter-fill');
+   if(meters.length)gsap.fromTo(meters,{scaleX:.12},{scaleX:1,transformOrigin:'left center',duration:.55,stagger:.045,ease:'power3.out'});
   },root);
   return()=>context.revert();
  },[selectedId,fetchedAt,running]);

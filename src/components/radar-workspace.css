@@ -112,3 +112,46 @@ html{scrollbar-gutter:stable}
 .console-shell main.is-home{padding-block:0;min-height:calc(100svh - 62px);display:flex;flex-direction:column}
 .console-shell main.is-home>.source-console:not(.source-compact){flex:1;min-height:calc(100svh - 62px)}
 .console-nav a{text-decoration:none}
+
+/* Shared vertical rhythm: page edges and detached panels use the same gap. */
+.console-shell{--studio-section-gap:24px}
+.console-shell main:not(.is-home){padding-block:var(--studio-section-gap)}
+.console-shell .discovery-radar{margin-block:0;gap:var(--studio-section-gap)}
+.console-shell .dr-heading,.console-shell .dr-selected-target{padding-block:var(--studio-section-gap)}
+.console-shell .dr-tools,.console-shell .dr-list-heading{padding-block:16px}
+.console-shell :is(.utility-view,.methodology-view)>.page-heading{margin-top:0}
+.console-shell :is(.utility-view,.methodology-view){padding-top:0}
+@media(max-width:760px){.console-shell{--studio-section-gap:16px}}
+
+/* Report content shrinks and wraps rather than widening a small viewport. */
+.console-shell .token-identity{min-width:0;max-width:100%}
+.console-shell .token-identity>div{min-width:0}
+.console-shell .token-identity h2{overflow-wrap:anywhere}
+.console-shell .token-symbol{flex-shrink:0}
+.console-shell .tf-chain-trigger>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:1100px){
+ .console-shell .dr-token-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .discovery-radar .dr-token-card:nth-child(n){border-right:1px solid #282828}
+ .discovery-radar .dr-token-card:nth-child(2n){border-right:0}
+}
+@media(max-width:760px){
+ .console-shell .console-telemetry{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;flex-shrink:1;width:100%}
+ .console-shell .console-telemetry>div{min-width:0}
+ .console-shell .console-telemetry dd{white-space:normal;overflow-wrap:anywhere}
+ .console-shell .report-actions>button{min-height:44px;min-width:44px}
+ .console-shell .token-entry .token-launcher>input,.console-shell .report-token-entry .scan-bar>input,.console-shell .dr-search input{font-size:16px}
+}
+@media(max-width:480px){
+ .console-shell .dr-token-grid{grid-template-columns:minmax(0,1fr)}
+ .discovery-radar .dr-token-card:nth-child(n){border-right:0}
+ .discovery-radar .dr-card-select{flex-wrap:nowrap;min-height:52px}
+ .discovery-radar .dr-card-identity{flex-basis:auto}
+ .discovery-radar .dr-card-network{margin-left:0}
+ .discovery-radar .dr-card-foot{flex-wrap:nowrap}
+ .discovery-radar .dr-card-action{margin-left:auto}
+}
+@media(max-width:390px){
+ .console-shell .token-entry-actions{flex-direction:column;align-items:stretch}
+ .console-shell .token-entry-actions .tf-chain-picker{flex:auto;width:100%;min-width:0}
+ .console-shell .token-entry-actions>.primary{width:100%;justify-content:center}
+}
