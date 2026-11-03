@@ -1,4 +1,5 @@
 import type {Report} from './analysis';
+import {validateToken} from './analysis';
 import type {Investigation} from './investigation-types';
 import {clockReferenceTime} from './evidence-clock';
 
@@ -13,7 +14,10 @@ export function holderScope(report:HolderScopeReport){
  const dated=(at:string|undefined)=>!!at&&Number.isFinite(Date.parse(at))&&(!Number.isFinite(reference)||Date.parse(at)<=reference+120_000);
  const snapshotDated=(at:string|undefined)=>!!at&&Number.isFinite(Date.parse(at))&&Number.isFinite(Date.parse(report.fetchedAt||''))&&Date.parse(at)<=Date.parse(report.fetchedAt!)+120_000;
  const infrastructureAddresses=new Set<string>();
- if(report.market?.pairAddress&&report.sources?.some(s=>s.name==='DEX Screener'&&s.status==='available'&&snapshotDated(s.fetchedAt)))infrastructureAddresses.add(normalize(report.market.pairAddress));
+ // Some launchpad listings use identifiers such as token:4meme, not accounts.
+ // Only a chain-address-shaped pair can require an infrastructure balance.
+ const currentMarketPair=report.market?.pairAddress&&!validateToken(report.chain,report.market.pairAddress)&&report.sources?.some(s=>s.name==='DEX Screener'&&s.status==='available'&&snapshotDated(s.fetchedAt))?normalize(report.market.pairAddress):undefined;
+ if(currentMarketPair)infrastructureAddresses.add(currentMarketPair);
  const evidence=new Map(report.investigation.evidence.map(record=>[record.id,record]));
  for(const wallet of report.investigation.wallets){
   const categories=wallet.categories.filter(category=>['pool','exchange','bridge','burn'].includes(category)&&!wallet.categorySources?.[category]);
@@ -29,5 +33,10 @@ export function holderScope(report:HolderScopeReport){
  const allSnapshot=[...new Map(report.holders.map(holder=>[normalize(holder.address),holder])).values()];
  const holders=allSnapshot.filter(holder=>!infrastructureAddresses.has(normalize(holder.address)));
  const infrastructure=allSnapshot.filter(holder=>infrastructureAddresses.has(normalize(holder.address)));
- return {holders,infrastructure,allSnapshot,infrastructureAddresses:[...infrastructureAddresses]};
+ // Historical labels still exclude infrastructure from relationship inference.
+ // Snapshot float uses measured infrastructure rows, plus the current market
+ // pair whose missing balance must remain an explicit denominator gap.
+ const currentInfrastructureAddresses=new Set(infrastructure.map(holder=>normalize(holder.address)));
+ if(currentMarketPair)currentInfrastructureAddresses.add(currentMarketPair);
+ return {holders,infrastructure,allSnapshot,infrastructureAddresses:[...infrastructureAddresses],currentInfrastructureAddresses:[...currentInfrastructureAddresses]};
 }

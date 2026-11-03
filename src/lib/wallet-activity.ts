@@ -39,6 +39,7 @@ export async function readWalletActivity(chain:Chain,addresses:string[],rpc:Rpc,
      result.wallets[index]={address,count,exact:false,fresh:count>10?false:null,basis,reason:count>10?'At least 11 distinct finalized address transactions observed.':'The short provider page does not establish complete lifetime history.'};
     }else{
      const [code,nonce]=await Promise.all([call('eth_getCode',[address,block]),call('eth_getTransactionCount',[address,block])]);
+     if(typeof code==='string'&&/^0x(?:[0-9a-fA-F]{2})+$/.test(code)){result.wallets[index]=unknown(address,'Verified contract account: outgoing EOA nonce does not measure its incoming transfers or internal activity. Lifetime freshness remains unknown.');continue;}
      if(code!=='0x'||!hex(nonce)||BigInt(nonce as string)>BigInt(Number.MAX_SAFE_INTEGER))continue;
      const count=Number(BigInt(nonce as string));result.wallets[index]={address,count,exact:true,fresh:count>10?false:null,basis,reason:count>10?'More than ten outgoing transactions at the fixed finalized block rules out the <=10 lifetime-transaction predicate. Incoming and internal transactions are not counted.':'The exact outgoing count is at most ten, but incoming and internal history is not covered. Lifetime freshness remains unknown.'};
     }

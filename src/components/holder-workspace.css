@@ -11,6 +11,7 @@
 .holder-workspace{--hw-ground:#080808;--hw-surface:#0b0b0b;--hw-raised:#171717;--hw-text:#eeeeee;--hw-muted:#a8a8a8;--hw-accent:#eeeeee;--hw-line:#303030}
 .holder-workspace .hw-compact-table{table-layout:fixed;width:100%;min-width:860px;font-variant-numeric:tabular-nums}
 .hw-compact-table .hw-col-rank{width:52px}.hw-compact-table .hw-col-wallet{width:23%}.hw-compact-table .hw-col-share{width:110px}.hw-compact-table .hw-col-entry{width:130px}.hw-compact-table .hw-col-links{width:100px}.hw-compact-table .hw-col-evidence{width:100px}
+.hw-compact-table .hw-col-flags{min-width:150px}.hw-wallet-detail .wallet-role-facts{max-width:80ch;margin-bottom:20px}.hw-wallet-detail .wallet-role-facts>p{color:#bec9c2;font-size:13px}.hw-card-roles .wallet-role-primary{width:100%}.hw-table .wallet-role-primary{white-space:normal;min-width:110px}
 .holder-workspace .hw-compact-table th{height:42px;font-size:12px;font-weight:500;color:#ababab;background:#101010;padding-right:16px}
 .holder-workspace .hw-compact-table td{height:50px;padding-top:3px;padding-bottom:3px;font-size:13px;border-bottom-color:#242424}
 .holder-workspace .hw-compact-table .hw-rank{font:12px var(--font-mono,monospace);color:#8f8f8f;text-align:left;padding-right:10px}
@@ -70,3 +71,5 @@
  .holder-workspace .hw-table-note{font-size:12px;overflow-wrap:anywhere}.holder-workspace .hw-coverage-reasons{overflow-wrap:anywhere}
 }
 @media(max-width:360px){.hw-mobile-card{padding:12px}.hw-card-header{gap:7px}.hw-card-wallet>svg{display:none}.hw-card-wallet strong{font-size:12px}.hw-card-share>strong{font-size:14px}.hw-card-entry>div{grid-template-columns:80px minmax(0,1fr);gap:8px}.hw-card-actions{gap:3px 10px}.hw-mobile-sort{padding-left:12px;padding-right:12px}.hw-filters{padding-left:12px;padding-right:12px}}
+.holder-workspace .hw-share-basis-note{padding:0 24px 12px;font-size:12px;color:#aebcb3;line-height:1.6}.hw-infrastructure-basis{font-size:12px;color:#b8c6bd}.holder-workspace .share-basis-selector button{font-size:12px}.hw-compact-table .hw-col-share{width:135px}
+@media(max-width:700px){.holder-workspace .hw-share-basis-note{padding-inline:16px}.hw-filters .share-basis-selector{order:3}.hw-filters .hw-row-count{order:2}.hw-filters .hw-role-picker{order:1}.hw-filters .hw-search{order:0}.hw-wallet-detail dl{grid-template-columns:repeat(2,minmax(0,1fr))}.hw-card-detail dl{grid-template-columns:minmax(0,1fr)}}

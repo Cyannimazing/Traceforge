@@ -54,3 +54,5 @@ test('persistent cache enforces row and aggregate byte bounds and rejects oversi
  assert(Number(db.prepare('SELECT COUNT(*) AS n FROM report_cache').get()?.n)<8);
  cache.set('ethereum',token,100,{report:{...report(),name:'x'.repeat(REPORT_CACHE_MAX_REPORT_BYTES)},expires:start+REPORT_CACHE_TTL});assert.equal(cache.get('ethereum',token,100),null);db.close();cache.close();
 });
+
+test('reports predating custody and explicit decision output are invalidated for ordinary searches',t=>{const path=file(t),cache=new ReportCache(path,{now:()=>start});cache.set('ethereum',token,100,{report:report(),expires:start+REPORT_CACHE_TTL});const db=new DatabaseSync(path);for(const version of [6,7,8,9,10]){db.exec(`UPDATE report_cache SET schema_version=${version}`);assert.equal(cache.get('ethereum',token,100),null);}db.close();cache.close();});

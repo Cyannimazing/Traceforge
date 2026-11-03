@@ -8,7 +8,7 @@ import {discoveryLayout} from '@/lib/discovery-layout';
 import type {DiscoveryProfile} from './discovery-radar';
 import './discovery-instrument.css';
 
-type Props={profiles:DiscoveryProfile[];active:DiscoveryProfile|undefined;loading:boolean;animate:boolean;now:number;fetchedAt?:string;onSelect:(id:string)=>void};
+type Props={profiles:DiscoveryProfile[];active:DiscoveryProfile|undefined;loading:boolean;initialLoading?:boolean;animate:boolean;now:number;fetchedAt?:string;onSelect:(id:string)=>void};
 const networks:Chain[]=['ethereum','base','bsc','solana'];
 const profileId=(p:DiscoveryProfile)=>`${p.chain}:${p.address}`;
 const finite=(v:unknown):v is number=>typeof v==='number'&&Number.isFinite(v)&&v>=0;
@@ -17,7 +17,9 @@ const precision=(v:number)=>Number(v.toFixed(3));
 const point=(radius:number,angle:number)=>({x:precision(240+Math.sin(angle*Math.PI/180)*radius),y:precision(240-Math.cos(angle*Math.PI/180)*radius)});
 const elapsed=(value:string|undefined,now:number)=>{const at=value?Date.parse(value):NaN;return Number.isFinite(at)&&now?`${Math.max(0,Math.floor((now-at)/1000))}s ago`:'Not retrieved';};
 
-export default function DiscoveryInstrument({profiles,active,loading,animate,now,fetchedAt,onSelect}:Props){
+export function DiscoverySkeleton({width='6ch'}:{width?:string}){return <span className="dr-skeleton" style={{width}} aria-hidden="true"/>;}
+
+export default function DiscoveryInstrument({profiles,active,loading,initialLoading=false,animate,now,fetchedAt,onSelect}:Props){
  const root=useRef<HTMLDivElement>(null),surface=useRef<SVGSVGElement>(null);
  const [visible,setVisible]=useState(true),[documentVisible,setDocumentVisible]=useState(true),[reduced,setReduced]=useState(false);
  const titleId=useId(),descriptionId=useId();
@@ -52,6 +54,7 @@ export default function DiscoveryInstrument({profiles,active,loading,animate,now
    });
    root.current!.querySelectorAll<SVGGElement>('[data-di-bearing]').forEach(contact=>{
     const delay=Number(contact.dataset.diBearing)/360*8;
+    gsap.fromTo(contact.querySelector('.di-contact-core'),{opacity:0},{keyframes:[{opacity:1,duration:.08},{opacity:0,duration:3,ease:'power1.out'}],delay,repeat:-1,repeatDelay:4.92});
     gsap.fromTo(contact.querySelector('.di-contact-echo'),{attr:{r:5},opacity:0},{keyframes:[{opacity:.85,duration:.08},{attr:{r:25},opacity:0,duration:.82,ease:'power2.out'}],delay,repeat:-1,repeatDelay:7.1});
     gsap.fromTo(contact.querySelector('.di-contact-flash'),{opacity:0},{keyframes:[{opacity:1,duration:.08},{opacity:0,duration:.82}],delay,repeat:-1,repeatDelay:7.1});
    });
@@ -81,13 +84,13 @@ export default function DiscoveryInstrument({profiles,active,loading,animate,now
   }
  }
 
- return <div className="dr-instrument di-instrument" ref={root} data-motion={running?'running':'still'}>
+ return <div className="dr-instrument di-instrument" ref={root} data-motion={running?'running':'still'} aria-busy={initialLoading}>
   <aside className="di-readout di-composition" aria-label="Profile composition" tabIndex={0}>
    <div className="di-readout-heading"><Radio size={15}/><h3>Network mix</h3></div>
-   <div className="di-network-strip" aria-hidden="true">{mix.filter(m=>m.count).map((m,index)=><span key={m.chain} style={{flex:m.count,opacity:1-index*.18}}/>)}</div>
-   <dl className="di-network-list">{mix.map(({chain,count})=><div key={chain}><dt>{CHAINS[chain].name}</dt><dd>{String(count).padStart(2,'0')}<span className="di-network-meter" aria-hidden="true"><i className="di-meter-fill" style={{width:`${profiles.length?count/profiles.length*100:0}%`}}/></span></dd></div>)}</dl>
+   <div className="di-network-strip" aria-hidden="true">{initialLoading?<DiscoverySkeleton width="100%"/>:mix.filter(m=>m.count).map((m,index)=><span key={m.chain} style={{flex:m.count,opacity:1-index*.18}}/>)}</div>
+   <dl className="di-network-list">{mix.map(({chain,count})=><div key={chain}><dt>{CHAINS[chain].name}</dt><dd>{initialLoading?<DiscoverySkeleton width="2ch"/>:String(count).padStart(2,'0')}<span className="di-network-meter" aria-hidden="true"><i className="di-meter-fill" style={{width:`${profiles.length?count/profiles.length*100:0}%`}}/></span></dd></div>)}</dl>
    <div className="di-retrieval"><span className="di-status-dot"/><span>{loading?'Retrieving profiles':`${available} market snapshots available`}</span></div>
-   <div className="di-retrieval-time"><span>Feed retrieved</span><time dateTime={fetchedAt}>{elapsed(fetchedAt,now)}</time></div>
+   <div className="di-retrieval-time"><span>Feed retrieved</span><time dateTime={fetchedAt}>{initialLoading?<DiscoverySkeleton width="6ch"/>:elapsed(fetchedAt,now)}</time></div>
    <p className="di-data-note">Selected feed only. Movement shows the discovery sweep, not new trades.</p>
   </aside>
 
@@ -115,7 +118,7 @@ export default function DiscoveryInstrument({profiles,active,loading,animate,now
      <title>{profile.name||profile.symbol||short(profile.address)} - {CHAINS[profile.chain].name}</title>
      <circle className="di-contact-hit" r="25"/><circle className="di-contact-echo" r="5"/><circle className="di-contact-flash" r="9"/><circle className="di-contact-core" r={selected?5:3.5}/>
      <path className="di-target-brackets" d="M-15 -7V-15H-7M7 -15H15V-7M15 7V15H7M-7 15H-15V7"/>
-     {selected&&<text className="di-contact-name" x="0" y="-26" textAnchor="middle">{(profile.symbol||short(profile.address)).slice(0,11)}</text>}
+     <text className="di-contact-name" x="0" y="-26" textAnchor="middle">{(profile.symbol||short(profile.address)).slice(0,11)}</text>
     </g>;})}
    </svg>
    <div className="di-scope-bottom"><Crosshair size={13}/><span>{profiles.length?'Select a contact to inspect its market snapshot':'Profiles appear here after retrieval'}</span></div>
@@ -123,12 +126,12 @@ export default function DiscoveryInstrument({profiles,active,loading,animate,now
 
   <aside className="di-readout di-market" aria-label="Selected profile market snapshot" tabIndex={0}>
    <div className="di-readout-heading"><Crosshair size={15}/><h3>Selected contact</h3></div>
-   <div className="di-selected-identity"><strong title={active?.name||active?.address}>{active?.symbol||active&&short(active.address)||'No contact'}</strong><span>{active?CHAINS[active.chain].name:'Choose a token'}</span></div>
-   <div className="di-price"><span>Price</span><strong>{price}</strong></div>
-   <dl className="di-market-values"><div><dt>Liquidity</dt><dd>{money(active?.liquidityUsd)}</dd></div><div><dt>24h volume</dt><dd>{money(active?.volume24hUsd)}</dd></div><div><dt>Volume / liquidity</dt><dd>{ratio===null?'Unavailable':`${ratio.toFixed(2)}x`}</dd></div></dl>
+   <div className="di-selected-identity"><strong title={active?.name||active?.address}>{initialLoading?<DiscoverySkeleton width="8ch"/>:active?.symbol||active&&short(active.address)||'No contact'}</strong><span>{initialLoading?<DiscoverySkeleton width="5ch"/>:active?CHAINS[active.chain].name:'Choose a token'}</span></div>
+   <div className="di-price"><span>Price</span><strong>{initialLoading?<DiscoverySkeleton width="7ch"/>:price}</strong></div>
+   <dl className="di-market-values"><div><dt>Liquidity</dt><dd>{initialLoading?<DiscoverySkeleton width="7ch"/>:money(active?.liquidityUsd)}</dd></div><div><dt>24h volume</dt><dd>{initialLoading?<DiscoverySkeleton width="7ch"/>:money(active?.volume24hUsd)}</dd></div><div><dt>Volume / liquidity</dt><dd>{initialLoading?<DiscoverySkeleton width="5ch"/>:ratio===null?'Unavailable':`${ratio.toFixed(2)}x`}</dd></div></dl>
    <div className="di-volume-heading"><span>Highest 24h volume</span><small>In this feed</small></div>
-   <div className="di-volume-list">{ranked.map(profile=><button key={profileId(profile)} className={profileId(profile)===selectedId?'is-selected':''} onClick={()=>onSelect(profileId(profile))} aria-label={`Select ${profile.symbol||short(profile.address)}, 24 hour volume ${money(profile.volume24hUsd)}`}><span>{profile.symbol||short(profile.address)}<ArrowUpRight size={12}/></span><strong>{money(profile.volume24hUsd)}</strong><i className="di-volume-track" aria-hidden="true"><i className="di-meter-fill" style={{width:`${maxVolume?profile.volume24hUsd!/maxVolume*100:0}%`}}/></i></button>)}{!ranked.length&&<p className="di-data-note">Volume data not supplied.</p>}</div>
-   <p className="di-data-note">{active?.marketStatus==='stale'?'Older market snapshot retained.':active?.marketFetchedAt?`Market retrieved ${elapsed(active.marketFetchedAt,now)}.`:'Market snapshot time unavailable.'}</p>
+   <div className="di-volume-list">{initialLoading?Array.from({length:3},(_,index)=><button key={index} disabled aria-label="Loading volume ranking"><span><DiscoverySkeleton width="6ch"/></span><strong><DiscoverySkeleton width="5ch"/></strong><i className="di-volume-track" aria-hidden="true"><DiscoverySkeleton width="100%"/></i></button>):ranked.map(profile=><button key={profileId(profile)} className={profileId(profile)===selectedId?'is-selected':''} onClick={()=>onSelect(profileId(profile))} aria-label={`Select ${profile.symbol||short(profile.address)}, 24 hour volume ${money(profile.volume24hUsd)}`}><span>{profile.symbol||short(profile.address)}<ArrowUpRight size={12}/></span><strong>{money(profile.volume24hUsd)}</strong><i className="di-volume-track" aria-hidden="true"><i className="di-meter-fill" style={{width:`${maxVolume?profile.volume24hUsd!/maxVolume*100:0}%`}}/></i></button>)}{!initialLoading&&!ranked.length&&<p className="di-data-note">Volume data not supplied.</p>}</div>
+   <p className="di-data-note">{initialLoading?'Retrieving market snapshots.':active?.marketStatus==='stale'?'Older market snapshot retained.':active?.marketFetchedAt?`Market retrieved ${elapsed(active.marketFetchedAt,now)}.`:'Market snapshot time unavailable.'}</p>
   </aside>
  </div>;
 }

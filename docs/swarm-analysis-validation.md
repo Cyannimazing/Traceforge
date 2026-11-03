@@ -1,5 +1,7 @@
 # Public Swarm analysis validation
 
+Latest release: [report and retrieval validation](report-release-validation-2026-11-03.md), including the reproduced Four.Meme custody/float/first-minute fixes, current chain-state changes and remaining evidence limits. Earlier measurements below remain historical observations.
+
 Observed 2026-11-03. This audit uses public reports, publicly shipped JavaScript, selected explorer transaction records, and independent TraceForge snapshots. No private backend access, credential bypass, purchase, or Gemini call was used. Swarm is a comparison source, not a ground-truth accuracy label.
 
 ## What is publicly specified

@@ -17,6 +17,10 @@ function pool(name='p1',start=0):HistoryPool{
  return {pool:name,status:'complete',checkpoint:null,message:'Complete',updatedAt:at(700),result:{status:'verified',scope:'selected-pool',pool:name,token:'token',proof,trades:[{id,wallet:'buyer',timestamp:at(start+10),side:'buy',amount:5,amountRaw:'5000000',decimals:6,transaction:`tx-${name}`,source:'Verified pool'}],reasons:[],sources:[{name:'Selected pool first minute',status:'available',fetchedAt:at(700),detail:'Canonical receipts verified'}]}};
 }
 function job(pools=[pool()]):HistoryJob{return {id:'job',chain:'ethereum',token:'token',status:'paused',createdAt:at(600),updatedAt:at(700),revision:4,message:'Paused',poolLimit:20,progress:null,result:null,leaseExpiresAt:null,pools,counts:{complete:pools.length,queued:0,running:0,paused:0,blocked:0}};}
+test('historical evidence merge refreshes API decision output instead of retaining an obsolete allocation',()=>{
+ const original=report();original.decisionOutput={version:'verdict-output-v2',decision:'CAUTION',p:{avoid:.1,caution:.8,ok:.1},selectedWeight:.8,basis:'uncertainty-allocation',score:null,explanation:'Old allocation'};
+ const merged=mergeHistoryReport(original,job());assert.equal(merged.decisionOutput?.basis,'rule');assert.equal(merged.decisionOutput?.decision,'AVOID');assert.deepEqual(merged.decisionOutput?.p,{avoid:1,caution:0,ok:0});
+});
 test('quiet archive refresh preserves both client-applied verified pool windows',()=>{
  const previous=mergeHistoryReport(report(),job([pool(),pool('p2',100)])),next=report();
  next.fetchedAt=at(800);next.investigation.coverage.fetchedAt=at(800);

@@ -155,3 +155,8 @@ html{scrollbar-gutter:stable}
  .console-shell .token-entry-actions .tf-chain-picker{flex:auto;width:100%;min-width:0}
  .console-shell .token-entry-actions>.primary{width:100%;justify-content:center}
 }
+
+/* Compact network menus share a44px touch target at every entry point. */
+.console-shell .tf-chain-menu{padding:4px}
+.console-shell .tf-chain-option,.console-shell .token-entry .tf-chain-option,.console-shell .report-token-entry .tf-chain-option{height:44px;min-height:44px;padding:0 10px;gap:8px;font:13px/1.3 var(--font-sans)}
+.console-shell .tf-chain-option small{display:none}

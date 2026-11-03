@@ -6,10 +6,68 @@ import type { InvestigationReport, InvestigatedWallet } from '../src/lib/investi
 import { identityEvidence } from '../src/lib/investigation';
 import {computeRiskMetrics} from '../src/lib/risk-metrics';
 import {trustRating} from '../src/lib/trust-rating';
+import {holderScope} from '../src/lib/holder-scope';
 const at='2026-01-02T12:00:00Z';
 const wallet=(address:string,share:number|null,balance?:number):InvestigatedWallet=>({address,share,balance,categories:['unclassified'],evidenceIds:[]});
 function report():InvestigationReport {const r=structuredClone(fixtureReport);r.fixture=false;r.sources=[{name:'Bitquery Holders',status:'available',detail:'Snapshot',fetchedAt:r.fetchedAt},{name:'Bitquery Recent trades',status:'available',detail:'Historical sample',fetchedAt:r.fetchedAt}];return r;}
 function fresh(old:InvestigationReport):InvestigationReport {const r=structuredClone(old);r.fetchedAt=at;r.holders=[];r.investigation.wallets=[];r.investigation.evidence=[];r.investigation.timeline=[];r.investigation.relationships=[];r.investigation.findings=[];r.sources=[{name:'Bitquery Holders',status:'available',detail:'Fresh snapshot',fetchedAt:at}];return r;}
+
+test('refresh replaces a stale decision allocation with the policy for the current evidence',()=>{
+ const old=report();old.decisionOutput={version:'verdict-output-v2',decision:'AVOID',p:{avoid:1,caution:0,ok:0},selectedWeight:1,basis:'rule',score:null,explanation:'Old stop'};
+ const next=fresh(old);next.checks=[];next.identities=[];next.sources.push({name:'GoPlus Security',status:'available',detail:'Current checks',fetchedAt:at});
+ for(const merge of [(a:InvestigationReport,b:InvestigationReport)=>mergeReportRefresh(a,b,'holders'),mergeDeepReport]){
+  const result=merge(old,next);assert.equal(result.decisionOutput?.basis,'uncertainty-allocation');assert.equal(result.decisionOutput?.p.ok,0);assert(result.decisionOutput!.p.caution>.5);assert.equal(result.trustRating?.score,null);
+ }
+});
+
+function custodySnapshot(){
+ const old=report(),manager='0x5c952063c7fc8610ffdb798152d69f0b9550762b',owner='0x'+'1'.repeat(40),timestamp='2026-01-01T12:00:00Z',source='BSC RPC Four.Meme custody verification';
+ old.chain='bsc';old.fetchedAt=timestamp;old.investigation.coverage.fetchedAt=timestamp;old.market=null;old.identities=[];
+ old.holders=[{address:manager,share:99,contract:true,locked:null,tag:''},{address:owner,share:1,contract:false,locked:null,tag:''}];
+ old.sources=[{name:'BSC RPC finalized holder balances',status:'available',fetchedAt:timestamp,detail:'Finalized snapshot'},{name:source,status:'available',fetchedAt:timestamp,detail:'Canonical manager membership verified'}];
+ old.investigation.wallets=[{...wallet(manager,99,990),categories:['pool','sniper','shared-funder'],label:'Verified shared custody',evidenceIds:[`label:${manager}:pool`,'holding:manager','old-buy','old-funding']},wallet(owner,1,10)];
+ old.investigation.evidence=[{id:`label:${manager}:pool`,kind:'label',timestamp,source,description:'Canonical shared custody'},{id:'holding:manager',kind:'holding',timestamp,source:'BSC RPC finalized holder balances',description:'Balance at original block'},{id:'old-buy',kind:'trade',timestamp,source:'Old trades',description:'Prior buy'},{id:'old-funding',kind:'label',timestamp,source:'Old funding',description:'Prior funding inference'}];
+ return {old,manager,owner,source,timestamp};
+}
+
+test('deep holder outage retains independently evidenced infrastructure with original provenance but drops historical roles',()=>{
+ const {old,manager,source,timestamp}=custodySnapshot(),next=fresh(old);next.sources=[{name:'BSC RPC finalized holder balances',status:'unavailable',detail:'Timeout'}];
+ const result=mergeDeepReport(old,next),custody=result.investigation.wallets.find(w=>w.address===manager)!;
+ assert.deepEqual(custody.categories,['pool']);assert.equal(custody.label,'Verified shared custody');assert.equal(custody.share,99);
+ assert.deepEqual(holderScope(result).holders.map(h=>h.address),[old.holders[1].address]);
+ assert.deepEqual(result.investigation.evidence.find(e=>e.id===`label:${manager}:pool`),old.investigation.evidence[0]);
+ assert.equal(result.sources.find(s=>s.name===source)?.fetchedAt,timestamp);
+ assert(!result.investigation.evidence.some(e=>e.id==='old-buy'||e.id==='old-funding'));
+ assert.equal(result.investigation.timeline.length,0);assert.equal(result.investigation.relationships.length,0);
+ assert(result.investigation.coverage.reasons.some(r=>r.startsWith('Holder snapshot is stale:')));
+});
+
+test('manager-only GoPlus rows after failed BSC RPC refresh cannot replace a verified holder snapshot',()=>{
+ const {old,manager}=custodySnapshot(),next=fresh(old);next.holders=[{...old.holders[0],share:100}];next.investigation.wallets=[wallet(manager,100)];
+ next.sources=[{name:'GoPlus Security',status:'available',fetchedAt:at,detail:'Manager-only rows'},{name:'BSC RPC finalized holder balances',status:'unavailable',detail:'Timeout'}];
+ for(const merge of [(a:InvestigationReport,b:InvestigationReport)=>mergeReportRefresh(a,b,'holders'),mergeDeepReport]){
+  const result=merge(old,next);assert.deepEqual(result.holders,old.holders);assert.equal(result.investigation.wallets.find(w=>w.address===manager)?.share,99);
+  assert.deepEqual(holderScope(result).holders.map(h=>h.address),[old.holders[1].address]);
+  assert(result.investigation.coverage.reasons.some(r=>r.startsWith('Holder snapshot is stale:')));
+ }
+});
+
+test('snapshot fallback never promotes unbacked or provider-reported infrastructure categories',()=>{
+ for(const invalid of ['missing','reported','future','unrelated'] as const){
+  const {old,manager}=custodySnapshot(),label=old.investigation.evidence[0];
+  if(invalid==='missing')old.investigation.evidence.shift();
+  if(invalid==='reported')label.attribution='provider-reported';
+  if(invalid==='future')label.timestamp='2099-01-01T00:00:00Z';
+  if(invalid==='unrelated')label.id='label:other:pool';
+  const next=fresh(old);next.sources=[{name:'BSC RPC finalized holder balances',status:'unavailable',detail:'Timeout'}];
+  const result=mergeDeepReport(old,next);assert.deepEqual(result.investigation.wallets.find(w=>w.address===manager)?.categories,['unclassified']);assert(!result.investigation.evidence.some(e=>e.id===`label:${manager}:pool`));
+ }
+});
+
+test('successful BSC holder replacement does not retain old custody labels or stale balances',()=>{
+ const {old,manager}=custodySnapshot(),next=fresh(old);next.holders=[{...old.holders[0],share:80}];next.investigation.wallets=[wallet(manager,80,800)];next.sources=[{name:'BSC RPC finalized holder balances',status:'available',fetchedAt:at,detail:'New finalized balances'}];
+ const result=mergeDeepReport(old,next);assert.deepEqual(result.holders,next.holders);assert.equal(result.investigation.wallets.find(w=>w.address===manager)?.share,80);assert(!result.investigation.wallets.find(w=>w.address===manager)?.categories.includes('pool'));assert(!result.investigation.evidence.some(e=>e.id===`label:${manager}:pool`));assert(!result.investigation.coverage.reasons.some(r=>r.startsWith('Holder snapshot is stale:')));
+});
 
 test('holder refresh carries reserve results and preserves older results only when no new result was requested',()=>{
  const old=report();old.poolReserves={status:'unknown',reasons:['Earlier Solana attempt']};old.evmPoolReserves={status:'unknown',reasons:['Earlier EVM attempt']};

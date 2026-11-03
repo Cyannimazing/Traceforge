@@ -1,5 +1,5 @@
 import type { Chain } from './analysis';
-import type { Evidence, Finding, Investigation, InvestigatedWallet, Relationship, WalletCategory, PoolTimingProof } from './investigation-types';
+import type { Evidence, Finding, Investigation, InvestigatedWallet, Relationship, WalletCategory, PoolTimingProof, CurveTimingProof } from './investigation-types';
 import {clockReferenceTime,type EvidenceClock} from './evidence-clock';
 
 export type TradeRecord = { id: string; wallet: string; timestamp: string; side: 'buy' | 'sell'; amount?: number; amountRaw?:string; decimals?:number; transaction: string; source: string };
@@ -14,7 +14,7 @@ export type InvestigationInput = {
   holders: { address: string; share: number | null; balance?: number }[];
   earlyBuyerAddresses?: string[];
   trades: TradeRecord[]; transfers: TransferRecord[]; identities: IdentityRecord[]; labels: LabelRecord[];
-  launchVerified: boolean; poolTiming?:PoolTimingProof; poolTimings?:PoolTimingProof[]; clock?:EvidenceClock; earliestTradeAt?: string; complete: boolean; reasons: string[]; fetchedAt: string;
+  launchVerified: boolean; curveTiming?:CurveTimingProof; poolTiming?:PoolTimingProof; poolTimings?:PoolTimingProof[]; clock?:EvidenceClock; earliestTradeAt?: string; complete: boolean; reasons: string[]; fetchedAt: string;
   holderLimit: number; buyerLimit: number; fundingHops: number; truncated: boolean;
 };
 
@@ -85,9 +85,13 @@ export function analyzeInvestigation(input: InvestigationInput): Investigation {
   const poolTimings=[...new Map(candidates.filter(validPool).map(p=>[address(p.pool),p])).values()];
   const poolTiming=poolTimings[0];
   if(candidates.some(p=>!validPool(p)))reasons.push('A pool timing proof failed scope or timestamp validation and was withheld.');
+  const candidateCurve=input.curveTiming;
+  const curveTiming=candidateCurve?.verified&&candidateCurve.scope==='selected-launchpad'&&candidateCurve.protocol==='four-meme-v2'&&candidateCurve.chain===input.chain&&address(candidateCurve.token)===address(input.token)&&validObservationTime(candidateCurve.verifiedAt)&&[candidateCurve.firstPurchaseAt,candidateCurve.windowEndAt,candidateCurve.through.timestamp].every(validTime)&&time(candidateCurve.windowEndAt)===time(candidateCurve.firstPurchaseAt)+60_000&&time(candidateCurve.through.timestamp)>time(candidateCurve.windowEndAt)&&candidateCurve.creation.blockNumber<=candidateCurve.through.blockNumber?candidateCurve:undefined;
+  if(candidateCurve&&!curveTiming)reasons.push('A launchpad curve timing proof failed scope or timestamp validation and was withheld.');
+  const curveTradeIds=new Set(curveTiming?.eligibleTradeIds||[]);
   const proofByTrade=new Map(poolTimings.flatMap(p=>p.eligibleTradeIds.map(id=>[id,p] as const)));
-  const timingStartFor=(t:TradeRecord)=>proofByTrade.get(t.id)?.firstSwapAt||(!poolTimings.length?input.earliestTradeAt:undefined);
-  const timedTrade=(t:TradeRecord)=>poolTimings.length?proofByTrade.has(t.id):input.launchVerified;
+  const timingStartFor=(t:TradeRecord)=>(curveTradeIds.has(t.id)?curveTiming?.firstPurchaseAt:undefined)||proofByTrade.get(t.id)?.firstSwapAt||(!poolTimings.length&&!curveTiming?input.earliestTradeAt:undefined);
+  const timedTrade=(t:TradeRecord)=>curveTradeIds.has(t.id)||(poolTimings.length?proofByTrade.has(t.id):!curveTiming&&input.launchVerified);
   const wallets = new Map<string, InvestigatedWallet>();
   const evidence: Evidence[] = [];
   const evidenceSeen = new Set<string>();
@@ -133,6 +137,10 @@ export function analyzeInvestigation(input: InvestigationInput): Investigation {
     addEvidence({id:`pool-timing:${poolTiming.pool}:creation`,kind:'label',transaction:poolTiming.creation.transaction,timestamp:poolTiming.verifiedAt,description:`Selected pool creation event verified against factory ${poolTiming.factory} at block ${poolTiming.creation.blockNumber}. Retrieval timestamp; this is not the token launch.`,source:'Pool timing verifier'},[poolTiming.pool]);
     addEvidence({id:`pool-timing:${poolTiming.pool}:window`,kind:'label',transaction:poolTiming.firstSwapTransaction,timestamp:poolTiming.firstSwapAt,description:`Provider-covered contiguous pool logs from creation through block ${poolTiming.through.blockNumber}. First swap ${poolTiming.firstSwapAt}; inclusive first-minute end ${poolTiming.windowEndAt}. Sender attribution is not beneficial ownership.`,source:'Pool timing verifier'},[poolTiming.pool]);
   }
+  if(curveTiming){
+    addEvidence({id:`curve-timing:${curveTiming.token}:creation`,kind:'label',transaction:curveTiming.creation.transaction,timestamp:curveTiming.verifiedAt,description:`Canonical Four.Meme TokenCreate with matching prior mint for its declared supply verified at block ${curveTiming.creation.blockNumber}; manager ${curveTiming.manager}. This establishes the selected launchpad creation marker, not pre-event contract deployment or token-wide launch.`,source:curveTiming.source},[curveTiming.manager]);
+    addEvidence({id:`curve-timing:${curveTiming.token}:window`,kind:'label',transaction:curveTiming.firstPurchaseTransaction,timestamp:curveTiming.firstPurchaseAt,description:`Contiguous canonical manager events for this token checked from creation through block ${curveTiming.through.blockNumber}. First purchase ${curveTiming.firstPurchaseAt}; inclusive sixty-second end ${curveTiming.windowEndAt}. Routed recipients require exact matching token transfers. Other venues and beneficial ownership are not established.`,source:curveTiming.source},[curveTiming.manager]);
+  }
   const tradeKeys = new Set<string>();
   const unknownTradeAmounts=new Set<string>();
   const trades = input.trades.filter(t => {
@@ -155,7 +163,7 @@ export function analyzeInvestigation(input: InvestigationInput): Investigation {
       const eligibleEarlyBuyer = input.earlyBuyerAddresses ? input.earlyBuyerAddresses.some(a=>address(a)===w.address) : buyers.has(w.address);
       const timingStart=timingStartFor(t);
       const delay = timingStart ? time(t.timestamp) - time(timingStart) : NaN;
-      if (!isInfrastructure(w.address) && (poolTiming ? timedTrade(t)&&delay>=0&&delay<=60_000 : input.launchVerified&&eligibleEarlyBuyer)) category(w.address, 'early-buyer');
+      if (!isInfrastructure(w.address) && (poolTiming||curveTiming ? timedTrade(t)&&delay>=0&&delay<=60_000 : input.launchVerified&&eligibleEarlyBuyer)) category(w.address, 'early-buyer');
       if (!isInfrastructure(w.address) && timedTrade(t) && delay >= 0 && delay <= 60_000) category(w.address, 'sniper');
     } else if(t.amount!==undefined)w.sold = (w.sold || 0) + t.amount;
   }
@@ -237,7 +245,7 @@ export function analyzeInvestigation(input: InvestigationInput): Investigation {
     }
   }
   const snipers = [...wallets.values()].filter(w => w.categories.includes('sniper'));
-  if (snipers.length) findings.push({ id: 'snipers', title: poolTimings.length>1?'First-minute buys in verified pool windows':poolTiming?'First-minute buys in the selected pool':'Buys within 60 seconds of verified indexed trading start', description: poolTimings.length>1?'These senders bought during the first minute of at least one verified pool. Each transaction uses its own pool creation and first-swap reference. A later pool opening is not the token launch; other venues remain outside this proof.':poolTiming?'These senders initiated transactions containing buys within the selected pool\'s verified first trading minute. Other venues and the token\'s first-ever launch are not established. Timing does not prove automation, privileged access or malicious intent.':'This timing flag is relative to verified provider-indexed history. It does not prove automation, privileged access, malicious intent or complete coverage of all venues.', level: 'warning', certainty: 'observed', wallets: snipers.map(w => w.address), evidenceIds: [...poolTimings.flatMap(p=>[`pool-timing:${p.pool}:creation`,`pool-timing:${p.pool}:window`]),...trades.filter(t=>{
+  if (snipers.length) findings.push({ id: 'snipers', title: curveTiming?'First-minute buys on the selected launchpad':poolTimings.length>1?'First-minute buys in verified pool windows':poolTiming?'First-minute buys in the selected pool':'Buys within 60 seconds of verified indexed trading start', description: curveTiming?'These wallets received canonical Four.Meme purchases in the verified first trading minute for this token on the selected launchpad. Receipt transfer paths resolve routed delivery. Other venues remain outside the proof; timing does not establish automation, privileged access or malicious intent.':poolTimings.length>1?'These senders bought during the first minute of at least one verified pool. Each transaction uses its own pool creation and first-swap reference. A later pool opening is not the token launch; other venues remain outside this proof.':poolTiming?'These senders initiated transactions containing buys within the selected pool\'s verified first trading minute. Other venues and the token\'s first-ever launch are not established. Timing does not prove automation, privileged access or malicious intent.':'This timing flag is relative to verified provider-indexed history. It does not prove automation, privileged access, malicious intent or complete coverage of all venues.', level: 'warning', certainty: 'observed', wallets: snipers.map(w => w.address), evidenceIds: [...(curveTiming?[`curve-timing:${curveTiming.token}:creation`,`curve-timing:${curveTiming.token}:window`]:[]),...poolTimings.flatMap(p=>[`pool-timing:${p.pool}:creation`,`pool-timing:${p.pool}:window`]),...trades.filter(t=>{
     const delay=time(t.timestamp)-time(timingStartFor(t)||'');
     return timedTrade(t)&&((t.side==='buy'&&delay>=0&&delay<=60_000&&snipers.some(w=>w.address===address(t.wallet)))||delay===0);
   }).map(t=>`trade:${t.id}:${address(t.wallet)}:${t.side}`)]});
@@ -249,6 +257,6 @@ export function analyzeInvestigation(input: InvestigationInput): Investigation {
   return {
     wallets: [...wallets.values()], relationships, evidence, timeline: timeline.sort((a, b) => time(a.timestamp) - time(b.timestamp)), findings,
     assessment: { status, title: status === 'caution' ? 'Patterns need review' : status === 'critical' ? 'Critical evidence detected' : status === 'insufficient' ? 'Insufficient evidence' : 'No flagged pattern in scope', summary: hasRisk ? 'Review the linked transactions and coverage limits. Relationships do not establish ownership or intent.' : partial ? 'Missing history prevents a reliable all-clear. Public snapshots remain available where providers respond.' : 'No configured pattern was detected in the stated sample. This is not a safety guarantee.' },
-    coverage: { status: partial ? (evidence.length || input.holders.length ? 'partial' : 'unavailable') : 'complete', launchVerified: input.launchVerified,...(poolTiming?{poolTiming,poolTimings}:{}),...(input.clock?{clock:input.clock}:{}), earliestTradeAt: input.earliestTradeAt, holderLimit: input.holderLimit, buyerLimit: input.buyerLimit, fundingHops: input.fundingHops, truncated: input.truncated, reasons: input.reasons, source: 'Indexed and public provider evidence', fetchedAt: input.fetchedAt },
+    coverage: { status: partial ? (evidence.length || input.holders.length ? 'partial' : 'unavailable') : 'complete', launchVerified: input.launchVerified,...(curveTiming?{curveTiming}:{}),...(poolTiming?{poolTiming,poolTimings}:{}),...(input.clock?{clock:input.clock}:{}), earliestTradeAt: input.earliestTradeAt, holderLimit: input.holderLimit, buyerLimit: input.buyerLimit, fundingHops: input.fundingHops, truncated: input.truncated, reasons: input.reasons, source: 'Indexed and public provider evidence', fetchedAt: input.fetchedAt },
   };
 }

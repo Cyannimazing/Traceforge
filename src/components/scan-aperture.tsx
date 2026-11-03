@@ -5,6 +5,7 @@ import './scan-aperture.css';
 
 export type ScanApertureProps={elapsed:number;moving:boolean;pulseKey:string;states:{id:string;state:string}[]};
 const portState=(state:string)=>/^(running|loading|active|pending-request)$/i.test(state)?'running':/^(complete|completed|available|success|succeeded|received)$/i.test(state)?'complete':/^(unavailable|failed|error|unsupported|blocked)$/i.test(state)?'unavailable':'pending';
+const PORT_ANGLES=[-150,180,150,-30,0,30];
 const point=(angle:number,radius:number)=>({x:160+Math.cos(angle*Math.PI/180)*radius,y:160+Math.sin(angle*Math.PI/180)*radius});
 
 /** Elapsed is seconds. Rings and beam are decorative, never completion metrics. */
@@ -41,7 +42,7 @@ export default function ScanAperture({elapsed,moving,pulseKey,states}:ScanApertu
    <circle className="sa-center-mask" cx="160" cy="160" r="65"/>
    <circle className="sa-center-edge" cx="160" cy="160" r="65"/>
    <path className="sa-center-index" d="M155 91h10M155 229h10M91 155v10M229 155v10"/>
-   {ports.map((port,index)=>{const p=point(-90+index*60,147),q=point(-90+index*60,126);return <g key={index} className="sa-port" data-state={portState(port.state)}><title>{port.id}: {port.state}</title><path d={`M${q.x} ${q.y}L${p.x} ${p.y}`}/><rect x={p.x-4} y={p.y-4} width="8" height="8"/><rect className="sa-port-outline" x={p.x-7} y={p.y-7} width="14" height="14"/></g>;})}
+   {ports.map((port,index)=>{const p=point(PORT_ANGLES[index],147),q=point(PORT_ANGLES[index],126);return <g key={index} className="sa-port" data-state={portState(port.state)}><title>{port.id}: {port.state}</title><path d={`M${q.x} ${q.y}L${p.x} ${p.y}`}/><rect x={p.x-4} y={p.y-4} width="8" height="8"/><rect className="sa-port-outline" x={p.x-7} y={p.y-7} width="14" height="14"/></g>;})}
   </svg>
   <div className="scan-aperture-readout"><span className="scan-aperture-time" aria-label={`${Math.floor(seconds/60)} minutes ${seconds%60} seconds elapsed`}>{time}</span><span className="scan-aperture-label">Elapsed</span></div>
   <div className="scan-aperture-accessible" id={`${id}-description`}>Decorative sweep; it does not indicate scan completion. Source states:<ul>{ports.map((port,index)=><li key={index}>{port.id}: {port.state}</li>)}</ul></div>

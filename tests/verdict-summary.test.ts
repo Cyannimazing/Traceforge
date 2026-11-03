@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { fixtureReport } from '../src/lib/investigation-fixture';
 import { getDisplayAssessment } from '../src/lib/verdict-summary';
+import {buildVerdictOutput} from '../src/lib/verdict-output';
 import {normalizeSwarmReport} from '../src/lib/swarm';
 import {bridgeSwarmReport} from '../src/lib/swarm-bridge';
 import {trustRating} from '../src/lib/trust-rating';
@@ -109,19 +110,19 @@ function adverseReport():InvestigationReport {
  return r;
 }
 
-test('proven adverse model decision remains AVOID despite incomplete history and unknown confidence',()=>{
+test('adverse model bounds retain their calculated allocation without becoming a hard rule',()=>{
  const r=adverseReport(),rating=trustRating(r);
  assert.equal(rating.coreVerified,true);assert.deepEqual(rating.hard,[]);
  assert.equal(rating.decision,'CAUTION');assert.equal(rating.judge?.modelDecision,'AVOID');assert.equal(rating.judge?.decision,'AVOID');assert.equal(rating.judge?.confidence,null);
  const result=getDisplayAssessment(r);assert.equal(result.status,'critical');assert.equal(result.title,'Avoid');
- assert.match(result.summary,/modeled input range/);assert.doesNotMatch(result.summary,/\d+(?:\.\d+)?%/);
+ assert.match(result.summary,/decision weight/);const output=buildVerdictOutput({rating});assert.equal(output.basis,'uncertainty-allocation');assert(output.p.avoid<1);
 });
 
-test('unresolved model winner and unavailable core evidence do not manufacture AVOID',()=>{
+test('unresolved model and unavailable core evidence use the shared envelope without manufacturing hard stops',()=>{
  const r=adverseReport();r.poolReserves=undefined;
  assert.equal(trustRating(r).judge?.modelDecision,null);assert.equal(getDisplayAssessment(r).status,'caution');
  const unavailable=adverseReport();unavailable.checks.forEach(c=>{c.source='Unverified';});
- assert.equal(trustRating(unavailable).coreVerified,false);assert.equal(getDisplayAssessment(unavailable).status,'caution');
+ const rating=trustRating(unavailable),output=buildVerdictOutput({rating});assert.equal(rating.coreVerified,false);assert.equal(output.basis,'uncertainty-allocation');assert.equal(output.p.ok,0);assert.equal(getDisplayAssessment(unavailable).status,output.decision==='AVOID'?'critical':'caution');assert.match(getDisplayAssessment(unavailable).summary,/uncertainty allocation/);
 });
 
 test('source-qualified critical controls retain their reason ahead of the statistical model',()=>{

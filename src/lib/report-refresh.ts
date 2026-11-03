@@ -6,17 +6,25 @@ import {computeRiskMetrics} from './risk-metrics';
 import {trustRating} from './trust-rating';
 import {getDisplayAssessment} from './verdict-summary';
 import {observedDecision} from './observed-decision';
+import {buildVerdictOutput} from './verdict-output';
+import {clockReferenceTime} from './evidence-clock';
 
 const unique = <T>(values:T[]) => [...new Set(values)];
 const byId = <T extends {id:string}>(older:T[], newer:T[]) => [...new Map([...older,...newer].map(item=>[item.id,item])).values()];
 const stalePrefix = 'Holder snapshot is stale:';
 const staleChecksPrefix='Contract check refresh is incomplete:';
-const hasHolderSnapshot=(report:InvestigationReport)=>report.sources.some(source=>source.status==='available'&&(/^(Bitquery|Blockscout|Solana RPC) Holders$/i.test(source.name)||(report.chain!=='solana'&&(source.name==='BSC RPC finalized holder balances'||source.name==='GoPlus Security'&&report.holders.length>0))));
+const hasHolderSnapshot=(report:InvestigationReport)=>{
+ // A manager-only discovery response is the reason to request the BSC holder
+ // fallback, not a replacement for its previously verified holder snapshot.
+ const managerOnly=report.chain==='bsc'&&report.holders.length>0&&report.holders.every(holder=>holder.address.toLowerCase()==='0x5c952063c7fc8610ffdb798152d69f0b9550762b');
+ return report.sources.some(source=>source.status==='available'&&(/^(Bitquery|Blockscout|Solana RPC) Holders$/i.test(source.name)||(report.chain!=='solana'&&(source.name==='BSC RPC finalized holder balances'||source.name==='GoPlus Security'&&report.holders.length>0&&!managerOnly))));
+};
 const derive=(report:InvestigationReport,updateAssessment=true):InvestigationReport=>{
  if(report.providerAnalysis)return report;
  const current={...report,riskMetrics:computeRiskMetrics(report)};
  const rating=trustRating(current);
- return {...current,trustRating:rating,observedDecision:observedDecision(current,rating),investigation:updateAssessment?{...current.investigation,assessment:getDisplayAssessment(current)}:current.investigation};
+ const observed=observedDecision(current,rating),assessment=getDisplayAssessment(current);
+ return {...current,trustRating:rating,observedDecision:observed,decisionOutput:buildVerdictOutput({rating,observed}),investigation:updateAssessment?{...current.investigation,assessment}:current.investigation};
 };
 function assessment(findings:Finding[], checks:Report['checks'], coverage:Investigation['coverage']):Investigation['assessment'] {
  const critical=findings.some(f=>f.level==='critical')||checks.some(c=>c.status==='critical');
@@ -141,10 +149,10 @@ export function mergeReportRefresh(previous:InvestigationReport,next:Investigati
   if(rpcSupply||(rpcAuthorities&&next.totalSupply!=null))snapshot.supplySlot=incoming.snapshot.supplySlot;
   solana={snapshot,tokenAccounts:rpcHolders?incoming.tokenAccounts:earlier?.tokenAccounts||[],extensions:rpcAuthorities?incoming.extensions:earlier?.extensions||[],authorities:{mint:rpcAuthorities&&incoming.authorities.mint.address!==undefined?incoming.authorities.mint:earlier?.authorities.mint||{},freeze:rpcAuthorities&&incoming.authorities.freeze.address!==undefined?incoming.authorities.freeze:earlier?.authorities.freeze||{}}};
  }
- const history=previous.investigation.timeline.length>0||previous.investigation.relationships.length>0||!!previous.investigation.coverage.poolTiming;
+ const history=previous.investigation.timeline.length>0||previous.investigation.relationships.length>0||!!previous.investigation.coverage.poolTiming||!!previous.investigation.coverage.curveTiming;
  const coverage={...(history?previous.investigation.coverage:next.investigation.coverage),reasons:unique([...previous.investigation.coverage.reasons,...next.investigation.coverage.reasons]).filter(r=>!r.startsWith(stalePrefix)&&!(securityAvailable&&r.startsWith(staleChecksPrefix))&&!r.startsWith('Current holder snapshot refreshed at')&&!r.startsWith('Holder snapshot refreshed at'))};
  if(retainedUnknownChecks.length){coverage.status=coverage.status==='complete'?'partial':coverage.status;coverage.reasons.push(`${staleChecksPrefix} ${unique(retainedUnknownChecks).join(', ')}. Last known results retain their original timestamps; current check state was not verified.`);}
- if(!holderAvailable){coverage.status=coverage.status==='complete'?'partial':coverage.status;coverage.reasons.unshift(`${stalePrefix} all holder sources are unavailable. Displayed balances retain their last successful values; the refresh attempted at ${next.fetchedAt} did not verify current holdings.`);}
+ if(!holderAvailable){coverage.status=coverage.status==='complete'?'partial':coverage.status;coverage.reasons.unshift(`${stalePrefix} no usable replacement holder snapshot is available. Displayed balances retain their last successful values; the refresh attempted at ${next.fetchedAt} did not verify current holdings.`);}
  else coverage.reasons.push(`Current holder snapshot refreshed at ${next.fetchedAt}. Missing snapshot wallets have unknown share, not zero. Historical evidence retains its original timestamps.`);
  const investigation:Investigation={wallets,evidence,findings,relationships:byId(previous.investigation.relationships,next.investigation.relationships),timeline:byId(previous.investigation.timeline,next.investigation.timeline).sort((a,b)=>Date.parse(a.timestamp)-Date.parse(b.timestamp)),coverage,assessment:assessment(findings,checks,coverage)};
  return derive({...previous,holders:holderAvailable?next.holders:previous.holders,holderCount:holderAvailable?next.holderCount:previous.holderCount,totalSupply:(holderAvailable||securityAvailable||rpcSupply)&&next.totalSupply!=null?next.totalSupply:previous.totalSupply,checks,identities,solana,poolReserves:next.poolReserves??previous.poolReserves,evmPoolReserves:next.evmPoolReserves??previous.evmPoolReserves,walletActivity:next.walletActivity??previous.walletActivity,controlProbes:next.controlProbes??previous.controlProbes,sources:[...sources.values()],investigation,fetchedAt:holderAvailable||securityAvailable?next.fetchedAt:previous.fetchedAt});
@@ -165,9 +173,23 @@ export function mergeDeepReport(previous:InvestigationReport,next:InvestigationR
  const earlierIdentityIds=new Set(earlierAuthorities.map(identity=>identityEvidence(identity,address(identity.address)).id));
  const retainedHoldingIds=new Set(!holderAvailable?previous.investigation.evidence.filter(evidence=>evidence.kind==='holding').map(evidence=>evidence.id):[]);
  const earlierHolderAddresses=new Set([...previous.holders.map(holder=>address(holder.address)),...previous.investigation.wallets.filter(wallet=>wallet.share!==null||wallet.balance!==undefined).map(wallet=>address(wallet.address))]);
- const snapshotWallets=previous.investigation.wallets.filter(wallet=>authorityAddresses.has(address(wallet.address))||(!holderAvailable&&earlierHolderAddresses.has(address(wallet.address)))).map((wallet):InvestigatedWallet=>({address:wallet.address,share:wallet.share,balance:wallet.balance,categories:authorityAddresses.has(address(wallet.address))?['authority']:['unclassified'],evidenceIds:wallet.evidenceIds.filter(id=>earlierIdentityIds.has(id)||retainedHoldingIds.has(id)),...(authorityAddresses.has(address(wallet.address))&&wallet.label?{label:wallet.label}:{})}));
+ const oldEvidence=new Map(previous.investigation.evidence.map(item=>[item.id,item]));
+ const retainedInfrastructureIds=new Set<string>();
+ const reference=clockReferenceTime(previous.investigation.coverage.clock,Date.parse(previous.investigation.coverage.fetchedAt||previous.fetchedAt));
+ const snapshotWallets=previous.investigation.wallets.filter(wallet=>authorityAddresses.has(address(wallet.address))||(!holderAvailable&&earlierHolderAddresses.has(address(wallet.address)))).map((wallet):InvestigatedWallet=>{
+  const categories:InvestigatedWallet['categories']=authorityAddresses.has(address(wallet.address))?['authority']:[];
+  if(!holderAvailable)for(const category of wallet.categories.filter(category=>['pool','exchange','bridge','burn'].includes(category)&&!wallet.categorySources?.[category])){
+   const ids=wallet.evidenceIds.filter(id=>{
+    const item=oldEvidence.get(id),time=Date.parse(item?.timestamp||''),key=address(id),account=address(wallet.address);
+    return item?.kind==='label'&&item.attribution!=='provider-reported'&&!!item.source.trim()&&Number.isFinite(time)&&Number.isFinite(reference)&&time<=reference+120_000&&(key===`label:${account}:${category}`||category==='pool'&&key===`pool-timing:${account}:creation`);
+   });
+   if(ids.length){categories.push(category);for(const id of ids)retainedInfrastructureIds.add(id);}
+  }
+  return {address:wallet.address,share:wallet.share,balance:wallet.balance,categories:categories.length?categories:['unclassified'],evidenceIds:wallet.evidenceIds.filter(id=>earlierIdentityIds.has(id)||retainedHoldingIds.has(id)||retainedInfrastructureIds.has(id)),...(categories.length&&wallet.label?{label:wallet.label}:{})};
+ });
+ const infrastructureSources=new Set([...retainedInfrastructureIds].map(id=>oldEvidence.get(id)!.source));
  const checkSources=new Set(previous.checks.flatMap(check=>check.source?[check.source]:[]));
- const snapshots:InvestigationReport={...previous,identities:earlierAuthorities,sources:previous.sources.filter(source=>/^(Bitquery|Blockscout|Solana RPC) Holders$/i.test(source.name)||source.name==='BSC RPC finalized holder balances'||source.name==='Blockscout token'||source.name==='GoPlus Security'||source.name.startsWith('Solana RPC ')||checkSources.has(source.name)),investigation:{...previous.investigation,wallets:snapshotWallets,evidence:previous.investigation.evidence.filter(evidence=>earlierIdentityIds.has(evidence.id)||retainedHoldingIds.has(evidence.id)||evidence.id.startsWith('security:')),findings:previous.investigation.findings.filter(finding=>finding.id.startsWith('security:')),timeline:[],relationships:[],coverage:{...previous.investigation.coverage,poolTiming:undefined,reasons:previous.investigation.coverage.reasons.filter(reason=>reason.startsWith(stalePrefix)||reason.startsWith(staleChecksPrefix))}}};
+ const snapshots:InvestigationReport={...previous,identities:earlierAuthorities,sources:previous.sources.filter(source=>/^(Bitquery|Blockscout|Solana RPC) Holders$/i.test(source.name)||source.name==='BSC RPC finalized holder balances'||source.name==='Blockscout token'||source.name==='GoPlus Security'||source.name.startsWith('Solana RPC ')||checkSources.has(source.name)||infrastructureSources.has(source.name)),investigation:{...previous.investigation,wallets:snapshotWallets,evidence:previous.investigation.evidence.filter(evidence=>earlierIdentityIds.has(evidence.id)||retainedHoldingIds.has(evidence.id)||retainedInfrastructureIds.has(evidence.id)||evidence.id.startsWith('security:')),findings:previous.investigation.findings.filter(finding=>finding.id.startsWith('security:')),timeline:[],relationships:[],coverage:{...previous.investigation.coverage,poolTiming:undefined,curveTiming:undefined,reasons:previous.investigation.coverage.reasons.filter(reason=>reason.startsWith(stalePrefix)||reason.startsWith(staleChecksPrefix))}}};
  const merged=mergeReportRefresh(snapshots,next,'holders');
  const identities=[...(next.identities||[]).filter(identity=>identity.role!=='authority'),...(merged.identities||[]).filter(identity=>identity.role==='authority')];
  const currentIdentityIds=new Set(identities.map(identity=>identityEvidence(identity,address(identity.address)).id));
@@ -176,7 +198,7 @@ export function mergeDeepReport(previous:InvestigationReport,next:InvestigationR
  for(const holder of next.holders)newWallets.add(address(holder.address));
  const activeFlags=new Set(merged.checks.filter(check=>check.status==='critical'||check.status==='warning').map(check=>`security:${check.key}`));
  const newEvidenceIds=new Set(next.investigation.evidence.map(evidence=>evidence.id));
- const evidence=merged.investigation.evidence.filter(evidence=>retainedHoldingIds.has(evidence.id)|| (evidence.id.startsWith('security:')?activeFlags.has(evidence.id):evidence.id.startsWith('identity:')?currentIdentityIds.has(evidence.id):newEvidenceIds.has(evidence.id)));
+ const evidence=merged.investigation.evidence.filter(evidence=>retainedHoldingIds.has(evidence.id)||retainedInfrastructureIds.has(evidence.id)|| (evidence.id.startsWith('security:')?activeFlags.has(evidence.id):evidence.id.startsWith('identity:')?currentIdentityIds.has(evidence.id):newEvidenceIds.has(evidence.id)));
  const evidenceIds=new Set(evidence.map(evidence=>evidence.id));
  const wallets=merged.investigation.wallets.filter(wallet=>newWallets.has(address(wallet.address))||currentAuthorities.has(address(wallet.address))||(!holderAvailable&&earlierHolderAddresses.has(address(wallet.address)))).map(wallet=>({...wallet,evidenceIds:wallet.evidenceIds.filter(id=>evidenceIds.has(id))}));
  const newFindings=new Set(next.investigation.findings.map(finding=>finding.id));

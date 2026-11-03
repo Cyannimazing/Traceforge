@@ -27,7 +27,7 @@ test('unrelated and imported labels cannot alter supply exclusions',()=>{
 });
 
 test('attributed market pair and snapshot-only holders agree with holder table partition',()=>{
- const r=report();holder(r,'pool',40);holder(r,'a',10);r.market={chainId:'ethereum',pairAddress:'pool',baseToken:{address:r.token}};r.sources.push({name:'DEX Screener',status:'available',fetchedAt:at,detail:'Selected pool'});
+ const r=report(),pool='0x'+'1'.repeat(40);holder(r,pool,40);holder(r,'a',10);r.market={chainId:'ethereum',pairAddress:pool,baseToken:{address:r.token}};r.sources.push({name:'DEX Screener',status:'available',fetchedAt:at,detail:'Selected pool'});
  r.investigation.wallets=[];assert.equal(metric(r,'largest-holder-supply').value,10);assert.ok(Math.abs(metric(r,'largest-holder-adjusted-float').value!-100/6)<1e-9);
 });
 

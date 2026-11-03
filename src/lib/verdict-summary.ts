@@ -1,6 +1,7 @@
 import type { InvestigationReport, Investigation } from './investigation-types';
 import {trustRating} from './trust-rating';
 import {observedDecision} from './observed-decision';
+import {buildVerdictOutput} from './verdict-output';
 
 /** Presentation precedence keeps observed flags visible when history is incomplete. */
 export function getDisplayAssessment(report: InvestigationReport): Investigation['assessment'] {
@@ -8,23 +9,18 @@ export function getDisplayAssessment(report: InvestigationReport): Investigation
  if(!report.providerAnalysis){
   const rating=trustRating(report);
   // A verified hard stop outranks the narrower observed-scope model. Otherwise,
-  // promote only a strict model winner proven across every unresolved bound.
+  // use the same calculated vector or conservative allocation as the API/UI.
   // Neither missing evidence nor a cached/provider verdict is a stop rule.
   if(rating.decision==='AVOID'&&rating.hard?.length){
    return {status:'critical',title:'Avoid',summary:rating.hard.join(' ')};
   }
-  if(rating.coreVerified&&rating.judge?.decision==='AVOID'&&rating.judge.modelDecision==='AVOID'&&rating.judge.ranges){
-   return {status:'critical',title:'Avoid',summary:rating.judge.confidence===null
-    ?'The independent decision model selects AVOID throughout the modeled input range. Some inputs remain unresolved, so no single confidence percentage is reported.'
-    :'The independent decision model selects AVOID for the evaluated evidence. Inspect the measurements and rules behind this decision.'};
-  }
   const observed=observedDecision(report,rating);
   if(observed?.judge.p){
    const decision=observed.judge.decision;
-   return {status:decision==='AVOID'?'critical':decision==='OK'?'clear':'caution',title:decision,summary:`Observed-scope score ${observed.score}/100. Model confidence ${(observed.judge.confidence!*100).toFixed(1)}% for ${decision}. Unread wallets and incomplete history remain outside the assessed scope.`};
+   return {status:decision==='AVOID'?'critical':decision==='OK'?'clear':'caution',title:decision,summary:`Observed-scope score ${observed.score}/100. Calculated decision weight ${(observed.judge.confidence!*100).toFixed(1)}% for ${decision}. Unread wallets and incomplete history remain outside the assessed scope.`};
   }
-  const status=rating.decision==='AVOID'?'critical':rating.decision==='OK'||rating.decision==='CLEAN'?'clear':!report.holders.length&&!report.checks.length?'insufficient':'caution';
-  return {status,title:status==='critical'?'Avoid':status==='clear'?rating.decision:'Caution',summary:rating.hard?.length?rating.hard.join(' '):rating.soft?.length?rating.soft.join(' '):rating.score===null?'Some scoring inputs are not fully evaluated. The range shows how unresolved evidence can affect the six-factor score.':`Six-factor score: ${rating.score}/100. Inspect the measurements and rules behind this decision.`};
+  const output=buildVerdictOutput({rating,observed}),status=output.decision==='AVOID'?'critical':output.decision==='OK'?'clear':!report.holders.length&&!report.checks.length?'insufficient':'caution';
+  return {status,title:output.decision==='AVOID'?'Avoid':output.decision==='OK'?'OK':'Caution',summary:output.basis==='uncertainty-allocation'?`Some six-factor inputs are not fully evaluated. Conservative uncertainty allocation gives ${(output.selectedWeight*100).toFixed(1)}% decision weight to ${output.decision}; this is not a safety probability.`:output.basis==='rule'?output.explanation:`Six-factor score: ${output.score??'unavailable'}/100. Calculated decision weight ${(output.selectedWeight*100).toFixed(1)}% for ${output.decision}.`};
  }
 
  const critical=inv.findings.some(f=>f.level==='critical')||report.checks.some(c=>c.status==='critical');

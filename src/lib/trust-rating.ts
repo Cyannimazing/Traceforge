@@ -4,10 +4,10 @@ import {buildScoringInputs} from './scoring-inputs';
 import {scoreFactors} from './reconstructed-score';
 import {buildCurrentHolderGraph} from './current-holder-graph';
 import {staleVerification} from './verdict-freshness';
-import {decisionModel,type DecisionModelResult} from './decision-model';
+import {decisionModel,type DecisionModelResult,type DecisionModelInput} from './decision-model';
 export {staleVerification} from './verdict-freshness';
 export type RatingComponent={id:string;label:string;earned:number;maximum:number;state:'clear'|'watch'|'flagged'|'unknown';detail:string;lower?:number;upper?:number;evidenceIds?:string[]};
-export type TrustRating={version:'evidence-v3'|'six-factor-v1';score:number|null;range?:{lower:number;upper:number};decision:'CLEAN'|'OK'|'CAUTION'|'AVOID'|'UNRATED';basis:string;reasons:string[];components:RatingComponent[];ceiling:number|null;hard?:string[];soft?:string[];judge?:DecisionModelResult;coreVerified?:boolean};
+export type TrustRating={version:'evidence-v3'|'six-factor-v1';score:number|null;range?:{lower:number;upper:number};decision:'CLEAN'|'OK'|'CAUTION'|'AVOID'|'UNRATED';basis:string;reasons:string[];components:RatingComponent[];ceiling:number|null;hard?:string[];soft?:string[];judge?:DecisionModelResult;judgeInputs?:DecisionModelInput;coreVerified?:boolean};
 /** Primary independent verdict. Unknown inputs retain score intervals instead
  * of receiving favorable zero-risk defaults or arbitrary fixed deductions. */
 export function trustRating(report:InvestigationReport):TrustRating{
@@ -41,11 +41,13 @@ export function trustRating(report:InvestigationReport):TrustRating{
  const result=scoreFactors(inputs,{hard,soft,missingCore:context.guard.missingCore||extensionCoverageMissing});
  const impact=inputs.find(i=>i.id==='swarm')!;
  const securityIncomplete=report.chain!=='solana'&&['is_honeypot','owner_change_balance','is_mintable','transfer_pausable','is_proxy','is_open_source','hidden_owner','selfdestruct'].some(key=>!controls.some(c=>c.key===key&&c.status!=='unknown')||controls.some(c=>c.key===key&&c.status==='unknown'));
- const judge=decisionModel({score:result.range,danger:hard.length>0,
+ const judgeInputs:DecisionModelInput={score:result.range,danger:hard.length>0,
   security:context.guard.missingCore||extensionCoverageMissing||securityIncomplete||context.guard.critical||report.chain==='solana'&&warned('solana_freeze_authority')?null:context.guard.warning?1:0,
-  memoryHits:null,dumpImpact:{lower:impact.lower,upper:impact.upper},hard});
+  memoryHits:null,dumpImpact:{lower:impact.lower,upper:impact.upper},hard};
+ const judge=decisionModel(judgeInputs);
  return {...result,decision:report.providerAnalysis?'UNRATED':result.decision,score:report.providerAnalysis?null:result.score,
   judge:report.providerAnalysis?undefined:judge,
+  judgeInputs:report.providerAnalysis?undefined:judgeInputs,
   coreVerified:!report.providerAnalysis&&!context.guard.missingCore&&!extensionCoverageMissing,
   reasons:[...new Set([...result.reasons,...context.guard.reasons,...(extensionCoverageMissing?['Current mint extension decoding is incomplete or unverified.']:[])])],components:result.components.map(c=>({...c,earned:c.earned??0}))};
 }

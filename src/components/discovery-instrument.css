@@ -21,3 +21,13 @@
  .di-readout:focus-visible{outline-offset:-3px}
 }
 @media(prefers-reduced-motion:reduce){.di-instrument *{animation:none!important;transition:none!important}.di-ripple,.di-contact-echo,.di-contact-flash{opacity:0!important}.di-beam{opacity:.45}}
+/* A sweep reveal is decorative. Selection and keyboard focus stay visible. */
+.di-contact.is-selected .di-contact-core,.di-contact:focus-visible .di-contact-core,.di-contact:hover .di-contact-core{opacity:1!important}
+.di-instrument[data-motion=still] .di-contact-core{opacity:1!important}
+.di-volume-list button:disabled{cursor:default;color:#999}
+.di-instrument[aria-busy=true] .di-network-meter{visibility:hidden}
+.di-instrument[aria-busy=true] .di-network-strip>.dr-skeleton{height:100%}
+.di-instrument[aria-busy=true] .di-volume-track>.dr-skeleton{display:block;height:100%}
+.di-instrument[data-motion=still] .dr-skeleton{animation-play-state:paused}
+.di-contact .di-contact-name{opacity:0}
+.di-contact.is-selected .di-contact-name,.di-contact:focus-visible .di-contact-name,.di-contact:hover .di-contact-name{opacity:1}

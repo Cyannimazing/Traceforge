@@ -9,7 +9,12 @@ import { getDisplayAssessment } from '@/lib/verdict-summary';
 import { findingBreakdown } from '@/lib/finding-breakdown';
 import {observedDecision} from '@/lib/observed-decision';
 import {trustRating} from '@/lib/trust-rating';
+import {buildVerdictOutput} from '@/lib/verdict-output';
+import {decisionDisplayPercentages} from '@/lib/decision-display';
+import {decisionLabels,decisionLabel,presentationText} from '@/lib/assessment-presentation';
 import {buildCurrentHolderGraph} from '@/lib/current-holder-graph';
+import {layoutHolderMap} from '@/lib/holder-map-layout';
+import {holderMapFloatBasis,mapDisplayShare,resolveShareBasis,sharePercentText,type MapShareBasis} from '@/lib/holder-map-basis';
 import {holderScope} from '@/lib/holder-scope';
 import {computeRiskMetrics} from '@/lib/risk-metrics';
 import RiskMeasurements from './risk-measurements';
@@ -19,10 +24,11 @@ import type { Selection } from './investigation-panels';
 import CheckBreakdown from './check-breakdown';
 import CryptoAgentPanel,{useCryptoReview} from './crypto-agent-panel';
 import './report-overview.css';
+import ShareBasisSelector from './share-basis-selector';
 
-type Props = { report: InvestigationReport; selection?: Selection | null; onSelect: (selection: Selection) => void; onInspect: () => void; paused: boolean };
+type Props = { report: InvestigationReport; selection?: Selection | null; onSelect: (selection: Selection) => void; onInspect: () => void; paused: boolean; shareBasis?:MapShareBasis; onShareBasisChange?:(basis:MapShareBasis)=>void };
 const LIMIT = 100, WIDTH = 700, HEIGHT = 400;
-const shareText = (share: number | null) => share == null || !Number.isFinite(share) ? 'Supply share unavailable' : share > 0 && share < .01 ? '<0.01% of supply' : `${share.toLocaleString(undefined, { maximumFractionDigits: 2 })}% of supply`;
+const formatMapShare = (share: number | null, basis: MapShareBasis) => share == null || !Number.isFinite(share) ? `${basis==='float'?'Snapshot float':'Supply'} share unavailable` : `${sharePercentText(share)} of ${basis==='float'?'snapshot float':'total supply'}`;
 const dateText = (value: string) => new Date(value).toLocaleString();
 
 /** Age uses actual source dates and an explicitly named reference time. */
@@ -39,12 +45,20 @@ function sourceAge(report: InvestigationReport) {
 }
 
 /** Position and motion are layout only, never ownership or live transfers. */
-export default function ReportOverview({ report, selection, onSelect, onInspect, paused }: Props) {
+export default function ReportOverview({ report, selection, onSelect, onInspect, paused,shareBasis:controlledShareBasis,onShareBasisChange }: Props) {
   const agentResult=useCryptoReview(report),agentReview=LLM_REVIEW_ENABLED&&agentResult?.status==='ready'?agentResult.review:null;
   const id = useId(), inv = report.investigation, provider = report.providerAnalysis, assessment = getDisplayAssessment(report), age = sourceAge(report);
   const snapshot=useMemo(()=>holderScope(report),[report]);
+  const floatBasis=useMemo(()=>holderMapFloatBasis(snapshot.infrastructure,snapshot.currentInfrastructureAddresses,report.chain==='solana',snapshot.holders),[snapshot,report.chain]);
+  const basisScope=`${report.chain}:${report.token}`;
+  const [basisChoice,setBasisChoice]=useState<{scope:string;basis:MapShareBasis}|null>(null);
+  const shareBasis=resolveShareBasis(controlledShareBasis??(basisChoice?.scope===basisScope?basisChoice.basis:'float'),floatBasis);
+  const changeShareBasis=(basis:MapShareBasis)=>{setBasisChoice({scope:basisScope,basis});onShareBasisChange?.(basis);};
+  const displayShare=(raw:number|null)=>mapDisplayShare(raw,shareBasis,floatBasis);
+  const shareText=(raw:number|null)=>formatMapShare(displayShare(raw),shareBasis);
+  const bubbleShare=(raw:number|null)=>{const value=displayShare(raw);return value===null?'':sharePercentText(value);};
   const largestHolding=useMemo(()=>(report.riskMetrics||computeRiskMetrics(report)).metrics.find(metric=>metric.id==='largest-holder-adjusted-float'),[report]);
-  const root = useRef<HTMLElement>(null), viewport = useRef<SVGGElement>(null), motion = useRef<gsap.core.Timeline | null>(null);
+  const root = useRef<HTMLElement>(null), viewport = useRef<SVGGElement>(null), motion = useRef<gsap.core.Timeline | null>(null), entrance = useRef<gsap.core.Timeline|null>(null);
   const [view, setView] = useState({ x: 0, y: 0, zoom: 1 });
   const [hovered, setHovered] = useState<string | null>(null), [localSelection, setLocalSelection] = useState<string | null>(null);
   const [onScreen, setOnScreen] = useState(false), [visible, setVisible] = useState(true), [reduced, setReduced] = useState(false);
@@ -55,20 +69,8 @@ export default function ReportOverview({ report, selection, onSelect, onInspect,
   const graph = useMemo(() => {
     const current=buildCurrentHolderGraph(report,{limit:LIMIT});
     const wallets=current.nodes,edges=current.edges;
-    const maxShare = Math.max(1, ...wallets.map(wallet => wallet.share ?? 0));
-    const nodes = wallets.map((wallet, index) => {
-      const angle = index * Math.PI * (3 - Math.sqrt(5)) - .7, distance = Math.sqrt((index + .3) / Math.max(1, wallets.length));
-      return { ...wallet, rank:index+1, x: WIDTH / 2 + Math.cos(angle) * 285 * distance, y: HEIGHT / 2 + Math.sin(angle) * 155 * distance, radius: wallet.share == null ? 6 : Math.max(6,(wallets.length>50?28:wallets.length>25?36:46)*Math.sqrt(Math.max(0,wallet.share)/maxShare)) };
-    });
-    // Deterministic collision relaxation separates bubbles and pointer targets.
-    for (let pass = 0; pass < 70; pass++) {
-      for (let i = 0; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) {
-        const a = nodes[i], b = nodes[j], dx = b.x - a.x, dy = b.y - a.y, distance = Math.hypot(dx, dy) || .01;
-        const minimum = Math.max(9, a.radius) + Math.max(9, b.radius) + 9;
-        if (distance < minimum) { const shift = (minimum - distance) * .32; a.x -= dx / distance * shift; a.y -= dy / distance * shift; b.x += dx / distance * shift; b.y += dy / distance * shift; }
-      }
-      for (const node of nodes) { node.x = Math.max(node.radius + 35, Math.min(WIDTH - node.radius - 35, node.x)); node.y = Math.max(node.radius + 28, Math.min(HEIGHT - node.radius - 28, node.y)); }
-    }
+    const layout=layoutHolderMap(wallets,WIDTH,HEIGHT);
+    const nodes=wallets.map((wallet,index)=>({...wallet,rank:index+1,...layout[index]}));
     const neighbors = new Map(nodes.map(node => [node.address, new Set<string>()]));
     for (const edge of edges) { neighbors.get(edge.from)!.add(edge.to); neighbors.get(edge.to)!.add(edge.from); }
     const groups: string[][] = [], visited = new Set<string>();
@@ -96,6 +98,17 @@ export default function ReportOverview({ report, selection, onSelect, onInspect,
       const positions = new Map(points.map(point=>[point.address,point]));
       const elements = [...(root.current?.querySelectorAll<SVGGElement>('[data-map-node]') || [])];
       const edges = [...(root.current?.querySelectorAll<SVGGElement>('[data-map-edge]') || [])];
+      const arrivals = [...(root.current?.querySelectorAll<SVGGElement>('.ro-node-arrival') || [])];
+      const bubbles=[...(root.current?.querySelectorAll<SVGCircleElement>('.ro-node')||[])],radii=bubbles.map(circle=>Number(circle.getAttribute('r')));
+      const arrival=gsap.timeline({paused:true});
+      arrival.fromTo(arrivals,{opacity:.22},{opacity:1,duration:.8,stagger:{amount:.8,from:'center'},ease:'power3.out'},0);
+      // Animate radii in each wallet's local origin. No group scale/transform
+      // touches the packed coordinates or persists after the entry sequence.
+      arrival.fromTo(bubbles,{attr:{r:(index:number)=>radii[index]*.12}},{attr:{r:(index:number)=>radii[index]},duration:1.35,stagger:{amount:1.1,from:'center'},ease:'expo.out'},0);
+      arrival.fromTo(root.current?.querySelectorAll('.ro-node-inner,.ro-creator-ring,.ro-authority-mark')||[],{opacity:0},{opacity:1,duration:.7,stagger:{amount:.5},ease:'power2.out'},.45);
+      arrival.fromTo(root.current?.querySelectorAll('.ro-node-label,.ro-node-core')||[],{opacity:0},{opacity:1,duration:.5,stagger:{amount:.7},ease:'power2.out'},.7);
+      arrival.fromTo(root.current?.querySelectorAll('.ro-connection')||[],{strokeDasharray:'100 100',strokeDashoffset:100},{strokeDashoffset:0,duration:1.6,stagger:{amount:.65},ease:'power2.inOut',clearProps:'strokeDasharray,strokeDashoffset'},.35);
+      entrance.current=arrival;
       const redraw = () => {
         elements.forEach((element,index)=>{const point=points[index];element.setAttribute('transform',`translate(${point.x} ${point.y})`);});
         edges.forEach((element,index)=>{const edge=graph.edges[index],a=positions.get(edge.from)!,b=positions.get(edge.to)!;const path=`M ${a.x} ${a.y} Q ${(a.x+b.x)/2} ${(a.y+b.y)/2-Math.min(30,Math.abs(a.x-b.x)/7)} ${b.x} ${b.y}`;element.querySelectorAll('path').forEach(line=>line.setAttribute('d',path));});
@@ -106,17 +119,18 @@ export default function ReportOverview({ report, selection, onSelect, onInspect,
       sequence.eventCallback('onUpdate',redraw);
       motion.current = sequence;
     }, root);
-    return () => { context.revert(); motion.current = null; };
+    return () => { context.revert(); motion.current = null; entrance.current=null; };
   }, [graph]);
-  useEffect(() => { motion.current?.paused(!animate); if (reduced || paused) gsap.set(root.current?.querySelectorAll('.ro-node-arrival') || [], { opacity: 1, scale: 1 }); }, [animate, reduced, paused, graph]);
+  useEffect(() => { motion.current?.paused(!animate); if(reduced||paused)entrance.current?.progress(1).pause();else entrance.current?.paused(!animate); }, [animate, reduced, paused, graph]);
   useEffect(() => {
     const tween = gsap.to(viewport.current, { attr: { transform: `translate(${view.x} ${view.y}) translate(350 200) scale(${view.zoom}) translate(-350 -200)` }, duration: animate && !drag.current ? .3 : 0, ease: 'power3.out', overwrite: true });
     return () => { tween.kill(); };
   }, [view, animate]);
 
-  const selectedWallets = new Set(selected ? [selected] : selection?.wallets || []);
-  if (selection?.kind === 'relationship') { const edge = inv.relationships.find(edge => edge.id === selection.id); if (edge) { selectedWallets.add(edge.from); selectedWallets.add(edge.to); } }
-  if (selection?.kind === 'finding') for (const address of inv.findings.find(finding => finding.id === selection.id)?.wallets || []) selectedWallets.add(address);
+  const normalizeWallet=(address:string)=>report.chain==='solana'?address:address.toLowerCase();
+  const selectedWallets = new Set((selected ? [selected] : selection?.wallets || []).map(normalizeWallet));
+  if (selection?.kind === 'relationship') { const edge = inv.relationships.find(edge => edge.id === selection.id); if (edge) { selectedWallets.add(normalizeWallet(edge.from)); selectedWallets.add(normalizeWallet(edge.to)); } }
+  if (selection?.kind === 'finding') for (const address of inv.findings.find(finding => finding.id === selection.id)?.wallets || []) selectedWallets.add(normalizeWallet(address));
   const focusAddress = hovered || selected, focused = graph.positions.get(focusAddress || '');
   const highlighted = new Set([...selectedWallets, ...(focusAddress ? [focusAddress, ...(graph.neighbors.get(focusAddress) || [])] : [])]);
   const selectWallet = (address: string) => { if (selection === undefined) setLocalSelection(address); onSelect({ kind: 'wallet', id: address }); };
@@ -127,12 +141,13 @@ export default function ReportOverview({ report, selection, onSelect, onInspect,
   const fundingPatterns = breakdown.risks.filter(finding=>finding.id.startsWith('funder:'));
   const rating=useMemo(()=>trustRating(report),[report]);
   const observedResult=useMemo(()=>observedDecision(report,rating),[report,rating]);
-  const decision = assessment.status==='critical'?'AVOID':agentReview?.decision||observedResult?.judge.decision||rating.decision;
+  const verdictOutput=useMemo(()=>buildVerdictOutput({rating,observed:observedResult}),[rating,observedResult]);
+  const decision = assessment.status==='critical'?'AVOID':agentReview?.decision||verdictOutput.decision;
   const observed=observedResult?.judge.decision===decision?observedResult:null;
   const simpleReason=rating.hard?.[0]||(assessment.status==='critical'?assessment.summary:agentReview?.summary)||rating.soft?.[0]||(observed?.judge.p?decision==='OK'?'No stop rule was triggered in the observed activity.':'The observed activity raised warning signs.':rating.score===null?'Some wallet checks are incomplete.':rating.decision==='CLEAN'||rating.decision==='OK'?'No major warning found in the completed checks.':'The completed checks found warning signs.');
   const scoreText=rating.score!==null?String(rating.score):'Unavailable';
   const points=(n:number)=>Number(n.toFixed(1)).toLocaleString();
-  const confidencePercent=observed?.judge.confidence==null?null:Math.round(observed.judge.confidence*1000)/10;
+  const confidencePercent=decisionDisplayPercentages(verdictOutput.p)[verdictOutput.decision.toLowerCase() as 'avoid'|'caution'|'ok'];
   const unresolved=new Set(rating.components.filter(component=>component.state==='unknown').map(component=>component.id));
   const why: {title:string;detail:string}[]=[];
   for(const reason of [...(rating.hard||[]),...(rating.soft||[])])why.push({title:'Verified warning',detail:reason});
@@ -143,33 +158,35 @@ export default function ReportOverview({ report, selection, onSelect, onInspect,
    why.push({title:'Large-sale model',detail:`A hypothetical sale by the largest group moves the raw pool price ${(observed.impact*100).toFixed(1)}% in the model, before fees or token restrictions. This is not a verified trade quote.`});
    why.push({title:'Wallet activity checked',detail:`Fresh-wallet exposure is ${(factor('fresh').value*100).toFixed(1)}% among ${observed.scope.readableFreshWallets} readable non-creator wallets; ${observed.scope.unreadFreshWallets} unread wallets are excluded. Early-buyer findings use retrieved records, not complete launch history.`});
   }else{
-   if(largestHolding?.status==='observed'&&largestHolding.value!==null)why.push({title:'Large holder balance',detail:`The largest returned holder holds ${largestHolding.value.toFixed(2)}% of supply after excluding verified infrastructure. The balance is source-attributed in this report.`});
+   if(largestHolding?.status==='observed'&&largestHolding.value!==null)why.push({title:'Holder concentration',detail:`The largest returned holder holds ${largestHolding.value.toFixed(2)}% of measured snapshot float. Platform balances are excluded; this is not the holder's share of total token supply.`});
+   if(rating.components.some(component=>component.id==='snipers'&&(component.state==='flagged'||component.state==='watch')))why.push({title:'First-minute buyers still hold tokens',detail:'Transaction evidence identifies buys in a verified first-minute window, and those buyers still have a current balance. The Sniper label describes entry timing in that venue; it does not prove bot activity.'});
    if(unresolved.has('fresh'))why.push({title:'Some holder histories are unread',detail:'Lifetime activity has not been verified for every current holder, so the fresh-wallet check is incomplete.'});
-   if(unresolved.has('insiders')||unresolved.has('snipers'))why.push({title:'Early buying is unverified',detail:'The retrieved records do not cover the complete launch. First-minute buyers and pre-trading transfers are still unresolved.'});
+   if(unresolved.has('snipers'))why.push({title:'First-minute buying is unverified',detail:'The retrieved records do not establish a complete first trading minute for the analyzed venue.'});
+   if(unresolved.has('insiders'))why.push({title:'Pre-trading transfers are not fully traced',detail:inv.coverage.curveTiming?'The first minute on the selected launchpad is verified. Transfers before trading and activity on other venues remain outside that proof.':'The retrieved records do not establish all transfers before trading or all creator-origin inflows.'});
    if(unresolved.has('dev'))why.push({title:'Creator funding is not fully traced',detail:'The complete funding trail is missing, so the total held by the creator and creator-funded wallets cannot be confirmed.'});
    if(unresolved.has('swarm'))why.push({title:'Sell impact is unverified',detail:'The available pool evidence cannot establish how much a sale by the largest holder group could move the price.'});
   }
   if(!why.length&&rating.score===null)why.push({title:'Required checks are incomplete',detail:'Some current contract controls or holder balances could not be verified. Open the evidence to see which source results are missing.'});
-  const roles: { category: WalletCategory; name: string }[] = [{ category: 'creator', name: 'Creator' }, { category: 'authority', name: 'Authority' }, { category: 'sniper', name: 'Possible snipers' }];
-  const verifiedTiming = inv.coverage.launchVerified || !!inv.coverage.poolTiming || !!inv.coverage.poolTimings?.length;
+  const roles: { category: WalletCategory; name: string }[] = [{ category: 'creator', name: 'Creator' }, { category: 'authority', name: 'Owner' }, { category: 'sniper', name: 'Snipers' }];
+  const verifiedTiming = inv.coverage.launchVerified || !!inv.coverage.poolTiming || !!inv.coverage.poolTimings?.length || !!inv.coverage.curveTiming;
 
   return <section ref={root} className="report-overview" aria-label="Wallet network and assessment" data-paused={!animate}>
-    <div className={`ro-assessment ro-status-${decision==='AVOID'?'critical':decision==='OK'||decision==='CLEAN'?'clear':'caution'}`}>
-      <header className="ro-verdict-heading"><h2>Verdict</h2><span className="ro-coverage">{rating.hard?.length?'Stop rule triggered':observed?.judge.p?'Observed activity':inv.coverage.status === 'complete' ? 'Checks complete' : inv.coverage.status === 'partial' ? 'Incomplete checks' : 'Evidence unavailable'}</span></header>
-      <div className="ro-rating"><strong className="ro-decision">{decision}</strong>{decision==='AVOID'&&confidencePercent===null?<div className="ro-rule-basis"><span>Decision basis</span><strong>{rating.hard?.length?'Stop rule triggered':'Severe measured risks'}</strong></div>:<div className="ro-evidence-confidence" aria-label={confidencePercent===null?'Model confidence unavailable':`Model confidence: ${confidencePercent}%`}><span>Model confidence</span><strong>{confidencePercent===null?'Unavailable':<>{confidencePercent.toLocaleString(undefined,{maximumFractionDigits:1})}<small>%</small></>}</strong></div>}</div>
-      <p className="ro-simple-reason">{simpleReason}</p>
-      {why.length>0&&<section className="ro-plain-reasons" aria-label={`Why ${decision.toLowerCase()}?`}><h3>Why {decision.toLowerCase()}?</h3><ul>{why.map((reason,index)=><li key={`${reason.title}:${index}`}><strong>{reason.title}</strong><p>{reason.detail}</p></li>)}</ul></section>}
+    <div className={`ro-assessment ro-status-${decision==='AVOID'?'critical':decision==='OK'?'clear':'caution'}`}>
+      <header className="ro-verdict-heading"><h2>Assessment</h2><span className="ro-coverage">{rating.hard?.length?'Stop rule triggered':observed?.judge.p?'Observed activity':inv.coverage.status === 'complete' ? 'Checks complete' : inv.coverage.status === 'partial' ? 'Incomplete checks' : 'Evidence unavailable'}</span></header>
+      <div className="ro-rating"><strong className="ro-decision">{decisionLabel(decision)}</strong><div className="ro-evidence-confidence" aria-label={`${verdictOutput.basis==='rule'?'Rule allocation':'Decision support'}: ${confidencePercent}%`}><span>{verdictOutput.basis==='rule'?'Rule allocation':'Decision support'}</span><strong>{confidencePercent.toLocaleString(undefined,{maximumFractionDigits:1})}<small>%</small></strong></div></div>
+      <p className="ro-simple-reason">{presentationText(simpleReason)}</p>
+      {!LLM_REVIEW_ENABLED&&<DecisionOutput output={verdictOutput}/>}
+      {why.length>0&&<section className="ro-plain-reasons" aria-label={`Why ${decisionLabel(decision).toLowerCase()}?`}><h3>Why {decisionLabel(decision).toLowerCase()}?</h3><ul>{why.map((reason,index)=><li key={`${reason.title}:${index}`}><strong>{reason.title}</strong><p>{reason.detail}</p></li>)}</ul></section>}
       <details className="ro-analysis-details"><summary>Analysis details</summary><div className="ro-analysis-body">
       {agentReview&&<section className="ro-decision-weights" aria-label="AI decision weights">
         <h3>AI decision weights</h3>
         {agentReview.distribution?<>
-          <dl>{([['avoid','Avoid'],['caution','Caution'],['ok','OK']] as const).map(([key,label])=><div key={key} className={decision===key.toUpperCase()?'is-selected':''}>
-            <dt>{label}</dt><dd><span className="ro-weight-track" aria-hidden="true"><span style={{width:`${agentReview.distribution![key]}%`}}/></span><span className="ro-weight-value">{agentReview.distribution![key].toFixed(1)}%</span></dd>
+          <dl>{(['avoid','caution','ok'] as const).map(key=><div key={key} className={decision===key.toUpperCase()?'is-selected':''}>
+            <dt>{decisionLabels[key]}</dt><dd><span className="ro-weight-track" aria-hidden="true"><span style={{width:`${agentReview.distribution![key]}%`}}/></span><span className="ro-weight-value">{agentReview.distribution![key].toFixed(1)}%</span></dd>
           </div>)}</dl>
           <p>How Gemini weighs this evidence across the three decisions. Not a probability of token safety.</p>
-        </>:<p>{agentReview.overrides.length?'Decision weights withheld because an evidence rule changed or restricted the AI verdict.':'The available evidence does not support decision weights.'}</p>}
+        </>:<p>{agentReview.overrides.length?'Decision weights withheld because an evidence rule changed or restricted the AI assessment.':'The available evidence does not support decision weights.'}</p>}
       </section>}
-      {!LLM_REVIEW_ENABLED&&(observed?.judge.p||rating.judge?.p)&&<DecisionOutput result={observed?.judge.p?observed.judge:rating.judge!}/>}
       {observed&&<details className="ro-rating-details"><summary>Observed score - {observed.score}/100</summary><dl>{observed.factors.map(factor=><div key={factor.id}><dt>{factor.id}<small>{factor.detail}</small></dt><dd>{(factor.value*100).toFixed(2)}%</dd></div>)}</dl><p>{observed.scope.readableFreshWallets} readable non-creator wallets assessed; {observed.scope.unreadFreshWallets} unread excluded.</p>{observed.scope.notes.map(note=><p key={note}>{note}</p>)}</details>}
       <div className="ro-holder-scope">
         <dl aria-label="Holder snapshot and investigation scope">
@@ -181,7 +198,7 @@ export default function ReportOverview({ report, selection, onSelect, onInspect,
       </div>
       <details className="ro-rating-details"><summary>Score breakdown</summary><p>{rating.score===null?'The overall score is unavailable while required checks remain incomplete.':`Measured score: ${scoreText}/100.`}</p><dl>{rating.components.map(component=><div key={component.id}><dt>{component.label}<details className="ro-factor-detail"><summary>Measurement details</summary><p>{component.detail}</p></details>{!!component.evidenceIds?.length&&<button className="ro-factor-evidence" onClick={()=>onSelect({kind:'group',id:`factor:${component.id}`,wallets:[],evidenceIds:component.evidenceIds!})}>Inspect {component.evidenceIds.length} evidence records <ArrowUpRight size={12}/></button>}</dt><dd>{component.state==='unknown'?'Not verified':points(component.earned)}<span> / {component.maximum}</span></dd></div>)}</dl>{!!rating.hard?.length&&<p>Stop rules: {rating.hard.join(' ')}</p>}{!!rating.soft?.length&&<p>Score cap: {rating.soft.join(' ')}</p>}<p>{rating.basis}</p></details>
       {report.controlProbes&&<details className="ro-rating-details"><summary>Direct RPC control observations - {report.controlProbes.observations.filter(o=>o.status==='observed').length} observed</summary><p>{report.controlProbes.anchor?`Block ${report.controlProbes.anchor.number}, ${report.controlProbes.anchor.finality}. `:''}{report.controlProbes.status}. Read at {dateText(report.controlProbes.fetchedAt)}.</p><dl>{report.controlProbes.observations.map(o=><div key={o.key}><dt>{o.key.split(':')[0]}<small>{o.detail}</small></dt><dd>{o.status==='unknown'?'Unresolved':o.outcome.replaceAll('-',' ')}</dd></div>)}</dl>{report.controlProbes.limitations.map(note=><p key={note}>{note}</p>)}</details>}
-      <details className="ro-confidence"><summary>How confidence is calculated</summary><p>{confidencePercent===null?'The required model inputs are unavailable.':`${confidencePercent.toLocaleString(undefined,{maximumFractionDigits:1})}% is the normalized model weight for ${decision}, calculated from the observed score and risk signals.`} It is not a measured probability of token safety. Unread wallets are excluded from the fresh-wallet denominator; undocumented matches do not add risk to this observed-scope model. Unverified history remains a coverage limit.</p></details>
+      <details className="ro-confidence"><summary>Decision basis and coverage</summary><p>{presentationText(verdictOutput.explanation)} Unread wallets are excluded from the observed fresh-wallet denominator. Unverified history remains a coverage limit.</p></details>
       {LLM_REVIEW_ENABLED&&<CryptoAgentPanel report={report} onSelect={onSelect} result={agentResult}/>}
       <p className="ro-findings-total">{breakdown.label}</p>
       <CheckBreakdown report={report} />
@@ -190,9 +207,9 @@ export default function ReportOverview({ report, selection, onSelect, onInspect,
         {!!fundingPatterns.length&&<section className="ro-funding-patterns"><h4>{fundingPatterns.length} shared-funding pattern{fundingPatterns.length===1?'':'s'}</h4><p>These wallets received funds from common sources. The transfers are observed; shared ownership or coordinated selling is not established. An unlabeled service could explain the links.</p><div>{fundingPatterns.map(finding=><button key={finding.id} type="button" onClick={()=>onSelect({kind:'finding',id:finding.id})}><span><span>Source <code title={finding.id.slice(7)}>{short(finding.id.slice(7))}</code></span><small>{finding.wallets.length} wallets · {finding.evidenceIds.length} records · {finding.attribution==='provider-reported'?'Provider-reported':'Inferred pattern'}</small></span><ArrowUpRight size={14}/></button>)}</div></section>}
         {assessment.status==='clear'&&provider?.band?.trim().toUpperCase()==='CLEAN'&&<button type="button" onClick={onInspect}><span className="ro-reason-mark" aria-hidden="true"/><span><strong>SwarmEngine reports CLEAN{provider.score!=null?` - ${provider.score}/100`:''}</strong><span className="ro-reason-description">{provider.reason||'No warning was reported in the provider assessment.'}</span><small>Provider-reported result</small></span><ArrowUpRight size={15}/></button>}
         {reasons.map(finding => <button key={finding.id} type="button" onClick={() => onSelect({ kind: 'finding', id: finding.id })}><span className={`ro-reason-mark is-${finding.level}`} aria-hidden="true" /><span><strong>{finding.title}</strong><span className="ro-reason-description">{finding.description}</span>{finding.id.startsWith('funder:')&&<small className="ro-funding-source" title={finding.id.slice(7)}>Funding source: {short(finding.id.slice(7))}</small>}<small>{finding.attribution === 'provider-reported' ? 'Reported by SwarmEngine' : finding.certainty === 'inferred' ? 'Inferred from the sample' : 'Evidence in this report'}</small></span><ArrowUpRight size={15} /></button>)}
-        {!breakdown.risks.length && <p>{'No additional wallet-risk finding was established in the retrieved scope. See the verdict reasoning and coverage above.'}</p>}
+        {!breakdown.risks.length && <p>{'No additional wallet-risk finding was established in the retrieved scope. See the assessment reasoning and coverage above.'}</p>}
       </div>
-      {!inv.coverage.launchVerified&&<div className="ro-coverage-note"><strong>Coverage gap - launch history</strong><p>{verifiedTiming?'Selected pool windows are verified; the first-ever token launch is not.':'First-minute buyer coverage is unverified, so possible snipers cannot be assessed.'} This is missing evidence, not an additional detected risk.</p></div>}
+      {!inv.coverage.launchVerified&&<div className="ro-coverage-note"><strong>Coverage gap - launch history</strong><p>{verifiedTiming?'Selected trading windows are verified; the first-ever token launch is not.':'First-minute buyer coverage is unverified, so possible snipers cannot be assessed.'} This is missing evidence, not an additional detected risk.</p></div>}
       </div></details>
       <div className="ro-age"><Clock3 size={18} aria-hidden="true" /><div><span>{age.basis}</span><strong>{age.value}</strong></div><details><summary>Source</summary><p>{age.detail}</p></details></div>
       {provider && <div className="ro-provider"><div><a href={provider.sourceUrl} target="_blank" rel="noreferrer">SwarmEngine report <ArrowUpRight size={13} /></a><span>{provider.band || 'No rating'}{provider.score != null && ` - ${provider.score}/100`}</span></div><small>Scanned {provider.providerTimestamp ? dateText(provider.providerTimestamp) : 'at an unreported time'}. Retrieved {dateText(provider.fetchedAt)}.</small><small>Provider claims are not independently verified. Its score is not a safety probability.</small></div>}
@@ -201,36 +218,49 @@ export default function ReportOverview({ report, selection, onSelect, onInspect,
         const reported = reportedCount === wallets.length && reportedCount > 0, poolScoped = !reported && category === 'sniper' && !inv.coverage.launchVerified && verifiedTiming;
         const negative = category === 'sniper' && provider && provider.holders.length > 0 && provider.holders.every(holder => holder.signals.sniper === false);
         const revoked=category==='authority'&&report.solana?.authorities.mint.address===null&&report.solana?.authorities.freeze.address===null;
-        return <div key={category}><span>{name}</span>{wallets.length ? <button type="button" onClick={() => wallets.length === 1 ? selectWallet(wallets[0].address) : onInspect()}>{wallets.length} {reported ? 'reported' : 'identified'}<ArrowUpRight size={12} /></button> : <small>{revoked ? 'Mint / freeze revoked' : negative ? '0 reported in sample' : provider ? 'Not reported' : 'Not established'}</small>}{reportedCount > 0 && reportedCount < wallets.length && <small>{reportedCount} provider-reported</small>}{poolScoped && <small>Selected pools only</small>}</div>;
+        return <div key={category}><span>{name}</span>{wallets.length ? <button type="button" onClick={() => wallets.length === 1 ? selectWallet(wallets[0].address) : onInspect()}>{wallets.length} {reported ? 'reported' : 'identified'}<ArrowUpRight size={12} /></button> : <small>{revoked ? 'Mint / freeze revoked' : negative ? '0 reported in sample' : provider ? 'Not reported' : 'Not established'}</small>}{reportedCount > 0 && reportedCount < wallets.length && <small>{reportedCount} provider-reported</small>}{poolScoped && <small>{inv.coverage.curveTiming?'Selected launchpad / pool windows only':'Selected pools only'}</small>}</div>;
       })}</div>
       <button type="button" className="ro-inspect" onClick={onInspect}>View evidence <ArrowUpRight size={17} /></button>
       {report.fixture&&<p className="ro-boundary">Synthetic example.</p>}
     </div>
-    <div className="ro-map">
-      <header className="ro-map-heading"><h2>Holder map <Crosshair size={17} aria-hidden="true" /></h2><span>{graph.nodes.length} / {graph.total} holders</span></header>
+    <div className="ro-map ro-map-designed">
+      <header className="ro-map-heading"><h2>Holder map <Crosshair size={17} aria-hidden="true" /></h2><ShareBasisSelector value={shareBasis} onChange={changeShareBasis} floatAvailable={floatBasis.denominator!==null} describedBy={`${id}-map-basis`} label="Holder map percentage basis"/></header>
+      {floatBasis.reason&&<p className="ro-map-basis-unavailable">{floatBasis.reason} Showing total supply.</p>}
+      <div className="ro-map-metrics"><span><strong>{graph.nodes.length}<small> / {graph.total}</small></strong>Holders shown</span><span><strong>{graph.edges.length}</strong>Documented links</span><span><strong>{graph.documentedGroups}</strong>Connected groups</span></div>
       <div className="ro-canvas">
         <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="group" aria-labelledby={`${id}-map-title`} aria-describedby={`${id}-map-help`} tabIndex={0}
-          onKeyDown={event => { if (event.target !== event.currentTarget) return; const steps: Record<string, [number, number]> = { ArrowLeft: [-25, 0], ArrowRight: [25, 0], ArrowUp: [0, -25], ArrowDown: [0, 25] }; if (steps[event.key]) { event.preventDefault(); const [x, y] = steps[event.key]; setView(value => ({ ...value, x: value.x + x, y: value.y + y })); } if (event.key === 'Home') { event.preventDefault(); setView({ x: 0, y: 0, zoom: 1 }); } }}
+          onKeyDown={event => { if (event.target !== event.currentTarget) return; const steps: Record<string, [number, number]> = { ArrowLeft: [-25, 0], ArrowRight: [25, 0], ArrowUp: [0, -25], ArrowDown: [0, 25] }; if (steps[event.key]) { event.preventDefault(); const [x, y] = steps[event.key]; setView(value => ({ ...value, x: value.x + x, y: value.y + y })); } if (event.key === '+' || event.key === '=') { event.preventDefault(); zoom(.25); } if (event.key === '-') { event.preventDefault(); zoom(-.25); } if (event.key === 'Home') { event.preventDefault(); setView({ x: 0, y: 0, zoom: 1 }); } }}
           onPointerDown={event => { if ((event.target as Element).closest('[data-wallet], [data-map-edge]') || event.button !== 0) return; drag.current = { x: event.clientX, y: event.clientY, originX: view.x, originY: view.y }; event.currentTarget.setPointerCapture(event.pointerId); }}
-          onPointerMove={event => { if (!drag.current) return; const rect = event.currentTarget.getBoundingClientRect(), scale = Math.max(WIDTH / rect.width, HEIGHT / rect.height), origin = drag.current; setView(value => ({ ...value, x: origin.originX + (event.clientX - origin.x) * scale, y: origin.originY + (event.clientY - origin.y) * scale })); }}
+          onPointerMove={event => { if (animate && !drag.current && event.pointerType!=='touch') { const bounds=event.currentTarget.getBoundingClientRect(),scale=Math.min(bounds.width/WIDTH,bounds.height/HEIGHT),x=(event.clientX-bounds.left-(bounds.width-WIDTH*scale)/2)/scale,y=(event.clientY-bounds.top-(bounds.height-HEIGHT*scale)/2)/scale,inside=x>=20&&x<=680&&y>=20&&y<=380; event.currentTarget.parentElement?.setAttribute('data-reticle-active',String(inside)); if(inside){event.currentTarget.querySelector('[data-map-reticle]')?.setAttribute('transform',`translate(${x} ${y})`);event.currentTarget.querySelector('[data-map-cell]')?.setAttribute('transform',`translate(${20+Math.floor((x-20)/60)*60} ${20+Math.floor((y-20)/60)*60})`);} } if (!drag.current) return; const rect = event.currentTarget.getBoundingClientRect(), scale = Math.max(WIDTH / rect.width, HEIGHT / rect.height), origin = drag.current; setView(value => ({ ...value, x: origin.originX + (event.clientX - origin.x) * scale, y: origin.originY + (event.clientY - origin.y) * scale })); }}
+          onPointerLeave={event=>{event.currentTarget.parentElement?.setAttribute('data-reticle-active','false');}}
           onPointerUp={() => { drag.current = null; }} onPointerCancel={() => { drag.current = null; }} onLostPointerCapture={() => { drag.current = null; }}>
-          <title id={`${id}-map-title`}>Current holder snapshot. Connections require matching transaction evidence. Position and motion are visual layout only.</title>
+          <desc id={`${id}-map-title`}>Current holder snapshot. Connections require matching transaction evidence. Position and motion are visual layout only.</desc>
+          <defs><clipPath id={`${id}-board-clip`}><rect x="20" y="20" width="660" height="360"/></clipPath></defs>
+          <g className="ro-map-board" aria-hidden="true">
+            <g className="ro-board-grid" clipPath={`url(#${id}-board-clip)`}>{[140,260,380,500,620].map(x=><path key={`x${x}`} d={`M${x} 20v360`}/>)}{[80,200,320].map(y=><path key={`y${y}`} d={`M20 ${y}h660`}/>)}</g>
+            <g className="ro-board-marks">{[80,200,320,440,560].flatMap(x=>[80,200,320].map(y=><path key={`${x}-${y}`} d={`M${x-3} ${y}h6M${x} ${y-3}v6`}/>))}{Array.from({length:23},(_,i)=><path key={`h${i}`} d={`M${20+i*30} 20v${i%2?3:6}M${20+i*30} 380v-${i%2?3:6}`}/>)}{Array.from({length:13},(_,i)=><path key={`v${i}`} d={`M20 ${20+i*30}h${i%2?3:6}M680 ${20+i*30}h-${i%2?3:6}`}/>)}</g>
+            <path className="ro-board-boundary" d="M20 20H680V380H20Z"/>
+            <path className="ro-board-signal" pathLength="1000" d="M20 20H680V380H20Z"/>
+            <g clipPath={`url(#${id}-board-clip)`} className="ro-board-pointer"><g data-map-cell="true"><path className="ro-board-cell" d="M0 11V0H11M49 0H60V11M60 49V60H49M11 60H0V49"/></g><g data-map-reticle="true"><path className="ro-board-reticle" d="M-14 0h9M5 0h9M0 -14v9M0 5v9"/><rect className="ro-board-reticle-center" x="-2" y="-2" width="4" height="4"/></g></g>
+          </g>
           <g className="ro-map-registration" aria-hidden="true"><path d="M 22 42 V 22 H 42 M 658 22 H 678 V 42 M 22 358 V 378 H 42 M 658 378 H 678 V 358" /></g>
           <g ref={viewport}>
-            {graph.edges.map(edge => { const a = graph.positions.get(edge.from)!, b = graph.positions.get(edge.to)!, path = `M ${a.x} ${a.y} Q ${(a.x + b.x) / 2} ${(a.y + b.y) / 2 - Math.min(30, Math.abs(a.x - b.x) / 7)} ${b.x} ${b.y}`; return <g key={edge.id} data-map-edge="true" className={`ro-edge ${edge.attribution === 'provider-reported' ? 'is-reported' : ''} ${highlighted.has(edge.from) && highlighted.has(edge.to) ? 'is-highlighted' : ''} ${focusAddress&&(!highlighted.has(edge.from)||!highlighted.has(edge.to))?'is-muted':''}`}><path className="ro-connection" d={path}><title>{edge.description}</title></path><path className="ro-edge-hit" d={path} role="button" tabIndex={0} aria-label={`Inspect connection between ${short(edge.from)} and ${short(edge.to)}. ${edge.evidenceIds.length} evidence records.`} onClick={()=>onSelect({kind:'group',id:edge.id,wallets:[edge.from,edge.to],evidenceIds:edge.evidenceIds})} onKeyDown={event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();onSelect({kind:'group',id:edge.id,wallets:[edge.from,edge.to],evidenceIds:edge.evidenceIds});}}}/></g>; })}
+            {graph.edges.map(edge => { const a = graph.positions.get(edge.from)!, b = graph.positions.get(edge.to)!, path = `M ${a.x} ${a.y} Q ${(a.x + b.x) / 2} ${(a.y + b.y) / 2 - Math.min(30, Math.abs(a.x - b.x) / 7)} ${b.x} ${b.y}`; return <g key={edge.id} data-map-edge="true" className={`ro-edge ${edge.attribution === 'provider-reported' ? 'is-reported' : ''} ${highlighted.has(edge.from) && highlighted.has(edge.to) ? 'is-highlighted' : ''} ${focusAddress&&(!highlighted.has(edge.from)||!highlighted.has(edge.to))?'is-muted':''}`}><path className="ro-connection" pathLength="100" d={path} aria-hidden="true"/><path className="ro-edge-flow" pathLength="100" d={path} aria-hidden="true"/><path className="ro-edge-hit" d={path} role="button" tabIndex={0} aria-label={`Inspect connection between ${short(edge.from)} and ${short(edge.to)}. ${edge.evidenceIds.length} evidence records.`} onClick={()=>onSelect({kind:'group',id:edge.id,wallets:[edge.from,edge.to],evidenceIds:edge.evidenceIds})} onKeyDown={event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();onSelect({kind:'group',id:edge.id,wallets:[edge.from,edge.to],evidenceIds:edge.evidenceIds});}}}/></g>; })}
             {graph.nodes.map(node => <g key={node.address} data-map-node="true" transform={`translate(${node.x} ${node.y})`}><g data-wallet="true" className={`ro-wallet ${selectedWallets.has(node.address) ? 'is-selected' : ''} ${focusAddress && !highlighted.has(node.address) ? 'is-muted' : ''}`} role="button" tabIndex={0} aria-label={`${node.label || node.address}, ${shareText(node.share)}. Inspect wallet evidence.`} aria-pressed={selectedWallets.has(node.address)} onPointerEnter={() => setHovered(node.address)} onPointerLeave={() => setHovered(null)} onFocus={() => setHovered(node.address)} onBlur={() => setHovered(null)} onClick={() => selectWallet(node.address)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectWallet(node.address); } }}>
-              <title>{node.label || short(node.address)} - {shareText(node.share)}</title><circle className="ro-hit" r={Math.max(20, node.radius + 8)} />
-              <g className="ro-node-arrival"><circle className={`ro-node ${node.share == null ? 'is-unknown' : ''}`} r={node.radius} /><circle className="ro-node-focus" r={node.radius + 6} />{node.categories.includes('creator') && <circle className="ro-creator-ring" r={node.radius + 3} />}{node.radius>=25?<text className="ro-node-label" textAnchor="middle" y="-2"><tspan x="0">{node.share!==null?`${node.share<.1?'<0.1':node.share.toFixed(1)}%`:''}</tspan><tspan className="ro-node-rank" x="0" dy="15">#{node.rank}</tspan></text>:<circle className="ro-node-core" r="2" />}</g>
+              <circle className="ro-hit" r={Math.max(20, node.radius + 8)} />
+              <g className="ro-node-arrival"><circle className={`ro-node ${node.share == null ? 'is-unknown' : ''}`} r={node.radius} />{node.radius>=17&&<circle className="ro-node-inner" r={node.radius-4}/>}<circle className="ro-node-focus" r={node.radius+7} pathLength="100"/><circle className="ro-selection-orbit" r={node.radius+11} pathLength="100"/><circle key={selectedWallets.has(node.address)?'selected':'idle'} className="ro-selection-response" r={node.radius+15} pathLength="100"/>{node.categories.includes('creator')&&<circle className="ro-creator-ring" r={node.radius+3}/>}<path className="ro-node-brackets" d={`M${-node.radius-8} -5v-7h7M${node.radius+8} 5v7h-7`}/>{node.categories.includes('authority')&&<rect className="ro-authority-mark" x="-3" y={-node.radius-7} width="6" height="6"/>}{node.radius>=24?<text className="ro-node-label" textAnchor="middle" y="-2"><tspan x="0">{bubbleShare(node.share)}</tspan><tspan className="ro-node-rank" x="0" dy="16">{node.categories.includes('creator')?'CREATOR':node.categories.includes('authority')?'OWNER':`#${node.rank}`}</tspan></text>:<circle className="ro-node-core" r={node.share===null?0:1.6}/>}</g>
             </g></g>)}
           </g>
         </svg>
-        {!graph.nodes.length && <p className="ro-map-empty">No holder addresses were returned.<small>Open the evidence to see which sources are missing.</small></p>}
-        {focused&&<div className="ro-map-tooltip" aria-hidden="true"><strong>{focused.label||short(focused.address)}</strong><span>{shareText(focused.share)}</span><small>{focused.categories.filter(category=>category!=='unclassified').map(category=>category.replaceAll('-',' ')).join(' / ')||'Wallet role not established'}</small></div>}
+        {!graph.nodes.length && <p className="ro-map-empty">Holder map unavailable<small>No current holder addresses were returned. No relationship can be inferred from this empty view.</small></p>}
+        {focused&&<div className="ro-map-tooltip" aria-hidden="true"><strong>{focused.label||short(focused.address)}</strong><span>{shareText(focused.share)}</span>{shareBasis==='float'&&<span className="ro-map-raw-share">{formatMapShare(focused.share,'total')}</span>}<small>{focused.categories.filter(category=>category!=='unclassified').map(category=>category==='authority'?'Owner':category==='deployer-linked'?'Dev-linked':category.replaceAll('-',' ')).join(' / ')||'Wallet role not established'}</small></div>}
         <div className="ro-map-controls" aria-label="Network view controls"><button type="button" aria-label="Zoom out" disabled={view.zoom <= .75} onClick={() => zoom(-.25)}><Minus size={16} /></button><output aria-label="Network zoom">{Math.round(view.zoom * 100)}%</output><button type="button" aria-label="Zoom in" disabled={view.zoom >= 2.5} onClick={() => zoom(.25)}><Plus size={16} /></button><button type="button" aria-label="Reset network view" onClick={() => setView({ x: 0, y: 0, zoom: 1 })}><RotateCcw size={15} /></button></div>
       </div>
-      <div className="ro-map-caption"><div aria-live="polite"><strong>{focused ? focused.label || short(focused.address) : selected ? short(selected) : 'Explore the connections'}</strong><span>{focused ? `${shareText(focused.share)} - ${graph.neighbors.get(focused.address)?.size || 0} visible connections` : selected ? 'Outside this current-holder map. Open wallet evidence for historical details.' : 'Hover or focus a wallet. Select it to inspect the evidence.'}</span></div>{graph.linked.length > 1 && <button type="button" onClick={selectGroup}>{graph.linked.length} linked<ArrowUpRight size={14} /></button>}</div>
-      <div className="ro-legend"><span><i />Supply share</span><span><i className="is-hollow" />Share unknown</span><span><i className="is-ring" />Creator label</span></div>
-      <p id={`${id}-map-help`} className="ro-map-help">{graph.nodes.length} current holders shown{graph.truncated?` of ${graph.total}`:''}. {graph.excludedInfrastructure} infrastructure addresses excluded. Bubble area reflects supply share; tiny holdings use a minimum marker. Lines show transaction-backed relationships, not common ownership. Historical-only addresses remain in Traced addresses. Drag to pan; arrow keys pan when the map is focused. Home resets the view.</p>
+      {graph.nodes.length>0&&<div className="ro-holder-rail" aria-label="Largest displayed holders">{graph.nodes.slice(0,3).map(node=><button type="button" key={node.address} className={selectedWallets.has(node.address)?'is-selected':''} onPointerEnter={()=>setHovered(node.address)} onPointerLeave={()=>setHovered(null)} onFocus={()=>setHovered(node.address)} onBlur={()=>setHovered(null)} onClick={()=>selectWallet(node.address)} aria-label={`Inspect holder rank ${node.rank}, ${node.address}, ${shareText(node.share)}`}><span className="ro-rail-rank">{String(node.rank).padStart(2,'0')}</span><span><strong>{node.label||short(node.address)}</strong><small>{shareText(node.share)}</small></span><ArrowUpRight size={13}/></button>)}</div>}
+      <div className="ro-map-caption"><div aria-live="polite"><strong>{focused ? focused.label || short(focused.address) : selected ? short(selected) : 'Select a holder'}</strong><span>{focused ? `${shareText(focused.share)} - ${graph.neighbors.get(focused.address)?.size || 0} visible connections` : selected ? 'Outside the displayed holder set. Open wallet evidence for its snapshot and history.' : 'Hover or focus a wallet. Select it to inspect the evidence.'}</span></div>{graph.linked.length > 1 && <button type="button" onClick={selectGroup}>{graph.linked.length} linked<ArrowUpRight size={14} /></button>}</div>
+      <div className="ro-legend"><span><i />{shareBasis==='float'?'Snapshot float':'Total supply'}</span><span><i className="is-hollow" />Share unknown</span><span><i className="is-ring" />Creator</span><span><i className="is-authority" />Owner</span><span><i className="is-link" />Documented link</span></div>
+      <p id={`${id}-map-basis`} className="ro-map-basis-note">{floatBasis.denominator===null?floatBasis.reason:<>Snapshot float = 100% − {floatBasis.excluded!.toLocaleString(undefined,{maximumFractionDigits:8})}% measured current infrastructure = {floatBasis.denominator.toLocaleString(undefined,{maximumSignificantDigits:10})}% of total supply. Wallet snapshot-float share = supply share ÷ this denominator × 100.</>} Uses measured current infrastructure, not the sum of displayed holders. Previously identified infrastructure without current balances is outside this denominator: its balance is unknown, not zero. Other infrastructure may be unrecognized. This is not verified circulating float or a complete supply census.</p>
+      <p id={`${id}-map-help`} className="ro-map-help">{graph.nodes.length} current holders shown{graph.truncated?` of ${graph.total}`:''}. {graph.excludedInfrastructure} infrastructure addresses excluded. Labels show the selected percentage basis. Bubble areas retain their supply-share proportions; tiny holdings use a minimum marker. Lines show transaction-backed relationships, not common ownership. The plotting grid and motion are decorative, not live transfers; position has no risk meaning. Historical-only addresses remain in Traced addresses. Drag to pan; arrow keys pan when the map is focused. + / - zoom; Home resets the view.</p>
     </div>
   </section>;
 }

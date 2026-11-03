@@ -1,0 +1,934 @@
+{
+  "version": 1,
+  "auditedAt": "2026-11-03",
+  "scope": "All saved public swarm-judge-1 score-null snapshots found recursively under validation; duplicates removed by chain+token+scan time. Retrospective audit, not blind holdout or production policy.",
+  "userPolicy": "The example percentages were not a user-requested policy. They are captured provider output only.",
+  "publicScript": {
+    "url": "https://swarmengine.tech/assets/app.js",
+    "freshReadHttp": 200,
+    "bytes": 119602,
+    "sha256": "f3a80ad560e0e79f92145ecedfae490fb13d29f231daaff94ca77d186e966380"
+  },
+  "rows": [
+    {
+      "key": "base:0x221077f2f6f360b102ea297662c6fade532d43f6:1793692404",
+      "source": {
+        "path": "validation/swarm-2026-11-03/fresh-followup-agent.json",
+        "sha256": "e71551efaef1a3bc4138db28bc41a93761b8fdc78e8abd14779313f26963b3b9",
+        "retrievedAt": "2026-11-03T08:13:06.390Z"
+      },
+      "chain": "base",
+      "token": "0x221077f2f6f360b102ea297662c6fade532d43f6",
+      "scannedAt": 1793692404,
+      "score": null,
+      "band": "TOO_EARLY",
+      "reason": "too few holders to judge yet",
+      "hands": null,
+      "parts": null,
+      "features": {
+        "score": null,
+        "hands_ratio": null,
+        "biggest_swarm": 0,
+        "dump_impact": null,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0,
+        "dev": 0,
+        "security": 0,
+        "memory_hits": 0,
+        "liquidity_usd": 213079.05,
+        "age_h": 0.4
+      },
+      "observed": {
+        "model": "swarm-judge-1",
+        "decision": "CAUTION",
+        "p": {
+          "avoid": 0.34,
+          "caution": 0.46,
+          "ok": 0.2
+        },
+        "confidence": 0.46,
+        "bar": 0.6,
+        "escalate": true,
+        "why": [
+          "too early: too few holders to judge"
+        ],
+        "receipt": "rcpt_239285a6b893338d"
+      }
+    },
+    {
+      "key": "base:0x23ba1da13b9da54a2395cf8bb8fd0fbd7d95bba3:1793692380",
+      "source": {
+        "path": "validation/swarm-2026-11-03/fresh-followup-agent.json",
+        "sha256": "e71551efaef1a3bc4138db28bc41a93761b8fdc78e8abd14779313f26963b3b9",
+        "retrievedAt": "2026-11-03T08:13:06.390Z"
+      },
+      "chain": "base",
+      "token": "0x23ba1da13b9da54a2395cf8bb8fd0fbd7d95bba3",
+      "scannedAt": 1793692380,
+      "score": null,
+      "band": "TOO_EARLY",
+      "reason": "too few holders to judge yet",
+      "hands": null,
+      "parts": null,
+      "features": {
+        "score": null,
+        "hands_ratio": null,
+        "biggest_swarm": 0,
+        "dump_impact": null,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0,
+        "dev": 0,
+        "security": 1,
+        "memory_hits": 0,
+        "liquidity_usd": null,
+        "age_h": 0.3
+      },
+      "observed": {
+        "model": "swarm-judge-1",
+        "decision": "CAUTION",
+        "p": {
+          "avoid": 0.34,
+          "caution": 0.46,
+          "ok": 0.2
+        },
+        "confidence": 0.46,
+        "bar": 0.6,
+        "escalate": true,
+        "why": [
+          "too early: too few holders to judge"
+        ],
+        "receipt": "rcpt_fc4f21cf2a0207fb"
+      }
+    },
+    {
+      "key": "base:0x4977b0a939bb27cc05ea72f224ea2cf79282b204:1793692396",
+      "source": {
+        "path": "validation/swarm-2026-11-03/fresh-followup-agent.json",
+        "sha256": "e71551efaef1a3bc4138db28bc41a93761b8fdc78e8abd14779313f26963b3b9",
+        "retrievedAt": "2026-11-03T08:13:06.390Z"
+      },
+      "chain": "base",
+      "token": "0x4977b0a939bb27cc05ea72f224ea2cf79282b204",
+      "scannedAt": 1793692396,
+      "score": null,
+      "band": "TOO_EARLY",
+      "reason": "too few holders to judge yet",
+      "hands": null,
+      "parts": null,
+      "features": {
+        "score": null,
+        "hands_ratio": null,
+        "biggest_swarm": 0,
+        "dump_impact": null,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0,
+        "dev": 0,
+        "security": 0,
+        "memory_hits": 0,
+        "liquidity_usd": 179060.82,
+        "age_h": 0.5
+      },
+      "observed": {
+        "model": "swarm-judge-1",
+        "decision": "CAUTION",
+        "p": {
+          "avoid": 0.34,
+          "caution": 0.46,
+          "ok": 0.2
+        },
+        "confidence": 0.46,
+        "bar": 0.6,
+        "escalate": true,
+        "why": [
+          "too early: too few holders to judge"
+        ],
+        "receipt": "rcpt_6cf609f89aa28fbd"
+      }
+    },
+    {
+      "key": "bsc:0x07419f180cd9beec21e68477a71f9d92090dffff:1793715347",
+      "source": {
+        "path": "validation/launchpad-comparison/swarm-meimei.json",
+        "sha256": "3531b62eab981581d96be9f7cd7b4c0f35b039c41c473d83fab41986360b5434",
+        "retrievedAt": "2026-11-03T14:25:23.557Z"
+      },
+      "chain": "bsc",
+      "token": "0x07419f180cd9beec21e68477a71f9d92090dffff",
+      "scannedAt": 1793715347,
+      "score": null,
+      "band": "TOO_EARLY",
+      "reason": "too few holders to judge yet",
+      "hands": 1,
+      "parts": {},
+      "features": {
+        "score": null,
+        "hands_ratio": null,
+        "biggest_swarm": 0,
+        "dump_impact": null,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0,
+        "dev": 0,
+        "security": 1,
+        "memory_hits": 0,
+        "liquidity_usd": null,
+        "age_h": 0.6
+      },
+      "observed": {
+        "model": "swarm-judge-1",
+        "decision": "CAUTION",
+        "p": {
+          "avoid": 0.34,
+          "caution": 0.46,
+          "ok": 0.2
+        },
+        "confidence": 0.46,
+        "bar": 0.6,
+        "escalate": true,
+        "why": [
+          "too early: too few holders to judge"
+        ],
+        "receipt": "rcpt_35feed04156de4f2"
+      }
+    },
+    {
+      "key": "bsc:0x23b8c30baa86d657591f12ab324c80b00bd775f1:1793692313",
+      "source": {
+        "path": "validation/swarm-2026-11-03/fresh-followup-agent.json",
+        "sha256": "e71551efaef1a3bc4138db28bc41a93761b8fdc78e8abd14779313f26963b3b9",
+        "retrievedAt": "2026-11-03T08:13:06.390Z"
+      },
+      "chain": "bsc",
+      "token": "0x23b8c30baa86d657591f12ab324c80b00bd775f1",
+      "scannedAt": 1793692313,
+      "score": null,
+      "band": "TOO_EARLY",
+      "reason": "too few holders to judge yet",
+      "hands": null,
+      "parts": null,
+      "features": {
+        "score": null,
+        "hands_ratio": null,
+        "biggest_swarm": 0,
+        "dump_impact": null,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0,
+        "dev": 0,
+        "security": 0,
+        "memory_hits": 0,
+        "liquidity_usd": 85194.97,
+        "age_h": 0.2
+      },
+      "observed": {
+        "model": "swarm-judge-1",
+        "decision": "CAUTION",
+        "p": {
+          "avoid": 0.34,
+          "caution": 0.46,
+          "ok": 0.2
+        },
+        "confidence": 0.46,
+        "bar": 0.6,
+        "escalate": true,
+        "why": [
+          "too early: too few holders to judge"
+        ],
+        "receipt": "rcpt_c7107c425ad00bd4"
+      }
+    },
+    {
+      "key": "bsc:0xb00cf84d186ff4c3b36a9685f411e996ea50b3c0:1793688530",
+      "source": {
+        "path": "validation/swarm-2026-11-03/bsc-user-token-stored.json",
+        "sha256": "a5d520556c49da44bbb8411f5db1afe666eacd39b533ce6c896e3a17a7eda3f0",
+        "retrievedAt": "2026-11-03T07:14:23.059Z"
+      },
+      "chain": "bsc",
+      "token": "0xb00cf84d186ff4c3b36a9685f411e996ea50b3c0",
+      "scannedAt": 1793688530,
+      "score": null,
+      "band": "TOO_EARLY",
+      "reason": "too few holders to judge yet",
+      "hands": 7,
+      "parts": {},
+      "features": {
+        "score": null,
+        "hands_ratio": null,
+        "biggest_swarm": 0,
+        "dump_impact": null,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0,
+        "dev": 0,
+        "security": 0,
+        "memory_hits": 0,
+        "liquidity_usd": 13567.73,
+        "age_h": 0.1
+      },
+      "observed": {
+        "model": "swarm-judge-1",
+        "decision": "CAUTION",
+        "p": {
+          "avoid": 0.34,
+          "caution": 0.46,
+          "ok": 0.2
+        },
+        "confidence": 0.46,
+        "bar": 0.6,
+        "escalate": true,
+        "why": [
+          "too early: too few holders to judge"
+        ],
+        "receipt": "rcpt_3b5fd57519981922"
+      }
+    },
+    {
+      "key": "bsc:0xf49f349c4ad7a615ed5abca2e62c2a7876473995:1793692251",
+      "source": {
+        "path": "validation/swarm-2026-11-03/fresh-followup-agent.json",
+        "sha256": "e71551efaef1a3bc4138db28bc41a93761b8fdc78e8abd14779313f26963b3b9",
+        "retrievedAt": "2026-11-03T08:13:06.390Z"
+      },
+      "chain": "bsc",
+      "token": "0xf49f349c4ad7a615ed5abca2e62c2a7876473995",
+      "scannedAt": 1793692251,
+      "score": null,
+      "band": "TOO_EARLY",
+      "reason": "too few holders to judge yet",
+      "hands": null,
+      "parts": null,
+      "features": {
+        "score": null,
+        "hands_ratio": null,
+        "biggest_swarm": 0,
+        "dump_impact": null,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0,
+        "dev": 0,
+        "security": 0,
+        "memory_hits": 0,
+        "liquidity_usd": 15145.53,
+        "age_h": 0.1
+      },
+      "observed": {
+        "model": "swarm-judge-1",
+        "decision": "CAUTION",
+        "p": {
+          "avoid": 0.34,
+          "caution": 0.46,
+          "ok": 0.2
+        },
+        "confidence": 0.46,
+        "bar": 0.6,
+        "escalate": true,
+        "why": [
+          "too early: too few holders to judge"
+        ],
+        "receipt": "rcpt_ebcf624618addb67"
+      }
+    },
+    {
+      "key": "ethereum:0x041ad5bd3f912ba03e80570b0105af10bf692eb2:1793689407",
+      "source": {
+        "path": "validation/swarm-2026-11-03/fresh-followup-agent.json",
+        "sha256": "e71551efaef1a3bc4138db28bc41a93761b8fdc78e8abd14779313f26963b3b9",
+        "retrievedAt": "2026-11-03T08:13:06.390Z"
+      },
+      "chain": "ethereum",
+      "token": "0x041ad5bd3f912ba03e80570b0105af10bf692eb2",
+      "scannedAt": 1793689407,
+      "score": null,
+      "band": "TOO_EARLY",
+      "reason": "too few holders to judge yet",
+      "hands": null,
+      "parts": null,
+      "features": {
+        "score": null,
+        "hands_ratio": null,
+        "biggest_swarm": 0,
+        "dump_impact": null,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0,
+        "dev": 0,
+        "security": 0,
+        "memory_hits": 0,
+        "liquidity_usd": 4097.45,
+        "age_h": 0.1
+      },
+      "observed": {
+        "model": "swarm-judge-1",
+        "decision": "CAUTION",
+        "p": {
+          "avoid": 0.34,
+          "caution": 0.46,
+          "ok": 0.2
+        },
+        "confidence": 0.46,
+        "bar": 0.6,
+        "escalate": true,
+        "why": [
+          "too early: too few holders to judge"
+        ],
+        "receipt": "rcpt_3320ec194f793151"
+      }
+    },
+    {
+      "key": "ethereum:0x45550d259a0299870ca5531b159c63e49b30a057:1792510684",
+      "source": {
+        "path": "validation/swarm-2026-11-03/fresh-followup-sample-15.json",
+        "sha256": "7fec85a283460d0ca864c987d9494d88228cfc566db733b54b2ff13921124960",
+        "retrievedAt": "2026-11-03T08:13:31.577Z"
+      },
+      "chain": "ethereum",
+      "token": "0x45550d259a0299870ca5531b159c63e49b30a057",
+      "scannedAt": 1792510684,
+      "score": null,
+      "band": "TOO_EARLY",
+      "reason": "too few holders to judge yet",
+      "hands": 1,
+      "parts": {},
+      "features": {
+        "score": null,
+        "hands_ratio": null,
+        "biggest_swarm": 0,
+        "dump_impact": null,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0,
+        "dev": 0,
+        "security": 0,
+        "memory_hits": 0,
+        "liquidity_usd": 0.276046624555967,
+        "age_h": 73.6
+      },
+      "observed": {
+        "model": "swarm-judge-1",
+        "decision": "CAUTION",
+        "p": {
+          "avoid": 0.34,
+          "caution": 0.46,
+          "ok": 0.2
+        },
+        "confidence": 0.46,
+        "bar": 0.6,
+        "escalate": true,
+        "why": [
+          "too early: too few holders to judge"
+        ],
+        "receipt": "rcpt_5e1482332d39eeba"
+      }
+    },
+    {
+      "key": "ethereum:0x468dcdbb535e30dc81d39ed1f2747783630bc285:1793692943",
+      "source": {
+        "path": "validation/swarm-2026-11-03/fresh-followup-agent.json",
+        "sha256": "e71551efaef1a3bc4138db28bc41a93761b8fdc78e8abd14779313f26963b3b9",
+        "retrievedAt": "2026-11-03T08:13:06.390Z"
+      },
+      "chain": "ethereum",
+      "token": "0x468dcdbb535e30dc81d39ed1f2747783630bc285",
+      "scannedAt": 1793692943,
+      "score": null,
+      "band": "TOO_EARLY",
+      "reason": "too few holders to judge yet",
+      "hands": null,
+      "parts": null,
+      "features": {
+        "score": null,
+        "hands_ratio": null,
+        "biggest_swarm": 0,
+        "dump_impact": null,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0,
+        "dev": 0,
+        "security": 0,
+        "memory_hits": 0,
+        "liquidity_usd": 4860.98,
+        "age_h": 0
+      },
+      "observed": {
+        "model": "swarm-judge-1",
+        "decision": "CAUTION",
+        "p": {
+          "avoid": 0.34,
+          "caution": 0.46,
+          "ok": 0.2
+        },
+        "confidence": 0.46,
+        "bar": 0.6,
+        "escalate": true,
+        "why": [
+          "too early: too few holders to judge"
+        ],
+        "receipt": "rcpt_4852346068f39e6a"
+      }
+    },
+    {
+      "key": "ethereum:0x89dc18382d86d47d2f75860aef4253f606c9d025:1793690245",
+      "source": {
+        "path": "validation/swarm-2026-11-03/fresh-followup-agent.json",
+        "sha256": "e71551efaef1a3bc4138db28bc41a93761b8fdc78e8abd14779313f26963b3b9",
+        "retrievedAt": "2026-11-03T08:13:06.390Z"
+      },
+      "chain": "ethereum",
+      "token": "0x89dc18382d86d47d2f75860aef4253f606c9d025",
+      "scannedAt": 1793690245,
+      "score": null,
+      "band": "TOO_EARLY",
+      "reason": "too few holders to judge yet",
+      "hands": null,
+      "parts": null,
+      "features": {
+        "score": null,
+        "hands_ratio": null,
+        "biggest_swarm": 0,
+        "dump_impact": null,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0,
+        "dev": 0,
+        "security": 0,
+        "memory_hits": 0,
+        "liquidity_usd": 2426.69,
+        "age_h": 0
+      },
+      "observed": {
+        "model": "swarm-judge-1",
+        "decision": "CAUTION",
+        "p": {
+          "avoid": 0.34,
+          "caution": 0.46,
+          "ok": 0.2
+        },
+        "confidence": 0.46,
+        "bar": 0.6,
+        "escalate": true,
+        "why": [
+          "too early: too few holders to judge"
+        ],
+        "receipt": "rcpt_612917b81fecd6a4"
+      }
+    },
+    {
+      "key": "ethereum:0xebae4fe37fed05ff65e7ac481b3281a11d1329a9:1793692045",
+      "source": {
+        "path": "validation/swarm-2026-11-03/fresh-followup-agent.json",
+        "sha256": "e71551efaef1a3bc4138db28bc41a93761b8fdc78e8abd14779313f26963b3b9",
+        "retrievedAt": "2026-11-03T08:13:06.390Z"
+      },
+      "chain": "ethereum",
+      "token": "0xebae4fe37fed05ff65e7ac481b3281a11d1329a9",
+      "scannedAt": 1793692045,
+      "score": null,
+      "band": "TOO_EARLY",
+      "reason": "too few holders to judge yet",
+      "hands": null,
+      "parts": null,
+      "features": {
+        "score": null,
+        "hands_ratio": null,
+        "biggest_swarm": 0,
+        "dump_impact": null,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0,
+        "dev": 0,
+        "security": 0,
+        "memory_hits": 0,
+        "liquidity_usd": 3021.37,
+        "age_h": 0.1
+      },
+      "observed": {
+        "model": "swarm-judge-1",
+        "decision": "CAUTION",
+        "p": {
+          "avoid": 0.34,
+          "caution": 0.46,
+          "ok": 0.2
+        },
+        "confidence": 0.46,
+        "bar": 0.6,
+        "escalate": true,
+        "why": [
+          "too early: too few holders to judge"
+        ],
+        "receipt": "rcpt_67df17db3534f8ee"
+      }
+    },
+    {
+      "key": "robinhood:0x50862fa0ec3ac02efdcc6b892abf65b265e687fd:1793692726",
+      "source": {
+        "path": "validation/swarm-2026-11-03/fresh-followup-agent.json",
+        "sha256": "e71551efaef1a3bc4138db28bc41a93761b8fdc78e8abd14779313f26963b3b9",
+        "retrievedAt": "2026-11-03T08:13:06.390Z"
+      },
+      "chain": "robinhood",
+      "token": "0x50862fa0ec3ac02efdcc6b892abf65b265e687fd",
+      "scannedAt": 1793692726,
+      "score": null,
+      "band": "TOO_EARLY",
+      "reason": "too few holders to judge yet",
+      "hands": null,
+      "parts": null,
+      "features": {
+        "score": null,
+        "hands_ratio": null,
+        "biggest_swarm": 0,
+        "dump_impact": null,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0,
+        "dev": 0,
+        "security": 0,
+        "memory_hits": 0,
+        "liquidity_usd": 120635.97,
+        "age_h": 0.2
+      },
+      "observed": {
+        "model": "swarm-judge-1",
+        "decision": "CAUTION",
+        "p": {
+          "avoid": 0.34,
+          "caution": 0.46,
+          "ok": 0.2
+        },
+        "confidence": 0.46,
+        "bar": 0.6,
+        "escalate": true,
+        "why": [
+          "too early: too few holders to judge"
+        ],
+        "receipt": "rcpt_8056128d958ecc38"
+      }
+    },
+    {
+      "key": "robinhood:0x9a9dc047700bc25a6d74fbb4323a764105252a3a:1793692735",
+      "source": {
+        "path": "validation/swarm-2026-11-03/fresh-followup-agent.json",
+        "sha256": "e71551efaef1a3bc4138db28bc41a93761b8fdc78e8abd14779313f26963b3b9",
+        "retrievedAt": "2026-11-03T08:13:06.390Z"
+      },
+      "chain": "robinhood",
+      "token": "0x9a9dc047700bc25a6d74fbb4323a764105252a3a",
+      "scannedAt": 1793692735,
+      "score": null,
+      "band": "TOO_EARLY",
+      "reason": "too few holders to judge yet",
+      "hands": null,
+      "parts": null,
+      "features": {
+        "score": null,
+        "hands_ratio": null,
+        "biggest_swarm": 0,
+        "dump_impact": null,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0,
+        "dev": 0,
+        "security": 0,
+        "memory_hits": 0,
+        "liquidity_usd": 424026.08,
+        "age_h": 0.1
+      },
+      "observed": {
+        "model": "swarm-judge-1",
+        "decision": "CAUTION",
+        "p": {
+          "avoid": 0.34,
+          "caution": 0.46,
+          "ok": 0.2
+        },
+        "confidence": 0.46,
+        "bar": 0.6,
+        "escalate": true,
+        "why": [
+          "too early: too few holders to judge"
+        ],
+        "receipt": "rcpt_ab686bfef2e1f50a"
+      }
+    },
+    {
+      "key": "robinhood:0xc2afc218218fe9ba9e95c954ee8c72d28baec663:1793692728",
+      "source": {
+        "path": "validation/swarm-2026-11-03/fresh-followup-agent.json",
+        "sha256": "e71551efaef1a3bc4138db28bc41a93761b8fdc78e8abd14779313f26963b3b9",
+        "retrievedAt": "2026-11-03T08:13:06.390Z"
+      },
+      "chain": "robinhood",
+      "token": "0xc2afc218218fe9ba9e95c954ee8c72d28baec663",
+      "scannedAt": 1793692728,
+      "score": null,
+      "band": "TOO_EARLY",
+      "reason": "too few holders to judge yet",
+      "hands": null,
+      "parts": null,
+      "features": {
+        "score": null,
+        "hands_ratio": null,
+        "biggest_swarm": 0,
+        "dump_impact": null,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0,
+        "dev": 0,
+        "security": 0,
+        "memory_hits": 0,
+        "liquidity_usd": 120698.64,
+        "age_h": 0.1
+      },
+      "observed": {
+        "model": "swarm-judge-1",
+        "decision": "CAUTION",
+        "p": {
+          "avoid": 0.34,
+          "caution": 0.46,
+          "ok": 0.2
+        },
+        "confidence": 0.46,
+        "bar": 0.6,
+        "escalate": true,
+        "why": [
+          "too early: too few holders to judge"
+        ],
+        "receipt": "rcpt_caaad4e2a4e5ff3b"
+      }
+    },
+    {
+      "key": "robinhood:0xe82452248e3a603d2325b5b10715f7631295a4bb:1793692733",
+      "source": {
+        "path": "validation/swarm-2026-11-03/fresh-followup-agent.json",
+        "sha256": "e71551efaef1a3bc4138db28bc41a93761b8fdc78e8abd14779313f26963b3b9",
+        "retrievedAt": "2026-11-03T08:13:06.390Z"
+      },
+      "chain": "robinhood",
+      "token": "0xe82452248e3a603d2325b5b10715f7631295a4bb",
+      "scannedAt": 1793692733,
+      "score": null,
+      "band": "TOO_EARLY",
+      "reason": "too few holders to judge yet",
+      "hands": null,
+      "parts": null,
+      "features": {
+        "score": null,
+        "hands_ratio": null,
+        "biggest_swarm": 0,
+        "dump_impact": null,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0,
+        "dev": 0,
+        "security": 0,
+        "memory_hits": 2,
+        "liquidity_usd": 137585.9,
+        "age_h": 0
+      },
+      "observed": {
+        "model": "swarm-judge-1",
+        "decision": "CAUTION",
+        "p": {
+          "avoid": 0.34,
+          "caution": 0.46,
+          "ok": 0.2
+        },
+        "confidence": 0.46,
+        "bar": 0.6,
+        "escalate": true,
+        "why": [
+          "too early: too few holders to judge"
+        ],
+        "receipt": "rcpt_a410f3ace72801cb"
+      }
+    },
+    {
+      "key": "solana:13eVdLnBoRZEr6zL9a9c5SYx3k6ZZMSp8LPATKnfLoat:1793693089",
+      "source": {
+        "path": "validation/swarm-2026-11-03/fresh-followup-agent.json",
+        "sha256": "e71551efaef1a3bc4138db28bc41a93761b8fdc78e8abd14779313f26963b3b9",
+        "retrievedAt": "2026-11-03T08:13:06.390Z"
+      },
+      "chain": "solana",
+      "token": "13eVdLnBoRZEr6zL9a9c5SYx3k6ZZMSp8LPATKnfLoat",
+      "scannedAt": 1793693089,
+      "score": null,
+      "band": "TOO_EARLY",
+      "reason": "too few holders to judge yet",
+      "hands": null,
+      "parts": null,
+      "features": {
+        "score": null,
+        "hands_ratio": null,
+        "biggest_swarm": 0,
+        "dump_impact": null,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0,
+        "dev": 0,
+        "security": 0,
+        "memory_hits": 0,
+        "liquidity_usd": 20977.565013478914,
+        "age_h": 0
+      },
+      "observed": {
+        "model": "swarm-judge-1",
+        "decision": "CAUTION",
+        "p": {
+          "avoid": 0.34,
+          "caution": 0.46,
+          "ok": 0.2
+        },
+        "confidence": 0.46,
+        "bar": 0.6,
+        "escalate": true,
+        "why": [
+          "too early: too few holders to judge"
+        ],
+        "receipt": "rcpt_b224b28abe7cd406"
+      }
+    },
+    {
+      "key": "solana:Ct2veu4rvWMiTtFyukHaVrpDGxuwwqbx7nn5SFiepump:1793712240",
+      "source": {
+        "path": "validation/launchpad-comparison/swarm-chads.json",
+        "sha256": "6d7892b2faf9942477e6e8659ecc100ce3249e7b1b25c0c4f6ead40d1e90b7c3",
+        "retrievedAt": "2026-11-03T13:29:12.260Z"
+      },
+      "chain": "solana",
+      "token": "Ct2veu4rvWMiTtFyukHaVrpDGxuwwqbx7nn5SFiepump",
+      "scannedAt": 1793712240,
+      "score": null,
+      "band": "TOO_EARLY",
+      "reason": "too few holders to judge yet",
+      "hands": 2,
+      "parts": {},
+      "features": {
+        "score": null,
+        "hands_ratio": null,
+        "biggest_swarm": 0,
+        "dump_impact": null,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0,
+        "dev": 0,
+        "security": 0,
+        "memory_hits": 0,
+        "liquidity_usd": null,
+        "age_h": 0.1
+      },
+      "observed": {
+        "model": "swarm-judge-1",
+        "decision": "CAUTION",
+        "p": {
+          "avoid": 0.34,
+          "caution": 0.46,
+          "ok": 0.2
+        },
+        "confidence": 0.46,
+        "bar": 0.6,
+        "escalate": true,
+        "why": [
+          "too early: too few holders to judge"
+        ],
+        "receipt": "rcpt_553ed82ea32683e2"
+      }
+    },
+    {
+      "key": "solana:GsWVSmymsDFk6B6nnqhYRe9DsTeCywTNzfjJbrrWPDTp:1793693371",
+      "source": {
+        "path": "validation/swarm-2026-11-03/fresh-followup-agent.json",
+        "sha256": "e71551efaef1a3bc4138db28bc41a93761b8fdc78e8abd14779313f26963b3b9",
+        "retrievedAt": "2026-11-03T08:13:06.390Z"
+      },
+      "chain": "solana",
+      "token": "GsWVSmymsDFk6B6nnqhYRe9DsTeCywTNzfjJbrrWPDTp",
+      "scannedAt": 1793693371,
+      "score": null,
+      "band": "TOO_EARLY",
+      "reason": "too few holders to judge yet",
+      "hands": null,
+      "parts": null,
+      "features": {
+        "score": null,
+        "hands_ratio": null,
+        "biggest_swarm": 0,
+        "dump_impact": null,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0,
+        "dev": 0,
+        "security": 0,
+        "memory_hits": 0,
+        "liquidity_usd": null,
+        "age_h": null
+      },
+      "observed": {
+        "model": "swarm-judge-1",
+        "decision": "CAUTION",
+        "p": {
+          "avoid": 0.34,
+          "caution": 0.46,
+          "ok": 0.2
+        },
+        "confidence": 0.46,
+        "bar": 0.6,
+        "escalate": true,
+        "why": [
+          "too early: too few holders to judge"
+        ],
+        "receipt": "rcpt_a5b8fabd45c0b9a0"
+      }
+    },
+    {
+      "key": "solana:HjJqSu8vZfPrGeQWXkoDbTVQuBHfjdVzA34szoK1V5kj:1793692502",
+      "source": {
+        "path": "validation/swarm-2026-11-03/fresh-followup-agent.json",
+        "sha256": "e71551efaef1a3bc4138db28bc41a93761b8fdc78e8abd14779313f26963b3b9",
+        "retrievedAt": "2026-11-03T08:13:06.390Z"
+      },
+      "chain": "solana",
+      "token": "HjJqSu8vZfPrGeQWXkoDbTVQuBHfjdVzA34szoK1V5kj",
+      "scannedAt": 1793692502,
+      "score": null,
+      "band": "TOO_EARLY",
+      "reason": "too few holders to judge yet",
+      "hands": null,
+      "parts": null,
+      "features": {
+        "score": null,
+        "hands_ratio": null,
+        "biggest_swarm": 0,
+        "dump_impact": null,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0,
+        "dev": 0,
+        "security": 1,
+        "memory_hits": 0,
+        "liquidity_usd": 15546.98,
+        "age_h": 0
+      },
+      "observed": {
+        "model": "swarm-judge-1",
+        "decision": "CAUTION",
+        "p": {
+          "avoid": 0.34,
+          "caution": 0.46,
+          "ok": 0.2
+        },
+        "confidence": 0.46,
+        "bar": 0.6,
+        "escalate": true,
+        "why": [
+          "too early: too few holders to judge"
+        ],
+        "receipt": "rcpt_0c5ec3ae2f05fcbe"
+      }
+    }
+  ]
+}

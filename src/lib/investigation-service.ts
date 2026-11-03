@@ -1,4 +1,4 @@
-import { supplyShare, type Chain, type Report } from './analysis';
+import { validateToken, supplyShare, type Chain, type Report } from './analysis';
 import { analyzeInvestigation, type InvestigationInput, type LabelRecord } from './investigation';
 import { buildQuery, parseHolders, parseLabels, parseTrades, parseTransfers, parseIndexedStart, responseRowCount, TRADE_ROWS, TRANSFER_ROWS, type BitqueryClient } from './bitquery';
 import type { InvestigationReport, ScanEvent } from './investigation-types';
@@ -9,18 +9,30 @@ import type { PoolLaunchResult } from './pool-launch';
 import { getDisplayAssessment } from './verdict-summary';
 import {trustRating} from './trust-rating';
 import {observedDecision} from './observed-decision';
+import {buildVerdictOutput} from './verdict-output';
 import {computeRiskMetrics} from './risk-metrics';
 import type {SolanaPoolReserveResult} from './solana-pool-reserves';
 import {clockReferenceTime,type EvidenceClock} from './evidence-clock';
 import type {PersistentReportCache} from './report-cache';
 import type {SnapshotEnrichment} from './snapshot-enrichment';
-import type {BscHolderFallbackResult} from './bsc-holder-fallback';
+import {FOUR_MEME_MANAGER,isBscCustodyOnly,type BscHolderFallbackResult} from './bsc-holder-fallback';
 import type {EvmReserveChain,EvmPoolReserveResult} from './evm-pool-reserves';
 
 export type ScanOptions = { mode?: 'deep' | 'market' | 'holders'; expanded?: boolean; fresh?: boolean; signal?: AbortSignal; onEvent?: (event: ScanEvent) => void };
-type Dependencies = { evmPoolReserves?:(chain:EvmReserveChain,pool:string,token:string,options:{holders?:string[];signal?:AbortSignal})=>Promise<EvmPoolReserveResult>; bscHolders?:(report:Report,options:{signal?:AbortSignal})=>Promise<BscHolderFallbackResult>; enrichSnapshot?:(report:Report,options:{signal?:AbortSignal})=>Promise<SnapshotEnrichment>; publicScan: (chain: Chain, token: string, options: {mode?: 'deep' | 'market' | 'holders'; signal?: AbortSignal}) => Promise<Report>; makeClient: (signal?: AbortSignal) => BitqueryClient; publicHistory?: (chain: Chain, token: string, options: PublicHistoryOptions) => Promise<PublicHistoryResult>; historicalEvidence?: (chain:Chain,token:string,options:PublicHistoryOptions)=>Promise<PublicHistoryResult|undefined>; solanaPublic?: (token:string,options:{signal?:AbortSignal})=>Promise<SolanaPublicResult>; poolLaunch?:(chain:Chain,token:string,pool:string,options:{signal?:AbortSignal;validationTime?:number})=>Promise<PoolLaunchResult>; poolReserves?:(pool:string,token:string,options:{signal?:AbortSignal})=>Promise<SolanaPoolReserveResult>; resolveClock?:(options:{signal?:AbortSignal})=>Promise<EvidenceClock>; now?: () => number };
+type Dependencies = { evmPoolReserves?:(chain:EvmReserveChain,pool:string,token:string,options:{holders?:string[];signal?:AbortSignal})=>Promise<EvmPoolReserveResult>; bscHolders?:(report:Report,options:{signal?:AbortSignal;history?:boolean;candidateAddresses?:string[]})=>Promise<BscHolderFallbackResult>; enrichSnapshot?:(report:Report,options:{signal?:AbortSignal})=>Promise<SnapshotEnrichment>; publicScan: (chain: Chain, token: string, options: {mode?: 'deep' | 'market' | 'holders'; signal?: AbortSignal}) => Promise<Report>; makeClient: (signal?: AbortSignal) => BitqueryClient; publicHistory?: (chain: Chain, token: string, options: PublicHistoryOptions) => Promise<PublicHistoryResult>; historicalEvidence?: (chain:Chain,token:string,options:PublicHistoryOptions)=>Promise<PublicHistoryResult|undefined>; solanaPublic?: (token:string,options:{signal?:AbortSignal})=>Promise<SolanaPublicResult>; poolLaunch?:(chain:Chain,token:string,pool:string,options:{signal?:AbortSignal;validationTime?:number})=>Promise<PoolLaunchResult>; poolReserves?:(pool:string,token:string,options:{signal?:AbortSignal})=>Promise<SolanaPoolReserveResult>; resolveClock?:(options:{signal?:AbortSignal})=>Promise<EvidenceClock>; now?: () => number };
 type Cached = { expires: number; report: InvestigationReport };
 const batch = <T>(items: T[], size: number) => Array.from({length:Math.ceil(items.length/size)},(_,i)=>items.slice(i*size,(i+1)*size));
+const cacheLifetime=(report:InvestigationReport)=>{
+  const holderSources=report.sources.filter(source=>/^(Bitquery|Blockscout|Solana RPC) Holders$/i.test(source.name)||source.name==='BSC RPC finalized holder balances');
+  // Responding market/security endpoints cannot turn a failed, empty holder
+  // retrieval into a ten-minute result. An explicitly verified empty snapshot can.
+  const emptyFailure=!report.holders.length&&holderSources.some(source=>source.status==='unavailable')&&!holderSources.some(source=>source.status==='available');
+  // A measured manager balance below total supply leaves outside ownership
+  // unresolved when this snapshot explicitly documents failed candidate work.
+  // Read the current holder source, not old history reasons carried by a merge.
+  const incompleteCustody=isBscCustodyOnly(report)&&report.holders.every(holder=>Number.isFinite(holder.share)&&holder.share>0&&holder.share<100-1e-8)&&holderSources.some(source=>source.name==='BSC RPC finalized holder balances'&&source.status==='available'&&(/Recent Transfer logs were unavailable/i.test(source.detail)||/\b[1-9]\d* (?:reads unavailable|candidates outside the 100-address bound)\b/i.test(source.detail)||/Post-history balance verification[^.]*was unavailable/i.test(source.detail)));
+  return emptyFailure||incompleteCustody?30_000:10*60_000;
+};
 
 export function createInvestigationService(deps: Dependencies & {persistentCache?:PersistentReportCache}) {
   const cache = new Map<string, Cached>();
@@ -34,7 +46,7 @@ export function createInvestigationService(deps: Dependencies & {persistentCache
   };
   const store = (key: string, report: InvestigationReport,limit:number) => {
     if (cache.size >= 64) cache.delete(cache.keys().next().value!);
-    const entry={expires:now()+10*60_000,report:structuredClone(report)};
+    const entry={expires:now()+cacheLifetime(report),report:structuredClone(report)};
     cache.set(key,entry);persist(report.chain,report.token,limit,entry);
   };
   const load=(chain:Chain,token:string,limit:number)=>{
@@ -43,8 +55,12 @@ export function createInvestigationService(deps: Dependencies & {persistentCache
     try{
       const entry=deps.persistentCache?.get(chain,token,limit);
       if(entry&&entry.expires>now()&&entry.expires<=now()+10*60_000&&!entry.report.fixture&&!entry.report.providerAnalysis&&entry.report.chain===chain&&(chain==='solana'?entry.report.token===token:entry.report.token.toLowerCase()===token.toLowerCase())&&entry.report.investigation.coverage.holderLimit===limit&&entry.report.sources.some(source=>source.status==='available')){
+        // Older persisted entries may still carry the former ten-minute TTL.
+        // Bound failed snapshots by their local capture time, never by event time.
+        const expires=cacheLifetime(entry.report)===30_000?Math.min(entry.expires,Date.parse(entry.report.investigation.coverage.fetchedAt)+30_000):entry.expires;
+        if(!(expires>now()))return memory;
         if(cache.size>=64)cache.delete(cache.keys().next().value!);
-        const copied=structuredClone(entry);cache.set(key,copied);return copied;
+        const copied=structuredClone({...entry,expires});cache.set(key,copied);return copied;
       }
     }catch{/* Corrupt or unavailable persistence is a cache miss. */}
     return memory;
@@ -85,9 +101,9 @@ export function createInvestigationService(deps: Dependencies & {persistentCache
         options.signal?.throwIfAborted();
         stage('public-data','complete','Public provider responses received. Unavailable fields remain unknown.');
         let bscSnapshot:BscHolderFallbackResult|undefined;
-        if(chain==='bsc'&&mode!=='market'&&!publicReport.holders.length&&deps.bscHolders){
+        if(chain==='bsc'&&mode!=='market'&&(!publicReport.holders.length||publicReport.holders.some(holder=>holder.address.toLowerCase()===FOUR_MEME_MANAGER))&&deps.bscHolders){
           stage('holder-rpc','running','Verifying BNB Chain holder candidates and balances at one finalized block.');
-          try{bscSnapshot=await deps.bscHolders(publicReport,{signal:options.signal});}catch{options.signal?.throwIfAborted();}
+          try{bscSnapshot=await deps.bscHolders(publicReport,{signal:options.signal,history:mode==='deep',candidateAddresses:prior?.report.holders.map(h=>h.address).filter(address=>!validateToken('bsc',address)).slice(0,100)});}catch{options.signal?.throwIfAborted();}
           if(bscSnapshot){
             publicReport={...publicReport,sources:[...publicReport.sources,...bscSnapshot.sources]};
             if(bscSnapshot.holders?.length&&bscSnapshot.snapshot)publicReport={...publicReport,holders:bscSnapshot.holders.flatMap(h=>h.share===null?[]:[{address:h.address,share:h.share,contract:null,locked:null,tag:''}]),holderCount:bscSnapshot.holderCount??null,totalSupply:bscSnapshot.totalSupply??publicReport.totalSupply};
@@ -97,7 +113,7 @@ export function createInvestigationService(deps: Dependencies & {persistentCache
         const captured = new Date(now()).toISOString();
         const input: InvestigationInput = { chain,token,holders:publicReport.holders.map(h=>({address:chain==='solana'?h.address:h.address.toLowerCase(),share:h.share})),trades:[],transfers:[],identities:publicReport.identities || [],labels:[],launchVerified:false,complete:false,reasons:[],fetchedAt:captured,holderLimit:limit,buyerLimit:limit,fundingHops:mode==='deep'?1:0,truncated:false };
         if(clock){input.clock=clock;input.reasons.push(clock.detail);}
-        if(bscSnapshot){input.labels.push(...bscSnapshot.labels);input.reasons.push(...bscSnapshot.reasons);input.truncated ||= bscSnapshot.truncated;}
+        if(bscSnapshot){input.trades.push(...bscSnapshot.trades);input.identities=[...bscSnapshot.identities,...input.identities.filter(i=>!bscSnapshot.identities.some(d=>d.role===i.role&&d.address.toLowerCase()===i.address.toLowerCase()))];publicReport={...publicReport,identities:input.identities};input.curveTiming=bscSnapshot.curveTiming;input.earliestTradeAt=bscSnapshot.trades.map(t=>t.timestamp).sort()[0];input.labels.push(...bscSnapshot.labels);input.reasons.push(...bscSnapshot.reasons);input.truncated ||= bscSnapshot.truncated;}
         const sourceTimes: Report['sources'] = [];
         for (const h of publicReport.holders) {
           let category: LabelRecord['category'] | undefined;
@@ -106,7 +122,9 @@ export function createInvestigationService(deps: Dependencies & {persistentCache
           else if (h.contract) category = 'contract';
           if (category) input.labels.push({timestampBasis:'local-observation',address:h.address,category,label:h.tag || 'Provider-reported contract',source:'GoPlus Security',timestamp:publicReport.sources.find(s=>s.name==='GoPlus Security')?.fetchedAt || publicReport.fetchedAt});
         }
-        if (publicReport.market?.pairAddress) input.labels.push({timestampBasis:'local-observation',address:publicReport.market.pairAddress,category:'pool',label:'Market pair address',source:'DEX Screener',timestamp:publicReport.sources.find(s=>s.name==='DEX Screener')?.fetchedAt || publicReport.fetchedAt});
+        const selectedPool=publicReport.market?.pairAddress&&!validateToken(chain,publicReport.market.pairAddress)?publicReport.market.pairAddress:undefined;
+        if(publicReport.market?.pairAddress&&!selectedPool)input.reasons.push('The selected launchpad market uses a provider identifier, not an on-chain pool address. V2 reserve and pool timing probes are not applicable; bonding-curve impact remains unevaluated.');
+        if (selectedPool) input.labels.push({timestampBasis:'local-observation',address:selectedPool,category:'pool',label:'Market pair address',source:'DEX Screener',timestamp:publicReport.sources.find(s=>s.name==='DEX Screener')?.fetchedAt || publicReport.fetchedAt});
         if (mode === 'market') {
           input.reasons.push('Market-only refresh. No wallet investigation was requested.');
           return {...publicReport,investigation:analyzeInvestigation(input)};
@@ -127,8 +145,8 @@ export function createInvestigationService(deps: Dependencies & {persistentCache
         };
         const startEnrichment=()=>enrichSnapshot().catch(()=>{if(!options.signal?.aborted)stage('wallet-activity','unavailable','Wallet activity could not be verified.');return undefined;});
         let enrichmentTask=chain==='solana'?startEnrichment():undefined;
-        const poolTask=mode==='deep'&&publicReport.market?.pairAddress&&deps.poolLaunch?deps.poolLaunch(chain,token,publicReport.market.pairAddress,{signal:options.signal,validationTime:clockReferenceTime(clock,Date.parse(captured))}).catch(()=>undefined):Promise.resolve(undefined);
-        const reserveTask=mode==='deep'&&chain==='solana'&&publicReport.market?.pairAddress&&deps.poolReserves?deps.poolReserves(publicReport.market.pairAddress,token,{signal:options.signal}).catch(()=>undefined):Promise.resolve(undefined);
+        const poolTask=mode==='deep'&&selectedPool&&deps.poolLaunch?deps.poolLaunch(chain,token,selectedPool,{signal:options.signal,validationTime:clockReferenceTime(clock,Date.parse(captured))}).catch(()=>undefined):Promise.resolve(undefined);
+        const reserveTask=mode==='deep'&&chain==='solana'&&selectedPool&&deps.poolReserves?deps.poolReserves(selectedPool,token,{signal:options.signal}).catch(()=>undefined):Promise.resolve(undefined);
         const historicalTask=mode==='deep'&&deps.historicalEvidence?(async()=>{
           const snapshot=chain==='solana'?await solanaTask:undefined;
           options.signal?.throwIfAborted();
@@ -246,7 +264,8 @@ export function createInvestigationService(deps: Dependencies & {persistentCache
         }
         // EVM explorer holders may replace the early GoPlus list. Probe the actual final snapshot.
         enrichmentTask ||= startEnrichment();
-        const evmPool=publicReport.market?.pairAddress||prior?.report.market?.pairAddress;
+        const candidatePool=publicReport.market?.pairAddress||prior?.report.market?.pairAddress;
+        const evmPool=candidatePool&&!validateToken(chain,candidatePool)?candidatePool:undefined;
         const evmReserveTask=chain!=='solana'&&evmPool&&deps.evmPoolReserves?deps.evmPoolReserves(chain,evmPool,token,{holders:publicReport.holders.map(h=>h.address),signal:options.signal}).catch(()=>undefined):Promise.resolve(undefined);
         const historical=await historicalTask;
         options.signal?.throwIfAborted();
@@ -337,6 +356,7 @@ export function createInvestigationService(deps: Dependencies & {persistentCache
         result.investigation.assessment=getDisplayAssessment(result);
         result.trustRating=trustRating(result);
         result.observedDecision=observedDecision(result,result.trustRating);
+        result.decisionOutput=buildVerdictOutput({rating:result.trustRating,observed:result.observedDecision});
         if(inFlight.get(key)===revision){
           if(mode==='deep')store(key,result,limit);
           else if(mode==='holders'&&prior&&prior.expires>now())cache.set(key,{expires:prior.expires,report:{...prior.report,...result,market:prior.report.market,sources:[...new Map([...prior.report.sources,...result.sources.filter(s=>s.name!=='DEX Screener')].map(s=>[s.name,s])).values()]}});

@@ -37,3 +37,5 @@ test('failed wallets retain unknown and cancellation propagates',async()=>{
 });
 
 test('invalid Solana signature strings do not establish wallet activity',async()=>{const records=rows(11);records[0].signature='0'.repeat(64);assert.equal((await readWalletActivity('solana',[sol],async()=>records)).wallets[0].fresh,null);});
+
+test('verified contract code explains unsupported nonce scope instead of claiming RPC failed',async()=>{const r=await readWalletActivity('ethereum',[a],async(m,p)=>m==='eth_getCode'?'0x1234':evm(m,p));assert.equal(r.wallets[0].count,null);assert.match(r.wallets[0].reason,/contract account/i);assert.doesNotMatch(r.wallets[0].reason,/RPC did not verify/);});

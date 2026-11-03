@@ -6,6 +6,8 @@ import {clockReferenceTime,type EvidenceClock} from './evidence-clock';
 import {getDisplayAssessment} from './verdict-summary';
 import {computeRiskMetrics} from './risk-metrics';
 import {trustRating} from './trust-rating';
+import {observedDecision} from './observed-decision';
+import {buildVerdictOutput} from './verdict-output';
 
 const obj=(value:unknown):Record<string,unknown>=>value&&typeof value==='object'&&!Array.isArray(value)?value as Record<string,unknown>:{};
 const str=(value:unknown):value is string=>typeof value==='string'&&value.length>0;
@@ -120,5 +122,6 @@ export function mergeHistoryReport(report:InvestigationReport,job:HistoryJob):In
  const merged={...report,sources:[...sources.values()],investigation};
  if(!merged.providerAnalysis){merged.riskMetrics=computeRiskMetrics(merged);merged.trustRating=trustRating(merged);}
  investigation.assessment=getDisplayAssessment(merged);
+ if(!merged.providerAnalysis&&merged.trustRating){merged.observedDecision=observedDecision(merged,merged.trustRating);merged.decisionOutput=buildVerdictOutput({rating:merged.trustRating,observed:merged.observedDecision});}
  return merged;
 }
