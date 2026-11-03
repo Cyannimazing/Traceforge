@@ -69,7 +69,7 @@ export default function DiscoveryRadar({profiles,loading,error,meta,paused,onRef
 
  useEffect(()=>{if(!root.current)return;const observer=new IntersectionObserver(([entry])=>setOnscreen(entry.isIntersecting));observer.observe(root.current.querySelector('.dr-instrument')||root.current);return()=>observer.disconnect();},[compact]);
 
- useEffect(()=>{if(!animate||!list.current?.querySelector('[data-contact]'))return;const context=gsap.context(()=>{gsap.fromTo('[data-contact]',{opacity:.4,y:10},{opacity:1,y:0,duration:.5,stagger:.045,ease:'power3.out',clearProps:'transform,opacity'});},list);return()=>context.revert();},[meta.fetchedAt,chain,animate]);
+ useEffect(()=>{if(!animate||!list.current?.querySelector('[data-contact]'))return;const context=gsap.context(()=>{gsap.fromTo('[data-contact]',{opacity:.6},{opacity:1,duration:.35,stagger:.025,ease:'power3.out',clearProps:'opacity'});},list);return()=>context.revert();},[meta.fetchedAt,chain,animate]);
 
  const select=(id:string)=>setSelected(id);
 
@@ -83,7 +83,7 @@ export default function DiscoveryRadar({profiles,loading,error,meta,paused,onRef
 
   <header className="dr-heading"><div><h2>Discovery<span className="dr-pulse"/></h2><p>Latest token profiles and pool listings. Select a token to investigate.</p></div>{compact?<button className="dr-open" onClick={onOpen}>Open radar<ArrowUpRight size={17}/></button>:<button className="dr-refresh" disabled={loading} onClick={onRefresh}><RefreshCw size={16} className={loading?'spin':''}/>{loading?'Fetching':'Refresh feed'}</button>}</header>
 
-  <div className="dr-status"><span role="status"><i className={stale?'is-stale':''}/>{loading?'Fetching public profiles':stale?'Last available snapshot':'Auto-refresh every 30s'}</span><span>{profiles.length} profiles</span><span>Fetched {time(meta.fetchedAt)}{seconds!=null&&`  -  ${seconds}s ago`}</span></div>
+  <div className="dr-status"><span role="status"><i className={stale?'is-stale':''}/>{loading?'Fetching public profiles':stale?'Last available snapshot':'Auto-refresh every 30s'}</span><span>Fetched {time(meta.fetchedAt)}{seconds!=null&&`  -  ${seconds}s ago`}</span></div>
 
   {!compact&&<div className="dr-tools"><div className="dr-networks" role="group" aria-label="Filter discovery network">{(['all',...chainOrder] as const).map(value=><button key={value} aria-pressed={chain===value} onClick={()=>setChain(value)}>{value==='all'?'All networks':CHAINS[value].name}</button>)}</div><label className="dr-search"><Search size={16}/><span className="sr-only">Search discovery tokens</span><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Find name or address"/></label></div>}
 
@@ -97,7 +97,7 @@ export default function DiscoveryRadar({profiles,loading,error,meta,paused,onRef
 
   <div className="dr-latest">
 
-  <div className="dr-list-heading"><span>Latest pairs</span><span>Newest first - {visible.length} listings</span></div>
+  <div className="dr-list-heading"><span>Latest pairs</span><span>Newest first</span></div>
 
   <div ref={list} className="dr-token-grid">{visible.map((profile,i)=>{const id=`${profile.chain}:${profile.address}`,isSelected=active?.address===profile.address&&active?.chain===profile.chain,assessment=latestDiscoveryAssessment(savedReports.find(item=>item.chain===profile.chain&&sameToken(item.chain,item.token,profile.address)),assessments[id]);return <article data-contact data-contact-id={id} key={id} className={`dr-token-card ${!compact&&isSelected?'is-selected':''}`}>
    <a className="dr-card-open" href={`/token/${profile.chain}/${encodeURIComponent(profile.address)}`} aria-label={`Investigate ${profile.symbol||short(profile.address)} on ${CHAINS[profile.chain].name}`} onPointerEnter={()=>setSelected(id)} onFocus={()=>setSelected(id)} onClick={event=>{if(event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;event.preventDefault();onScan(profile.chain,profile.address);}}/>

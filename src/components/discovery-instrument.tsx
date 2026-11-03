@@ -80,7 +80,7 @@ export default function DiscoveryInstrument({profiles,active,loading,animate,now
 
  return <div className="dr-instrument di-instrument" ref={root} data-motion={running?'running':'still'}>
   <aside className="di-readout di-composition" aria-label="Profile composition">
-   <div className="di-readout-heading"><Radio size={15}/><h3>In the field</h3><span>{profiles.length}</span></div>
+   <div className="di-readout-heading"><Radio size={15}/><h3>Network mix</h3></div>
    <div className="di-network-strip" aria-hidden="true">{mix.filter(m=>m.count).map((m,index)=><span key={m.chain} style={{flex:m.count,opacity:1-index*.18}}/>)}</div>
    <dl className="di-network-list">{mix.map(({chain,count})=><div key={chain}><dt>{CHAINS[chain].name}</dt><dd>{String(count).padStart(2,'0')}<span className="di-network-meter" aria-hidden="true"><i className="di-meter-fill" style={{width:`${profiles.length?count/profiles.length*100:0}%`}}/></span></dd></div>)}</dl>
    <div className="di-retrieval"><span className="di-status-dot"/><span>{loading?'Retrieving profiles':`${available} market snapshots available`}</span></div>
@@ -89,7 +89,7 @@ export default function DiscoveryInstrument({profiles,active,loading,animate,now
   </aside>
 
   <div className="di-scope">
-   <div className="di-scope-top"><span>{loading?'Retrieving contacts':'Explore the feed'}</span><span>{String(points.length).padStart(2,'0')} contacts</span></div>
+   <div className="di-scope-top"><span>{loading?'Retrieving contacts':'Explore the feed'}</span><span>Discovery field</span></div>
    <svg ref={surface} className="di-radar" viewBox="0 0 480 480" role="group" aria-labelledby={titleId} aria-describedby={descriptionId}>
     <title id={titleId}>Interactive token discovery field</title>
     <desc id={descriptionId}>Token positions are decorative, not risk, location or network. Select a contact with Enter or Space. Arrow keys move between contacts. The token list below provides the same selections.</desc>
@@ -107,7 +107,7 @@ export default function DiscoveryInstrument({profiles,active,loading,animate,now
     </g>
     <g aria-hidden="true" className="di-ripples"><circle className="di-ripple" cx="240" cy="240" r="44"/><circle className="di-ripple" cx="240" cy="240" r="44"/></g>
     <g className="di-orbit-arc" aria-hidden="true"><path d="M240 18A222 222 0 0 1 379.7 67.5M240 462A222 222 0 0 1 100.3 412.5"/></g>
-    <g className="di-center" aria-hidden="true"><circle cx="240" cy="240" r="39"/><path d="M196 240H203M277 240H284M240 196V203M240 277V284"/><text x="240" y="242" textAnchor="middle">{String(points.length).padStart(2,'0')}</text><text className="di-center-unit" x="240" y="258" textAnchor="middle">PROFILES</text></g>
+    <g className="di-center" aria-hidden="true"><circle cx="240" cy="240" r="39"/><path d="M196 240H203M277 240H284M240 196V203M240 277V284"/><path d="M229 240H251M240 229V251"/><circle cx="240" cy="240" r="10"/></g>
     {selectedPoint&&<g aria-hidden="true" className="di-selected-guide"><path d={`M${selectedPoint.x} ${selectedPoint.y}H${selectedPoint.x<240?30:450}`}/></g>}
     {points.map(({id,x,y,bearing})=>{const profile=byId.get(id)!;const selected=id===selectedId;return <g key={id} data-di-bearing={bearing} className={`di-contact${selected?' is-selected':''}`} transform={`translate(${precision(x)} ${precision(y)})`} role="button" tabIndex={0} aria-pressed={selected} aria-label={`Select ${profile.symbol||short(profile.address)} on ${CHAINS[profile.chain].name}`} onClick={()=>onSelect(id)} onKeyDown={event=>keyboard(event,id)}>
      <title>{profile.name||profile.symbol||short(profile.address)} - {CHAINS[profile.chain].name}</title>
