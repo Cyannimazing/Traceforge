@@ -1,4 +1,9 @@
 export type DiscoveryContact={id:string;x:number;y:number;bearing:number};
+/** Discovery positions are decorative. Focus one contact in the reticle while
+ * preserving the surrounding field, so changing selection does not reshuffle it. */
+export function focusDiscoveryContact(points:DiscoveryContact[],selectedId:string|null):DiscoveryContact[]{
+ return points.map(p=>p.id===selectedId?{...p,x:240,y:240}:p);
+}
 const hash=(text:string)=>{let n=2166136261;for(const char of text){n^=char.charCodeAt(0);n=Math.imul(n,16777619);}return n>>>0;};
 /** Stable for an identical contact set. Bearings are visual slots, never chain,
  * market direction or risk. A bounded 16-contact set leaves room for touch. */

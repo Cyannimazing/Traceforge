@@ -4,7 +4,7 @@ import {useEffect,useId,useMemo,useRef,useState} from 'react';
 import {gsap} from 'gsap';
 import {ArrowUpRight,Crosshair,Radio} from 'lucide-react';
 import {CHAINS,formatMoney,short,type Chain} from '@/lib/analysis';
-import {discoveryLayout} from '@/lib/discovery-layout';
+import {discoveryLayout,focusDiscoveryContact} from '@/lib/discovery-layout';
 import type {DiscoveryProfile} from './discovery-radar';
 import './discovery-instrument.css';
 
@@ -24,7 +24,7 @@ export default function DiscoveryInstrument({profiles,active,loading,animate,now
  const points=useMemo(()=>discoveryLayout(profiles.map(profileId)),[profiles]);
  const byId=useMemo(()=>new Map(profiles.map(p=>[profileId(p),p])),[profiles]);
  const selectedId=active?profileId(active):null;
- const selectedPoint=points.find(p=>p.id===selectedId);
+ const focusedPoints=useMemo(()=>focusDiscoveryContact(points,selectedId),[points,selectedId]);
  const pointKey=points.map(p=>p.id).join('|');
  const running=animate&&visible&&documentVisible&&!reduced;
  const mix=networks.map(chain=>({chain,count:profiles.filter(p=>p.chain===chain).length}));
@@ -61,6 +61,17 @@ export default function DiscoveryInstrument({profiles,active,loading,animate,now
  },[running,pointKey]);
 
  useEffect(()=>{
+  if(!surface.current)return;
+  const targets=new Map(focusedPoints.map(p=>[p.id,p]));
+  const tweens=Array.from(surface.current.querySelectorAll<SVGGElement>('[data-di-id]')).flatMap(contact=>{
+   const target=targets.get(contact.dataset.diId!);
+   return target?[gsap.to(contact,{attr:{transform:`translate(${precision(target.x)} ${precision(target.y)})`},duration:running?.65:0,ease:'power3.out',overwrite:'auto'})]:[];
+  });
+  // Keep the current position on rapid reselection instead of snapping back.
+  return()=>tweens.forEach(tween=>tween.kill());
+ },[focusedPoints,running]);
+
+ useEffect(()=>{
   if(!running||!root.current)return;
   const context=gsap.context(()=>{
    const brackets=root.current!.querySelector('.di-contact.is-selected .di-target-brackets');
@@ -81,7 +92,7 @@ export default function DiscoveryInstrument({profiles,active,loading,animate,now
  }
 
  return <div className="dr-instrument di-instrument" ref={root} data-motion={running?'running':'still'}>
-  <aside className="di-readout di-composition" aria-label="Profile composition">
+  <aside className="di-readout di-composition" aria-label="Profile composition" tabIndex={0}>
    <div className="di-readout-heading"><Radio size={15}/><h3>Network mix</h3></div>
    <div className="di-network-strip" aria-hidden="true">{mix.filter(m=>m.count).map((m,index)=><span key={m.chain} style={{flex:m.count,opacity:1-index*.18}}/>)}</div>
    <dl className="di-network-list">{mix.map(({chain,count})=><div key={chain}><dt>{CHAINS[chain].name}</dt><dd>{String(count).padStart(2,'0')}<span className="di-network-meter" aria-hidden="true"><i className="di-meter-fill" style={{width:`${profiles.length?count/profiles.length*100:0}%`}}/></span></dd></div>)}</dl>
@@ -110,18 +121,17 @@ export default function DiscoveryInstrument({profiles,active,loading,animate,now
     <g aria-hidden="true" className="di-ripples"><circle className="di-ripple" cx="240" cy="240" r="44"/><circle className="di-ripple" cx="240" cy="240" r="44"/></g>
     <g className="di-orbit-arc" aria-hidden="true"><path d="M240 18A222 222 0 0 1 379.7 67.5M240 462A222 222 0 0 1 100.3 412.5"/></g>
     <g className="di-center" aria-hidden="true"><circle cx="240" cy="240" r="39"/><path d="M196 240H203M277 240H284M240 196V203M240 277V284"/><path d="M229 240H251M240 229V251"/><circle cx="240" cy="240" r="10"/></g>
-    {selectedPoint&&<g aria-hidden="true" className="di-selected-guide"><path d={`M${selectedPoint.x} ${selectedPoint.y}H${selectedPoint.x<240?30:450}`}/></g>}
-    {points.map(({id,x,y,bearing})=>{const profile=byId.get(id)!;const selected=id===selectedId;return <g key={id} data-di-bearing={bearing} className={`di-contact${selected?' is-selected':''}`} transform={`translate(${precision(x)} ${precision(y)})`} role="button" tabIndex={0} aria-pressed={selected} aria-label={`Select ${profile.symbol||short(profile.address)} on ${CHAINS[profile.chain].name}`} onClick={()=>onSelect(id)} onKeyDown={event=>keyboard(event,id)}>
+    {points.map(({id,x,y,bearing})=>{const profile=byId.get(id)!;const selected=id===selectedId;return <g key={id} data-di-id={id} data-di-bearing={bearing} className={`di-contact${selected?' is-selected':''}`} transform={`translate(${precision(x)} ${precision(y)})`} role="button" tabIndex={0} aria-pressed={selected} aria-label={`Select ${profile.symbol||short(profile.address)} on ${CHAINS[profile.chain].name}`} onClick={()=>onSelect(id)} onKeyDown={event=>keyboard(event,id)}>
      <title>{profile.name||profile.symbol||short(profile.address)} - {CHAINS[profile.chain].name}</title>
-     <circle className="di-contact-hit" r="23"/><circle className="di-contact-echo" r="5"/><circle className="di-contact-flash" r="9"/><circle className="di-contact-core" r={selected?5:3.5}/>
+     <circle className="di-contact-hit" r="25"/><circle className="di-contact-echo" r="5"/><circle className="di-contact-flash" r="9"/><circle className="di-contact-core" r={selected?5:3.5}/>
      <path className="di-target-brackets" d="M-15 -7V-15H-7M7 -15H15V-7M15 7V15H7M-7 15H-15V7"/>
-     {selected&&<text className="di-contact-name" x={x>315?-21:21} y="4" textAnchor={x>315?'end':'start'}>{(profile.symbol||short(profile.address)).slice(0,11)}</text>}
+     {selected&&<text className="di-contact-name" x="0" y="-26" textAnchor="middle">{(profile.symbol||short(profile.address)).slice(0,11)}</text>}
     </g>;})}
    </svg>
    <div className="di-scope-bottom"><Crosshair size={13}/><span>{profiles.length?'Select a contact to inspect its market snapshot':'Profiles appear here after retrieval'}</span></div>
   </div>
 
-  <aside className="di-readout di-market" aria-label="Selected profile market snapshot">
+  <aside className="di-readout di-market" aria-label="Selected profile market snapshot" tabIndex={0}>
    <div className="di-readout-heading"><Crosshair size={15}/><h3>Selected contact</h3></div>
    <div className="di-selected-identity"><strong title={active?.name||active?.address}>{active?.symbol||active&&short(active.address)||'No contact'}</strong><span>{active?CHAINS[active.chain].name:'Choose a token'}</span></div>
    <div className="di-price"><span>Price</span><strong>{price}</strong></div>

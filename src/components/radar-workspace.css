@@ -105,8 +105,8 @@ html{scrollbar-gutter:stable}
 .console-shell{--studio-width:1440px;--studio-gutter:32px}
 .console-shell main,.console-shell main.has-report{max-width:var(--studio-width);margin-inline:auto;padding-left:var(--studio-gutter);padding-right:var(--studio-gutter)}
 .console-shell .topbar{padding-inline:0}.console-shell .topbar-inner{max-width:var(--studio-width);padding-inline:var(--studio-gutter);box-sizing:border-box}
-.console-shell :is(.dr-heading,.dr-status,.dr-list-heading,.dr-footer){padding-left:20px;padding-right:20px}
-@media(max-width:760px){.console-shell{--studio-gutter:14px}.console-shell :is(.dr-heading,.dr-status,.dr-list-heading,.dr-footer){padding-left:14px;padding-right:14px}}
+.console-shell :is(.dr-heading,.dr-status,.dr-list-heading,.dr-footer){padding-left:var(--dr-gutter,24px);padding-right:var(--dr-gutter,24px)}
+@media(max-width:760px){.console-shell{--studio-gutter:14px}.console-shell :is(.dr-heading,.dr-status,.dr-list-heading,.dr-footer){padding-left:var(--dr-gutter,16px);padding-right:var(--dr-gutter,16px)}}
 
 /* Search occupies its own viewport; discovery and feeds live on their own routes. */
 .console-shell main.is-home{padding-block:0;min-height:calc(100svh - 62px);display:flex;flex-direction:column}

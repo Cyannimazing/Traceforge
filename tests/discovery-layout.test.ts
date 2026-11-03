@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {discoveryLayout} from '../src/lib/discovery-layout';
+import {discoveryLayout,focusDiscoveryContact} from '../src/lib/discovery-layout';
 
 const ids=Array.from({length:16},(_,i)=>`solana:token-${i}`);
 test('a single-network discovery set occupies every quadrant with bounded contact spacing',()=>{
@@ -16,6 +16,18 @@ test('a single-network discovery set occupies every quadrant with bounded contac
 });
 test('reordering the same profiles leaves their contact coordinates unchanged',()=>{
  assert.deepEqual(discoveryLayout(ids),discoveryLayout([...ids].reverse()));
+});
+test('selecting a contact centers it without moving the remaining contacts or mutating the layout',()=>{
+ const points=discoveryLayout(ids),original=structuredClone(points);
+ for(const selected of points){
+  const focused=focusDiscoveryContact(points,selected.id);
+  assert.deepEqual(focused.find(p=>p.id===selected.id),{...selected,x:240,y:240});
+  assert.deepEqual(focused.filter(p=>p.id!==selected.id),points.filter(p=>p.id!==selected.id));
+  for(const p of focused)if(p.id!==selected.id)assert(Math.hypot(p.x-240,p.y-240)>=73);
+ }
+ assert.deepEqual(points,original);
+ assert.deepEqual(focusDiscoveryContact(points,null),points);
+ assert.deepEqual(focusDiscoveryContact(points,'missing'),points);
 });
 test('empty, duplicate and oversized input sets stay bounded',()=>{
  assert.deepEqual(discoveryLayout([]),[]);
