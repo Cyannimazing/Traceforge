@@ -1,6 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {decisionLabels,decisionLabel,assessmentLabel,presentationText} from '../src/lib/assessment-presentation';
+import {decisionLabels,decisionLabel,assessmentLabel,presentationText,earlyBuyingExplanation} from '../src/lib/assessment-presentation';
+
+test('verified venue timing is distinguished from incomplete token-wide early-buyer exposure',()=>{
+ const pool={verified:true} as any,curve={verified:true} as any;
+ for(const coverage of [{launchVerified:false,poolTiming:pool},{launchVerified:false,poolTimings:[pool]}]){
+  const result=earlyBuyingExplanation(coverage);assert.equal(result.title,'First-minute trading verified');assert.match(result.detail,/selected pool.*verified/);assert.match(result.detail,/Token-wide.*incomplete/);assert.match(result.preTrading,/selected pool.*verified/);
+ }
+ const launchpad=earlyBuyingExplanation({launchVerified:false,curveTiming:curve});assert.match(launchpad.detail,/selected launchpad.*verified/);assert.match(launchpad.preTrading,/selected launchpad.*verified/);
+ const global=earlyBuyingExplanation({launchVerified:true});assert.equal(global.title,'Early-buyer exposure is incomplete');assert.match(global.detail,/launch is verified/);
+ for(const coverage of [{launchVerified:false},{launchVerified:false,poolTimings:[]},{launchVerified:false,poolTiming:{verified:false} as any}])assert.equal(earlyBuyingExplanation(coverage).title,'First-minute buying is unverified');
+});
 
 test('canonical decisions and legacy display aliases use one presentation vocabulary',()=>{
  assert.deepEqual(decisionLabels,{avoid:'High risk',caution:'Watch',ok:'Clear'});

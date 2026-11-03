@@ -35,7 +35,7 @@ export function buildScoringInputs(report:InvestigationReport):FactorMeasurement
  const evidence=new Map(report.investigation.evidence.filter(e=>e.attribution!=='provider-reported'&&e.source.trim()&&(e.kind==='holding'||e.kind==='label'?snapshotDate(e.timestamp):validDate(e.timestamp))).map(e=>[e.id,e]));
  const metrics=computeRiskMetrics(report);
  if(report.providerAnalysis||metrics.metrics.find(m=>m.id==='largest-holder-supply')?.value==null)return ids.map(id=>result.get(id)!);
- const sourceNames=report.chain==='solana'?['Solana RPC Holders']:['Blockscout Holders','GoPlus Security','BSC RPC finalized holder balances'];
+ const sourceNames=report.chain==='solana'?['Solana RPC Holders']:['Blockscout Holders','GoPlus Security','BSC RPC finalized holder balances','EVM RPC holder balances'];
  const snapshotSource=report.sources.some(s=>sourceNames.includes(s.name)&&s.status==='available'&&snapshotDate(s.fetchedAt));
  const wallets=new Map(report.investigation.wallets.map(w=>[normalize(w.address),w]));
  const qualifiedHolders=report.holders.filter(h=>snapshotSource||wallets.get(normalize(h.address))?.evidenceIds.some(id=>{const e=evidence.get(id);return e?.kind==='holding'&&(!e.token||normalize(e.token)===normalize(report.token));}));

@@ -2,6 +2,8 @@
 
 Latest release: [report and retrieval validation](report-release-validation-2026-11-03.md), including the reproduced Four.Meme custody/float/first-minute fixes, current chain-state changes and remaining evidence limits. Earlier measurements below remain historical observations.
 
+New token comparison: [Base 1KTO100M end-to-end validation](base-1kto100m-validation.md). The independent production scan recovered all 14 Swarm holder addresses with exact raw balances, retained two additional unqualified contract holders, and verified six selected-pool first-minute buys. The audit separates a real market collapse, infrastructure-exclusion policy and remaining model-input limits.
+
 Observed 2026-11-03. This audit uses public reports, publicly shipped JavaScript, selected explorer transaction records, and independent TraceForge snapshots. No private backend access, credential bypass, purchase, or Gemini call was used. Swarm is a comparison source, not a ground-truth accuracy label.
 
 ## What is publicly specified

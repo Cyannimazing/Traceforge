@@ -12,6 +12,11 @@ const wallet=(address:string,share:number|null,balance?:number):InvestigatedWall
 function report():InvestigationReport {const r=structuredClone(fixtureReport);r.fixture=false;r.sources=[{name:'Bitquery Holders',status:'available',detail:'Snapshot',fetchedAt:r.fetchedAt},{name:'Bitquery Recent trades',status:'available',detail:'Historical sample',fetchedAt:r.fetchedAt}];return r;}
 function fresh(old:InvestigationReport):InvestigationReport {const r=structuredClone(old);r.fetchedAt=at;r.holders=[];r.investigation.wallets=[];r.investigation.evidence=[];r.investigation.timeline=[];r.investigation.relationships=[];r.investigation.findings=[];r.sources=[{name:'Bitquery Holders',status:'available',detail:'Fresh snapshot',fetchedAt:at}];return r;}
 
+test('independent EVM RPC holder snapshots replace current holdings and preserve outage provenance',()=>{
+ const old=report();old.chain='base';const next=fresh(old),address='0x'+'b'.repeat(40);next.sources=[{name:'EVM RPC holder balances',status:'available',fetchedAt:at,detail:'Base safe sampled snapshot'}];next.holders=[{address,share:5,contract:null,locked:null,tag:''}];next.investigation.wallets=[wallet(address,5,50)];
+ for(const merge of [(a:InvestigationReport,b:InvestigationReport)=>mergeReportRefresh(a,b,'holders'),mergeDeepReport]){const result=merge(old,next);assert.deepEqual(result.holders,next.holders);assert.equal(result.investigation.wallets.find(w=>w.address===address)?.share,5);const failed=fresh(next);failed.sources=[{name:'EVM RPC holder balances',status:'unavailable',detail:'Timeout'}];const retained=merge(next,failed);assert.deepEqual(retained.holders,next.holders);assert.equal(retained.sources.find(s=>s.name==='EVM RPC holder balances')?.fetchedAt,at);}
+});
+
 test('refresh replaces a stale decision allocation with the policy for the current evidence',()=>{
  const old=report();old.decisionOutput={version:'verdict-output-v2',decision:'AVOID',p:{avoid:1,caution:0,ok:0},selectedWeight:1,basis:'rule',score:null,explanation:'Old stop'};
  const next=fresh(old);next.checks=[];next.identities=[];next.sources.push({name:'GoPlus Security',status:'available',detail:'Current checks',fetchedAt:at});

@@ -10,6 +10,15 @@ import type {EvidenceClock} from '../src/lib/evidence-clock';
 import type {EvmPoolReserveSnapshot} from '../src/lib/evm-pool-reserves';
 const report: Report = { chain:'ethereum',token:'0xabc',name:'Test',symbol:'TEST',fetchedAt:'2026-01-01T00:00:00Z',market:null,holders:[{address:'wallet',share:1,contract:false,locked:false,tag:''}],holderCount:1,checks:[],sources:[] };
 
+test('pool creation time is forwarded only as a chain/token-bound past market hint',async()=>{
+ const token='0x'+'1'.repeat(40),pool='0x'+'2'.repeat(40),now=Date.parse(report.fetchedAt),time=now-60000;
+ for(const mode of ['valid','foreign-token','foreign-chain','future']){let received:number|undefined;
+ const market={chainId:mode==='foreign-chain'?'base':'ethereum',pairAddress:pool,baseToken:{address:mode==='foreign-token'?'0x'+'3'.repeat(40):token},pairCreatedAt:mode==='future'?now+120001:time};
+ const service=createInvestigationService({now:()=>now,publicScan:async()=>({...report,token,market}),makeClient:()=>({configured:false,request:async()=>null}),poolLaunch:async(_chain,_token,_pool,options)=>{received=options.creationTimeHint;return {status:'unavailable',scope:'selected-pool',pool,token,trades:[],sources:[],reasons:[]};}});
+ const r=await service.scan('ethereum',token);assert.equal(received,mode==='valid'?time:undefined);assert.equal(r.investigation.coverage.launchVerified,false);
+ }
+});
+
 test('API decision output calculates uncertainty allocation and recomputes a qualified critical override',async()=>{
  let critical=false;
  const service=createInvestigationService({now:()=>Date.parse(report.fetchedAt),publicScan:async()=>({...report,sources:[{name:'GoPlus Security',status:'available',detail:'Current checks',fetchedAt:report.fetchedAt}],checks:critical?[{key:'is_honeypot',title:'Sell restriction',status:'critical',value:'Yes',description:'Verified provider restriction',source:'GoPlus Security',fetchedAt:report.fetchedAt}]:[]}),makeClient:()=>({configured:false,request:async()=>null})});

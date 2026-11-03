@@ -12,6 +12,10 @@ function holder(r:ReturnType<typeof report>,address:string,share:number,categori
 function transfer(r:ReturnType<typeof report>,id:string,from:string,to:string,token='SOL',timestamp=at){r.investigation.evidence.push({id,kind:'transfer',transaction:id,from,to,token,amount:1,timestamp,source:'RPC',description:'Observed transfer'});r.investigation.relationships.push({id,from,to,kind:token==='SOL'?'funding':'transfer',evidenceIds:[id],description:''});}
 function factor(r:ReturnType<typeof report>,id:string){return buildScoringInputs(r).find(f=>f.id===id)!;}
 
+test('RPC holder snapshot provenance supports concentration inputs on Base and Ethereum',()=>{
+ for(const chain of ['base','ethereum'] as const){const r=report();r.chain=chain;r.token='0x'+'1'.repeat(40);r.sources=[{name:'EVM RPC holder balances',status:'available',fetchedAt:at,detail:'Pinned same-block balances'}];holder(r,'a',40);holder(r,'b',60);assert.equal(factor(r,'concentration').value,1);r.sources[0].status='unavailable';assert.equal(factor(r,'concentration').value,null);}
+});
+
 function evmScenario(){
  const r=report(),token='0x'+'1'.repeat(40),pool='0x'+'2'.repeat(40),owner='0x'+'3'.repeat(40),quote='0x'+'4'.repeat(40),factory='0xca143ce32fe78f1f7019d7d551a6402fc5350c73';
  r.chain='bsc';r.token=token;r.totalSupply=1000;r.sources=[{name:'BSC RPC finalized holder balances',status:'available',fetchedAt:at,detail:''},{name:'DEX Screener',status:'available',fetchedAt:at,detail:''},{name:'EVM RPC finalized V2 reserves',status:'available',fetchedAt:at,detail:''}];

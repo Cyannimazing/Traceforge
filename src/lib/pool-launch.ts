@@ -83,9 +83,9 @@ export type PoolProvider='primary-rpc'|'blockscout';
 export type PoolProviderFamily='chain'|'headers'|'receipts'|'logs'|'calls'|'metadata'|'metadata-v1'|'metadata-v2'|'*';
 export type PoolProviderState={provider:PoolProvider;family:PoolProviderFamily;kind:'rate'|'archive'|'unavailable';recordedAt:number;until:number;basis:'validation-reference'};
 export type PoolProviderIssue={provider:PoolProvider;family:PoolProviderFamily;kind:'rate'|'archive'|'unavailable';message:string;retryAfterMs:number;recovered:boolean};
-export type PoolCheckpoint={version:1;chain:SupportedChain;pool:string;token:string;providerState?:PoolProviderState[];creation?:PoolIdentity&{transaction:string;blockNumber:number;blockHash:string};discovery?:{pending:DiscoveryRange[];searchedThrough:number;completed:number;candidate?:string;target?:{blockNumber:number;blockHash:string}};ranges:(Range&{endHash:string;endTime:number})[];pendingRanges:Range[];nextBlock?:number;through?:{blockNumber:number;blockHash:string;timestamp:string};logs:Log[];blocks:Block[];receipts:SavedReceipt[];windowTransactions?:string[];firstSwap?:{transaction:string;logIndex:number;blockNumber:number;timestamp:string};decimals?:number;decimalsAttempted?:boolean};
+export type PoolCheckpoint={version:1;creationHintSearched?:number;chain:SupportedChain;pool:string;token:string;providerState?:PoolProviderState[];creation?:PoolIdentity&{transaction:string;blockNumber:number;blockHash:string};discovery?:{pending:DiscoveryRange[];searchedThrough:number;completed:number;candidate?:string;target?:{blockNumber:number;blockHash:string}};ranges:(Range&{endHash:string;endTime:number})[];pendingRanges:Range[];nextBlock?:number;through?:{blockNumber:number;blockHash:string;timestamp:string};logs:Log[];blocks:Block[];receipts:SavedReceipt[];windowTransactions?:string[];firstSwap?:{transaction:string;logIndex:number;blockNumber:number;timestamp:string};decimals?:number;decimalsAttempted?:boolean};
 export type PoolProgress={phase:string;completedRanges:number;verifiedTransactions:number;discoveredTransactions:number;nextBlock?:number;retryable:boolean;retryAfterMs?:number};
-export type PoolLaunchOptions={signal?:AbortSignal;validationTime?:number;creationTransactionHint?:string;checkpoint?:PoolCheckpoint;onCheckpoint?:(checkpoint:PoolCheckpoint)=>void|Promise<void>};
+export type PoolLaunchOptions={signal?:AbortSignal;validationTime?:number;creationTimeHint?:number;creationTransactionHint?:string;checkpoint?:PoolCheckpoint;onCheckpoint?:(checkpoint:PoolCheckpoint)=>void|Promise<void>};
 export type PoolLaunchResult={status:'verified'|'partial'|'unavailable'|'unsupported';scope:'selected-pool';pool:string;token:string;protocol?:Protocol;trades:TradeRecord[];proof?:PoolTimingProof;checkpoint?:PoolCheckpoint;progress?:PoolProgress;providerIssues?:PoolProviderIssue[];reasons:string[];sources:Report['sources']};
 
 /** Verifies one supported pool's first-minute sample. It never attests a token's
@@ -119,6 +119,7 @@ export function createPoolLaunch(deps:{rpcUrls?:Partial<Record<SupportedChain,st
     cp.logs=cp.logs.map(parseLog);
     if(cp.creation&&(!hash(cp.creation.transaction)||!hash(cp.creation.blockHash)||uint(cp.creation.blockNumber)===undefined))throw Error('creation');
     if(cp.decimals!==undefined&&(uint(cp.decimals)===undefined||cp.decimals>255))throw Error('decimals');
+    if(cp.creationHintSearched!==undefined&&(!Number.isSafeInteger(cp.creationHintSearched)||cp.creationHintSearched<=0))throw Error('hint');
     if(cp.ranges.length&&!cp.creation)throw Error('ranges');
     let cursor=cp.creation?.blockNumber;
     for(const range of cp.ranges){if(uint(range.from)!==cursor||uint(range.to)===undefined||range.to<range.from||!hash(range.endHash)||uint(range.endTime)===undefined)throw Error('range');cursor=range.to+1;}
@@ -271,6 +272,38 @@ export function createPoolLaunch(deps:{rpcUrls?:Partial<Record<SupportedChain,st
     return l;
    });
   };
+  // A market timestamp only nominates a small factory-log range. It never
+  // authenticates a pool or supplies the first-trade timestamp.
+  const locateCreationHint=async(head:Block):Promise<string|undefined>=>{
+   const hint=options.creationTimeHint;
+   if(typeof hint!=='number'||!Number.isSafeInteger(hint)||hint<=0||hint>latestAllowedBlockTime*1000||cp.creationHintSearched===hint)return;
+   if(hint>head.time*1000)throw new WaitingForHead('The reported pool creation time is newer than the finalized boundary; wait for finalized history before locating its creation event.');
+   phase='creation-time-locator';
+   let low=0,high=head.number;
+   // Recent pools dominate interactive scans. First bracket the last 2048
+   // finalized blocks to avoid dozens of unnecessary historical header reads.
+   if(head.number>2048){const recent=await readBlock(head.number-2048);if(recent.time*1000<hint)low=recent.number+1;else high=recent.number;}
+   while(low<high){const middle=Math.floor((low+high)/2),block=await readBlock(middle);if(block.time*1000<hint)low=middle+1;else high=middle;}
+   const range={from:Math.max(0,low-16),to:Math.min(head.number,low+16)};
+   const padded='0x'+token.slice(2).padStart(64,'0');
+   for(const protocol of ['v2','v3'] as const)if(FACTORIES[chain][protocol])for(const position of [1,2] as const){
+    const pending:Range[]=[range],selector=POOL_CREATION_TOPICS[protocol],topics=position===1?[selector,padded]:[selector,null,padded];
+    while(pending.length){
+     const next=pending[0];let logs:Log[];
+     try{logs=await queryLogs(next,FACTORIES[chain][protocol]!,topics);}
+     catch(error){if(error instanceof RpcEvidenceError&&error.kind==='range'){pending.splice(0,1,...split(next));continue;}throw error;}
+     for(const log of logs){const candidate=decodePoolCreationEvent(chain,log);
+      if(candidate?.pool===pool&&(candidate.token0===token||candidate.token1===token)){
+       cp.discovery??={pending:[],searchedThrough:-1,completed:0,target:{blockNumber:head.number,blockHash:head.hash}};
+       cp.discovery.candidate=candidate.transaction;await publish();return candidate.transaction;
+      }
+     }
+     pending.shift();
+    }
+   }
+   cp.creationHintSearched=hint;await publish();
+   return undefined;
+  };
   const discoverCreation=async(head:number)=>{
    phase='factory-discovery';
    if(cp.discovery?.candidate)return cp.discovery.candidate;
@@ -319,6 +352,7 @@ export function createPoolLaunch(deps:{rpcUrls?:Partial<Record<SupportedChain,st
      if(p.status==='1')creationTx=hash(row?.txHash);
     }catch(error){options.signal?.throwIfAborted();signal.throwIfAborted();if(error instanceof SliceComplete)throw error;}
    }
+   creationTx??=await locateCreationHint(head);
    creationTx??=await discoverCreation(head.number);
    const creation=await rawReceipt(creationTx),creationBlock=uint(creation.blockNumber)!;
    if(creationBlock>head.number)throw new VerificationError('Pool creation is beyond the finalized chain boundary.');

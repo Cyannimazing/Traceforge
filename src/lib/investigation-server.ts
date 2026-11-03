@@ -17,6 +17,7 @@ import {createSnapshotEnrichment} from './snapshot-enrichment';
 import {ReportCache} from './report-cache';
 import {LaunchProofStore} from './launch-proof-store';
 import {createBscHolderFallback} from './bsc-holder-fallback';
+import {createEvmHolderFallback} from './evm-holder-fallback';
 import {createEvmPoolReserves} from './evm-pool-reserves';
 import {resolve} from 'node:path';
 
@@ -49,6 +50,7 @@ async function extendedSolanaHistory(options:PublicHistoryOptions):Promise<Publi
 export const independentInvestigationService = createInvestigationService({
   persistentCache:{get:(chain,token,limit)=>savedReports().get(chain,token,limit),set:(chain,token,limit,entry)=>savedReports().set(chain,token,limit,entry)},
   publicScan: scanToken,
+  evmHolders:createEvmHolderFallback({rpcUrls}),
   bscHolders:createBscHolderFallback({rpcUrl:process.env.BSC_RPC_URL,proofStore:{get:(chain,token)=>savedLaunchProofs().get(chain,token),set:proof=>savedLaunchProofs().set(proof),delete:(chain,token)=>savedLaunchProofs().delete(chain,token)}}),
   evmPoolReserves:(chain,pool,token,options)=>createEvmPoolReserves({rpcUrl:chain==='bsc'?process.env.BSC_RPC_URL:rpcUrls[chain]})(chain,pool,token,options),
   enrichSnapshot:createSnapshotEnrichment({rpcUrls:{...rpcUrls,solana:process.env.SOLANA_RPC_URL,bsc:process.env.BSC_RPC_URL||'https://bsc-rpc.publicnode.com'}}),

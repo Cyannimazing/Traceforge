@@ -11,7 +11,7 @@ import {observedDecision} from '@/lib/observed-decision';
 import {trustRating} from '@/lib/trust-rating';
 import {buildVerdictOutput} from '@/lib/verdict-output';
 import {decisionDisplayPercentages} from '@/lib/decision-display';
-import {decisionLabels,decisionLabel,presentationText} from '@/lib/assessment-presentation';
+import {decisionLabels,decisionLabel,presentationText,earlyBuyingExplanation} from '@/lib/assessment-presentation';
 import {buildCurrentHolderGraph} from '@/lib/current-holder-graph';
 import {layoutHolderMap} from '@/lib/holder-map-layout';
 import {holderMapDrift} from '@/lib/holder-map-motion';
@@ -154,6 +154,7 @@ export default function ReportOverview({ report, selection, onSelect, onInspect,
   const points=(n:number)=>Number(n.toFixed(1)).toLocaleString();
   const confidencePercent=decisionDisplayPercentages(verdictOutput.p)[verdictOutput.decision.toLowerCase() as 'avoid'|'caution'|'ok'];
   const unresolved=new Set(rating.components.filter(component=>component.state==='unknown').map(component=>component.id));
+  const earlyBuying=earlyBuyingExplanation(inv.coverage);
   const why: {title:string;detail:string}[]=[];
   for(const reason of [...(rating.hard||[]),...(rating.soft||[])])why.push({title:'Verified warning',detail:reason});
   if(observed?.judge.p){
@@ -166,8 +167,8 @@ export default function ReportOverview({ report, selection, onSelect, onInspect,
    if(largestHolding?.status==='observed'&&largestHolding.value!==null)why.push({title:'Holder concentration',detail:`The largest returned holder holds ${largestHolding.value.toFixed(2)}% of measured snapshot float. Platform balances are excluded; this is not the holder's share of total token supply.`});
    if(rating.components.some(component=>component.id==='snipers'&&(component.state==='flagged'||component.state==='watch')))why.push({title:'First-minute buyers still hold tokens',detail:'Transaction evidence identifies buys in a verified first-minute window, and those buyers still have a current balance. The Sniper label describes entry timing in that venue; it does not prove bot activity.'});
    if(unresolved.has('fresh'))why.push({title:'Some holder histories are unread',detail:'Lifetime activity has not been verified for every current holder, so the fresh-wallet check is incomplete.'});
-   if(unresolved.has('snipers'))why.push({title:'First-minute buying is unverified',detail:'The retrieved records do not establish a complete first trading minute for the analyzed venue.'});
-   if(unresolved.has('insiders'))why.push({title:'Pre-trading transfers are not fully traced',detail:inv.coverage.curveTiming?'The first minute on the selected launchpad is verified. Transfers before trading and activity on other venues remain outside that proof.':'The retrieved records do not establish all transfers before trading or all creator-origin inflows.'});
+   if(unresolved.has('snipers'))why.push({title:earlyBuying.title,detail:earlyBuying.detail});
+   if(unresolved.has('insiders'))why.push({title:'Pre-trading transfers are not fully traced',detail:earlyBuying.preTrading});
    if(unresolved.has('dev'))why.push({title:'Creator funding is not fully traced',detail:'The complete funding trail is missing, so the total held by the creator and creator-funded wallets cannot be confirmed.'});
    if(unresolved.has('swarm'))why.push({title:'Sell impact is unverified',detail:'The available pool evidence cannot establish how much a sale by the largest holder group could move the price.'});
   }

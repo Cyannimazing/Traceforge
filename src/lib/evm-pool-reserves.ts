@@ -47,11 +47,14 @@ export function createEvmPoolReserves(deps:Dependencies={}){
   try{
    if(await rpc('eth_chainId',[])!==CHAIN_IDS[chain])return unknown('RPC chain identity does not match the selected network.');
    const anchor=block(await rpc('eth_getBlockByNumber',['finalized',false]));
-   const currentAnchor=()=>{const age=now()-Date.parse(anchor.timestamp);return Number.isFinite(age)&&age>=-120000&&age<=900000;};
-   if(!currentAnchor())return unknown('Finalized block timestamp is stale or outside the allowed clock skew.');
+   // L2 finalized state normally trails current execution by L1 finality time.
+   // Check provider freshness against latest, without reading reserves there.
+   const head=chain==='bsc'?anchor:block(await rpc('eth_getBlockByNumber',['latest',false]));
+   const currentAnchor=()=>{const age=now()-Date.parse(head.timestamp);return Number.isFinite(age)&&age>=-120000&&age<=900000&&anchor.number<=head.number&&Date.parse(anchor.timestamp)<=Date.parse(head.timestamp);};
+   if(!currentAnchor())return unknown(chain==='bsc'?'Finalized block timestamp is stale or outside the allowed clock skew.':'Current provider head timestamp is stale, future or inconsistent with the finalized anchor.');
    const call=(to:string,data:string)=>rpc('eth_call',[{to,data},anchor.tag]);
    const code=async(a:string)=>{const c=await rpc('eth_getCode',[a,anchor.tag]);if(typeof c!=='string'||!/^0x(?:[0-9a-f]{2})+$/i.test(c)||/^0x(?:00)+$/i.test(c))throw Error('Contract bytecode unavailable');};
-   await code(pool);
+   try{await code(pool);}catch{options.signal?.throwIfAborted();return unknown(`Pool code is not available at finalized block ${anchor.number} (${anchor.timestamp}); a recently created pool may not yet be finalized. No later state was substituted.`);}
    const [t0raw,t1raw,fraw,reserves]=await mapBounded(['0x0dfe1681','0xd21220a7','0xc45a0155','0x0902f1ac'],s=>call(pool,s));
    const t0=addrWord(t0raw),t1=addrWord(t1raw),factory=addrWord(fraw);
    if(t0===t1||![t0,t1].includes(token))return unknown('Verified pool token identities do not contain the scanned token.');
@@ -69,8 +72,9 @@ export function createEvmPoolReserves(deps:Dependencies={}){
    const holders=await mapBounded(candidates.slice(0,20),async(a):Promise<EvmPoolReserveSnapshot['holders'][number]>=>{try{const balance=word(await call(token,'0x70a08231'+pad(a)));if(balance>supply)throw Error('Balance exceeds supply');return {address:a,status:'observed',balanceRaw:balance.toString()};}catch{return {address:a,status:'unknown'};}});
    if(holders.reduce((sum,h)=>sum+(h.status==='observed'?BigInt(h.balanceRaw!):0n),BigInt(base.balanceRaw))>supply)return unknown('Verified distinct holder and pool balances exceed the scanned token total supply.');
    const again=block(await rpc('eth_getBlockByNumber',[anchor.tag,false]));if(again.hash!==anchor.hash||again.number!==anchor.number||again.timestamp!==anchor.timestamp)return unknown('Pinned block identity changed during reserve verification.');
-   if(!currentAnchor())return unknown('Finalized block timestamp became stale during reserve verification.');
+   if(!currentAnchor())return unknown('Provider head timestamp became stale during reserve verification; finalized reads were withheld.');
    const limitations=['Nominal fee-free constant-product scenario only. Transfer taxes, token restrictions, slippage, actual sellability and realized execution are not established.'];
+   if(chain!=='bsc')limitations.push(`Finalized snapshot age is ${Math.max(0,Math.round((now()-Date.parse(anchor.timestamp))/1000))} seconds at retrieval; current provider head ${head.number} at ${head.timestamp} was checked separately. All reserve and balance reads remain finalized.`);
    let eligible=true;
    if(words[0]===0n||words[1]===0n){eligible=false;limitations.push('Zero reserves do not support constant-product impact.');}
    if(b0!==words[0]||b1!==words[1]){eligible=false;limitations.push('Pool token balance differs from recorded reserves; unsynced transfers or token mechanics prevent this nominal calculation.');}

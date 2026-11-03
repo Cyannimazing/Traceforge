@@ -44,3 +44,19 @@ test('finalized timestamp must be at most fifteen minutes old or two minutes ahe
  for(const offset of [900001,-120001]){const m=mock(),r=await createEvmPoolReserves({rpcUrl:'https://rpc.invalid',fetcher:m.fetcher,now:()=>fixtureNow+offset})('bsc',pool,token);assert.equal(r.status,'unknown');assert.equal(r.snapshot,undefined);assert.match(r.reasons[0],/timestamp/);assert.equal(m.calls.length,2);}
  for(const offset of [900000,-120000]){const m=mock(),r=await createEvmPoolReserves({rpcUrl:'https://rpc.invalid',fetcher:m.fetcher,now:()=>fixtureNow+offset})('bsc',pool,token);assert.equal(r.status,'verified');}
 });
+
+test('Base current provider with twenty-minute finalized lag keeps explicit finalized reserves',async()=>{
+ const old={...block,number:'0x60',timestamp:'0x'+(fixtureNow/1000-1200).toString(16)};
+ const m=mock(c=>c.method==='eth_chainId'?'0x2105':c.method==='eth_getBlockByNumber'?(c.params[0]==='latest'?block:old):c.params[0]?.data==='0xc45a0155'?address('0x8909dc15e40173ff4699343b6eb8132c65e18ec6'):undefined);
+ const r=await createEvmPoolReserves({rpcUrl:'https://rpc.invalid',fetcher:m.fetcher})('base',pool,token);assert.equal(r.status,'verified');assert.equal(r.snapshot?.finality,'finalized');assert.equal(r.snapshot?.blockNumber,96);assert(m.calls.filter(c=>['eth_call','eth_getCode'].includes(c.method)).every(c=>c.params[1]==='0x60'));assert.match(r.snapshot!.limitations.join(' '),/finalized.*age|finalized.*lag/i);
+});
+test('Base pool not yet present at finalized block is waiting for finality, never read at latest',async()=>{
+ const old={...block,number:'0x60',timestamp:'0x'+(fixtureNow/1000-1200).toString(16)};
+ const m=mock(c=>c.method==='eth_chainId'?'0x2105':c.method==='eth_getBlockByNumber'?(c.params[0]==='latest'?block:old):c.method==='eth_getCode'?'0x':undefined);
+ const r=await createEvmPoolReserves({rpcUrl:'https://rpc.invalid',fetcher:m.fetcher})('base',pool,token);assert.equal(r.status,'unknown');assert.match(r.reasons.join(' '),/finalized.*(?:not|absent)|not.*finalized/i);assert(!m.calls.some(c=>c.method==='eth_call'));
+});
+
+test('cancellation during pool-code read rejects rather than presenting finality waiting',async()=>{
+ const controller=new AbortController(),m=mock(c=>{if(c.method==='eth_getCode'){controller.abort();return '0x';}return undefined;});
+ await assert.rejects(createEvmPoolReserves({rpcUrl:'https://rpc.invalid',fetcher:m.fetcher})('bsc',pool,token,{signal:controller.signal}),{name:'AbortError'});
+});

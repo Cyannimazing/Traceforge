@@ -480,3 +480,64 @@ test('a fallback chain check never authenticates unchecked primary evidence',asy
   assert.equal(result.status,'verified');assert.equal(primaryEvidence,0);assert(result.trades.every(t=>t.amount===undefined));
  }
 });
+
+function recentCreationFixture(){
+ const offset=50_000_000,creationBlock=offset+100,head=offset+200;
+ const f=fixture({head,logs:[swap(offset+110,1),swap(offset+170,2),swap(offset+171,3)],explorerUnavailable:true,rpcHistory:true});
+ f.creation.blockNumber=hex(creationBlock);f.creation.blockHash=hash(creationBlock);
+ const ranges:{from:number;to:number}[]=[];let headers=0,requests=0;
+ const fetcher:typeof fetch=async(u,i)=>{
+  requests++;
+  if(i?.body){const q=JSON.parse(String(i.body));
+   if(q.method==='eth_getBlockByNumber')headers++;
+   if(q.method==='eth_getLogs'){
+    const range={from:Number(q.params[0].fromBlock),to:Number(q.params[0].toBlock)};ranges.push(range);
+    if(range.to-range.from>64)return Response.json({id:q.id,error:{code:-32005,message:'block range too wide'}});
+   }
+   if(q.method==='eth_getTransactionReceipt'&&q.params[0]===hash(999))return Response.json({id:q.id,result:{transactionHash:hash(999),status:'0x1',from:sender,blockNumber:hex(creationBlock),blockHash:hash(creationBlock),logs:[f.creation]}});
+  }
+  return f.fetcher(u,i);
+ };
+ return {fetcher,ranges,creationBlock,head,hint:(1700000000+creationBlock)*1000,get requests(){return requests;},get headers(){return headers;}};
+}
+
+test('market creation-time hint locates a recent verified factory event within one bounded slice',async()=>{
+ const f=recentCreationFixture();
+ const result=await createPoolLaunch({fetcher:f.fetcher})('ethereum',token,pool,{creationTimeHint:f.hint});
+ assert.equal(result.status,'verified',result.reasons.join('; '));assert.equal(result.proof?.creation.blockNumber,f.creationBlock);
+ assert.equal(result.proof?.firstSwapAt,new Date(f.hint+10_000).toISOString());assert.equal(result.trades.length,2);
+ assert(f.requests<=60);assert(f.headers<=18,'recent hints should not need a genesis-to-head header search');assert(f.ranges[0].from>49_000_000,'first candidate range must be near the hint, not genesis');
+});
+
+test('invalid, future or inaccurate creation hints never substitute for factory evidence',async()=>{
+ for(const hint of [NaN,-1,1.5,Number.MAX_SAFE_INTEGER]){
+  const f=recentCreationFixture();const result=await createPoolLaunch({fetcher:f.fetcher})('ethereum',token,pool,{creationTimeHint:hint});
+  assert.notEqual(result.status,'verified');assert.equal(result.proof,undefined);assert.equal(f.ranges[0].from,0);
+ }
+ const f=recentCreationFixture();const result=await createPoolLaunch({fetcher:f.fetcher})('ethereum',token,pool,{creationTimeHint:f.hint-20_000_000});
+ assert.notEqual(result.status,'verified');assert.equal(result.proof,undefined);assert(f.ranges.some(r=>r.from===0),'missed hint falls back to normal discovery');
+});
+
+
+test('timestamp-located candidate still requires a successful canonical creation receipt',async()=>{
+ for(const corruption of ['failed','reorg','other-pool'] as const){
+  const f=recentCreationFixture();const fetcher:typeof fetch=async(u,i)=>{
+   const response=await f.fetcher(u,i);
+   if(i?.body){const q=JSON.parse(String(i.body));if(q.method==='eth_getTransactionReceipt'&&q.params[0]===hash(999)){
+    const body=await response.json();if(corruption==='failed')body.result.status='0x0';
+    if(corruption==='reorg')body.result.blockHash=hash(1);
+    if(corruption==='other-pool')body.result.logs[0].data=encodeAbiParameters([{type:'int24'},{type:'address'}],[60,other]);
+    return Response.json(body);
+   }}return response;
+  };
+  const result=await createPoolLaunch({fetcher})('ethereum',token,pool,{creationTimeHint:f.hint});
+  assert.notEqual(result.status,'verified');assert.equal(result.proof,undefined);assert.equal(result.trades.length,0);
+ }
+});
+
+
+test('valid creation hint newer than finalized head waits without genesis discovery',async()=>{
+ const f=recentCreationFixture();const result=await createPoolLaunch({fetcher:f.fetcher})('ethereum',token,pool,{creationTimeHint:(1700000000+f.head+1)*1000});
+ assert.equal(result.status,'unavailable');assert.equal(result.progress?.phase,'waiting-finalized-head');
+ assert.equal(result.proof,undefined);assert.equal(f.ranges.length,0);assert(f.requests<10);
+});

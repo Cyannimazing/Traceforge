@@ -19,6 +19,20 @@ test('missing launch, historical warnings and packet size do not inherit weighte
  assert.match(context.findingScopes.old.note,/unknown.*not zero/i);
 });
 
+test('fresh EVM RPC holder sources satisfy current snapshot provenance without bypassing control guards',()=>{
+ for(const chain of ['base','ethereum'] as const){
+  const r=report(chain);r.sources[1].name='EVM RPC holder balances';
+  assert.equal(agentEvidenceContext(r).guard.missingCore,false);
+  r.sources[0].status='unavailable';
+  assert.equal(agentEvidenceContext(r).guard.missingCore,true);
+  assert.equal(agentEvidenceContext(r).guard.reasons.includes('A fresh attributed holder source is unavailable.'),false);
+  r.sources[1].status='unavailable';
+  assert.equal(agentEvidenceContext(r).guard.reasons.includes('A fresh attributed holder source is unavailable.'),true);
+  r.sources[0].status='available';r.sources[1].status='available';r.checks[0].status='unknown';
+  assert.equal(agentEvidenceContext(r).guard.missingCore,true);
+ }
+});
+
 test('required controls and holder snapshots need matching fresh available sources on every chain',()=>{
  for(const chain of ['ethereum','base','bsc','solana'] as const){
   assert.equal(agentEvidenceContext(report(chain)).guard.missingCore,false);
