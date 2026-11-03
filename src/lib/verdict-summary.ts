@@ -1,11 +1,17 @@
 import type { InvestigationReport, Investigation } from './investigation-types';
 import {trustRating} from './trust-rating';
+import {observedDecision} from './observed-decision';
 
 /** Presentation precedence keeps observed flags visible when history is incomplete. */
 export function getDisplayAssessment(report: InvestigationReport): Investigation['assessment'] {
  const inv=report.investigation;
  if(!report.providerAnalysis){
   const rating=trustRating(report);
+  const observed=observedDecision(report,rating);
+  if(observed?.judge.p){
+   const decision=observed.judge.decision;
+   return {status:decision==='AVOID'?'critical':decision==='OK'?'clear':'caution',title:decision,summary:`Observed-scope score ${observed.score}/100. Model confidence ${(observed.judge.confidence!*100).toFixed(1)}% for ${decision}. Unread wallets and incomplete history remain outside the assessed scope.`};
+  }
   const status=rating.decision==='AVOID'?'critical':rating.decision==='OK'||rating.decision==='CLEAN'?'clear':!report.holders.length&&!report.checks.length?'insufficient':'caution';
   return {status,title:status==='critical'?'Avoid':status==='clear'?rating.decision:'Caution',summary:rating.hard?.length?rating.hard.join(' '):rating.soft?.length?rating.soft.join(' '):rating.score===null?'Some scoring inputs are not fully evaluated. The range shows how unresolved evidence can affect the six-factor score.':`Six-factor score: ${rating.score}/100. Inspect the measurements and rules behind this decision.`};
  }

@@ -7,7 +7,7 @@ import {staleVerification} from './verdict-freshness';
 import {decisionModel,type DecisionModelResult} from './decision-model';
 export {staleVerification} from './verdict-freshness';
 export type RatingComponent={id:string;label:string;earned:number;maximum:number;state:'clear'|'watch'|'flagged'|'unknown';detail:string;lower?:number;upper?:number;evidenceIds?:string[]};
-export type TrustRating={version:'evidence-v3'|'six-factor-v1';score:number|null;range?:{lower:number;upper:number};decision:'CLEAN'|'OK'|'CAUTION'|'AVOID'|'UNRATED';basis:string;reasons:string[];components:RatingComponent[];ceiling:number|null;hard?:string[];soft?:string[];judge?:DecisionModelResult};
+export type TrustRating={version:'evidence-v3'|'six-factor-v1';score:number|null;range?:{lower:number;upper:number};decision:'CLEAN'|'OK'|'CAUTION'|'AVOID'|'UNRATED';basis:string;reasons:string[];components:RatingComponent[];ceiling:number|null;hard?:string[];soft?:string[];judge?:DecisionModelResult;coreVerified?:boolean};
 /** Primary independent verdict. Unknown inputs retain score intervals instead
  * of receiving favorable zero-risk defaults or arbitrary fixed deductions. */
 export function trustRating(report:InvestigationReport):TrustRating{
@@ -46,5 +46,6 @@ export function trustRating(report:InvestigationReport):TrustRating{
   memoryHits:null,dumpImpact:{lower:impact.lower,upper:impact.upper},hard});
  return {...result,decision:report.providerAnalysis?'UNRATED':result.decision,score:report.providerAnalysis?null:result.score,
   judge:report.providerAnalysis?undefined:judge,
+  coreVerified:!report.providerAnalysis&&!context.guard.missingCore&&!extensionCoverageMissing,
   reasons:[...new Set([...result.reasons,...context.guard.reasons,...(extensionCoverageMissing?['Current mint extension decoding is incomplete or unverified.']:[])])],components:result.components.map(c=>({...c,earned:c.earned??0}))};
 }

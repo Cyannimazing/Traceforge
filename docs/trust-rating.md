@@ -75,3 +75,11 @@ Regression evidence covers component arithmetic, raw-sum rounding, conditional s
 Complete parity still requires full independent feature extraction/grouping and gate/readiness behavior. Agreement does not establish predictive accuracy. Calibrated confidence or superiority claims require independently labeled outcomes and time-separated evaluation.
 
 EVM activity correction: an outgoing nonce above ten can rule out the <=10 lifetime-transaction predicate. A nonce at or below ten cannot establish it because incoming/internal activity is absent from that count; these wallets remain unresolved. Low nonce alone never triggers the fresh-wallet hard rule.
+
+## Observed-scope decision shown in the report
+
+The report now distinguishes the strict evidence bounds from a conditional observed-scope model. Supported verified base-side PumpSwap snapshots can use the latter for the primary displayed decision. Its confidence is the selected normalized decision weight from the reconstructed judge, not a data-coverage index. The independent API returns it as `observedDecision`, alongside the unchanged strict `trustRating`.
+
+The observed model uses current documented holder groups, current creator-linked holdings, recorded early/sniper exposure, and readable non-creator wallet activity. Zero recorded matches means no documented match in the retrieved scope; it does not prove absent activity. Unread histories are excluded from the fresh-wallet denominator. Cross-token memory is explicitly assumed to have no additional match because that search has not been performed. Its raw reserve-price scenario assumes zero fees, successful transfers, constant-product updates and no token-hook side effects. It never changes the reserve snapshot's `constantProductEligible` flag or creates a verified hard-stop capability. Verified independent critical controls retain precedence.
+
+See the [Grok comparison](grok-input-parity-2026-11-03.md) and [judge reconstruction](swarm-judge-reconstruction-2026-11-03.md). The earlier6.9% coverage display was removed because it was not comparable to Swarm's80.1% model output.

@@ -2,19 +2,20 @@ import {sameToken,validateToken,type Chain} from './analysis';
 import type {InvestigationReport} from './investigation-types';
 import {getDisplayAssessment} from './verdict-summary';
 import {trustRating} from './trust-rating';
+import {observedDecision} from './observed-decision';
 
 export type FeedItem={chain:Chain;token:string;name:string;symbol:string;status:'critical'|'caution'|'insufficient'|'clear';title:string;reason:string;fetchedAt:string;source:string;score?:number|null;providerTimestamp?:string|null};
-export const FEED_KEY='traceforge.report-feed.v7';
+export const FEED_KEY='traceforge.report-feed.v8';
 export const FEED_EVENT='traceforge:report-feed';
 
 export function feedItem(report:InvestigationReport):FeedItem|null{
  if(report.fixture||report.providerAnalysis||validateToken(report.chain,report.token)||!Number.isFinite(Date.parse(report.fetchedAt)))return null;
- const assessment=getDisplayAssessment(report),level=assessment.status==='critical'?'critical':'warning';
+ const assessment=getDisplayAssessment(report),level=assessment.status==='critical'?'critical':'warning',rating=trustRating(report),observed=observedDecision(report,rating);
  const finding=report.investigation.findings.find(item=>item.level===level);
  const check=report.checks.find(item=>item.status===level);
  return {chain:report.chain,token:report.token,name:report.name,symbol:report.symbol,status:assessment.status,title:assessment.title,
-  reason:finding?`${finding.attribution==='provider-reported'?'Provider reports: ':finding.certainty==='inferred'?'Possible pattern: ':''}${finding.title}`:check?.title||assessment.summary,
-  fetchedAt:report.fetchedAt,source:'Independent sources',score:trustRating(report).score,providerTimestamp:null};
+  reason:observed?.judge.p?assessment.summary:finding?`${finding.attribution==='provider-reported'?'Provider reports: ':finding.certainty==='inferred'?'Possible pattern: ':''}${finding.title}`:check?.title||assessment.summary,
+  fetchedAt:report.fetchedAt,source:'Independent sources',score:observed?.score??rating.score,providerTimestamp:null};
 }
 export function parseFeed(raw:string):FeedItem[]{
  try{const value:unknown=JSON.parse(raw);if(!Array.isArray(value))return [];

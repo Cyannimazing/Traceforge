@@ -5,6 +5,7 @@ import type { Evidence, Finding, Investigation, InvestigationReport, Investigate
 import {computeRiskMetrics} from './risk-metrics';
 import {trustRating} from './trust-rating';
 import {getDisplayAssessment} from './verdict-summary';
+import {observedDecision} from './observed-decision';
 
 const unique = <T>(values:T[]) => [...new Set(values)];
 const byId = <T extends {id:string}>(older:T[], newer:T[]) => [...new Map([...older,...newer].map(item=>[item.id,item])).values()];
@@ -14,7 +15,8 @@ const hasHolderSnapshot=(report:InvestigationReport)=>report.sources.some(source
 const derive=(report:InvestigationReport,updateAssessment=true):InvestigationReport=>{
  if(report.providerAnalysis)return report;
  const current={...report,riskMetrics:computeRiskMetrics(report)};
- return {...current,trustRating:trustRating(current),investigation:updateAssessment?{...current.investigation,assessment:getDisplayAssessment(current)}:current.investigation};
+ const rating=trustRating(current);
+ return {...current,trustRating:rating,observedDecision:observedDecision(current,rating),investigation:updateAssessment?{...current.investigation,assessment:getDisplayAssessment(current)}:current.investigation};
 };
 function assessment(findings:Finding[], checks:Report['checks'], coverage:Investigation['coverage']):Investigation['assessment'] {
  const critical=findings.some(f=>f.level==='critical')||checks.some(c=>c.status==='critical');

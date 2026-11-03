@@ -1,0 +1,1444 @@
+{
+  "description": "Trimmed public RPC report from validation/judge-live-grok.json (2026-11-03T08:23:34.907Z). No imported Swarm scores or private credentials. Keeps current holders, raw token accounts, reserve snapshot, current controls, activity counters and one canonical Pump trade plus creator proof. Historical scope remains partial.",
+  "report": {
+    "chain": "solana",
+    "token": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+    "name": "Grokbot",
+    "symbol": "Grokbot",
+    "fetchedAt": "2026-11-03T08:23:34.907Z",
+    "market": {
+      "chainId": "solana",
+      "dexId": "pumpswap",
+      "url": "https://dexscreener.com/solana/axfhbztln7uxmga4d2hxpp539fzfahnegxyy9t3jc8v9",
+      "pairAddress": "AxfHbztLN7uxmgA4d2HxpP539FzFAHNEGXYY9T3JC8v9",
+      "baseToken": {
+        "address": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+        "name": "Grokbot",
+        "symbol": "Grokbot"
+      },
+      "quoteToken": {
+        "address": "SPCXxcqXj6e5dJDVNovHN8744zkbhM2bYudU45BimGb",
+        "name": "SpaceX - Backpack Securities",
+        "symbol": "SPCX"
+      },
+      "priceNative": "0.0000005175",
+      "priceUsd": "0.00007085",
+      "txns": {
+        "m5": {
+          "buys": 0,
+          "sells": 0
+        },
+        "h1": {
+          "buys": 4,
+          "sells": 1
+        },
+        "h6": {
+          "buys": 39,
+          "sells": 42
+        },
+        "h24": {
+          "buys": 320,
+          "sells": 303
+        }
+      },
+      "volume": {
+        "h24": 28983.38,
+        "h6": 3946.52,
+        "h1": 79.02,
+        "m5": 0
+      },
+      "priceChange": {
+        "h1": 1.81,
+        "h6": -9.56,
+        "h24": -8.03
+      },
+      "liquidity": {
+        "usd": 23892.36,
+        "base": 182103297,
+        "quote": 80.2581
+      },
+      "fdv": 55024,
+      "marketCap": 55024,
+      "pairCreatedAt": 1793170420000,
+      "info": {
+        "imageUrl": "https://cdn.dexscreener.com/cms/images/tbi4oOE59CEUQrjI?width=800&height=800&quality=95&format=auto",
+        "header": "https://cdn.dexscreener.com/cms/images/IuDoRtNYehGzYmJT?width=1500&height=500&quality=95&format=auto",
+        "openGraph": "https://cdn.dexscreener.com/token-images/og/solana/6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump?timestamp=1793694000000",
+        "websites": [
+          {
+            "url": "https://www.grokbotsolana.xyz/",
+            "label": "Website"
+          }
+        ],
+        "socials": [
+          {
+            "url": "https://x.com/TyrelleAB/status/2115329995631624255",
+            "type": "twitter"
+          }
+        ]
+      }
+    },
+    "holders": [
+      {
+        "address": "AxfHbztLN7uxmgA4d2HxpP539FzFAHNEGXYY9T3JC8v9",
+        "share": 23.91455221057522,
+        "contract": null,
+        "locked": null,
+        "tag": "Sampled token-account owner"
+      },
+      {
+        "address": "CECRG1AKyo2UnemBQwXvtpmMkEgfhuDnLsaLK1HABmxb",
+        "share": 3.82008746451179,
+        "contract": null,
+        "locked": null,
+        "tag": "Sampled token-account owner"
+      },
+      {
+        "address": "69z4qTgQ5DBRTJvnQzx2h8jZhNsv5UgADotEwwKUm2JS",
+        "share": 3.414801772949835,
+        "contract": null,
+        "locked": null,
+        "tag": "Sampled token-account owner"
+      },
+      {
+        "address": "GJw27NxayUE4BCDxhACojUUKSAKcaS8C6zsogUmMQ7Kt",
+        "share": 2.957459620463578,
+        "contract": null,
+        "locked": null,
+        "tag": "Sampled token-account owner"
+      },
+      {
+        "address": "DGzrc2ij2VJMQCmXqs9ozZsLyeAuvPPF7M37ZTLVHDtM",
+        "share": 2.8531352270477814,
+        "contract": null,
+        "locked": null,
+        "tag": "Sampled token-account owner"
+      },
+      {
+        "address": "VJSDW6S74YXR4rRR9P4xwhMvLZJQMhrUb8XMFirUsy1",
+        "share": 2.5720275236412213,
+        "contract": null,
+        "locked": null,
+        "tag": "Sampled token-account owner"
+      },
+      {
+        "address": "2dquZCEv3E9rPHQzRE2CH8ViZLsWywNJBdArQYkBBUN6",
+        "share": 2.452625357327036,
+        "contract": null,
+        "locked": null,
+        "tag": "Sampled token-account owner"
+      },
+      {
+        "address": "BKTVrpi7HgtDjgXJPZt6ZjLsY6JKRGG2CtraCq1U3skV",
+        "share": 2.272340590607833,
+        "contract": null,
+        "locked": null,
+        "tag": "Sampled token-account owner"
+      },
+      {
+        "address": "GeZzkXSKJ2AWkt6wnQewmhkerxYwAU88LWzEp9MxYfqW",
+        "share": 2.2151575221890307,
+        "contract": null,
+        "locked": null,
+        "tag": "Sampled token-account owner"
+      },
+      {
+        "address": "CqA1NdxecqkNBfwsNHAkA5cfW57VC25Y2cxijxbecyxz",
+        "share": 1.9656420905725598,
+        "contract": null,
+        "locked": null,
+        "tag": "Sampled token-account owner"
+      },
+      {
+        "address": "H1W6pU2KteBJuyau8kcLsnLTB9xZq2WLBw9H9Vv5UBHZ",
+        "share": 1.9161386331727486,
+        "contract": null,
+        "locked": null,
+        "tag": "Sampled token-account owner"
+      },
+      {
+        "address": "3LKKGCCL9dF4KQ7dqFUywvkWDWzERz115N8m6LePfP48",
+        "share": 1.8603676358980252,
+        "contract": null,
+        "locked": null,
+        "tag": "Sampled token-account owner"
+      },
+      {
+        "address": "GcKCNbiof4k4SFqAiuyoSSMnxxiusMgB5Cg4cgqKvBhz",
+        "share": 1.8551265481660117,
+        "contract": null,
+        "locked": null,
+        "tag": "Sampled token-account owner"
+      },
+      {
+        "address": "6bdcRRXk84RRKoYTe8U5Wx3UMkf97bLDkBfJWMg6AKgt",
+        "share": 1.8276031497511325,
+        "contract": null,
+        "locked": null,
+        "tag": "Sampled token-account owner"
+      },
+      {
+        "address": "2JbqddDEhTimPbaK9a2DCapxNesvQwMRjW4eapi91z2f",
+        "share": 1.7441023496431771,
+        "contract": null,
+        "locked": null,
+        "tag": "Sampled token-account owner"
+      },
+      {
+        "address": "7MEPpotvTVUJUA4affxeaL1mhUJAQ34Mu86tUT429NWs",
+        "share": 1.4668361529297786,
+        "contract": null,
+        "locked": null,
+        "tag": "Sampled token-account owner"
+      },
+      {
+        "address": "CP3eg5iBZ7nA1R9VUTqbS1Y2Shx8Agoyzbo2VAwF7As2",
+        "share": 1.400034894238674,
+        "contract": null,
+        "locked": null,
+        "tag": "Sampled token-account owner"
+      },
+      {
+        "address": "43YEt3no1xeLxsC54TQyFzDo73AQFsUfTds5gqugjVoo",
+        "share": 1.304560704441359,
+        "contract": null,
+        "locked": null,
+        "tag": "Sampled token-account owner"
+      },
+      {
+        "address": "G77BxGNAAVzRHzJTTardEcMefnHWg4FdWir4uH6NKeWw",
+        "share": 1.2551659458426132,
+        "contract": null,
+        "locked": null,
+        "tag": "Sampled token-account owner"
+      },
+      {
+        "address": "E16jC5cGCqgyFfvygmdgD7SfhaqfbBRhtoSyQyqNWJV8",
+        "share": 1.2060112003604146,
+        "contract": null,
+        "locked": null,
+        "tag": "Sampled token-account owner"
+      }
+    ],
+    "holderCount": null,
+    "totalSupply": 776521240.093152,
+    "checks": [
+      {
+        "key": "solana_mint_authority",
+        "source": "Solana RPC authorities",
+        "fetchedAt": "2026-11-03T08:23:35.072Z",
+        "title": "Mint authority",
+        "status": "clear",
+        "value": "Revoked",
+        "description": "No mint authority is set at finalized slot 464830029. This says nothing about other token controls."
+      },
+      {
+        "key": "solana_freeze_authority",
+        "source": "Solana RPC authorities",
+        "fetchedAt": "2026-11-03T08:23:35.072Z",
+        "title": "Freeze authority",
+        "status": "clear",
+        "value": "Revoked",
+        "description": "No freeze authority is set at finalized slot 464830029. This says nothing about other token controls."
+      },
+      {
+        "key": "solana_extension_metadataPointer",
+        "title": "Metadata pointer",
+        "status": "clear",
+        "value": "Update authority revoked",
+        "description": "This extension controls metadata, not minting, freezing, or spending wallet tokens. Finalized mint slot 464830029.",
+        "source": "Solana RPC authorities",
+        "fetchedAt": "2026-11-03T08:23:35.072Z"
+      },
+      {
+        "key": "solana_extension_tokenMetadata",
+        "title": "Token metadata",
+        "status": "clear",
+        "value": "Update authority revoked",
+        "description": "This extension controls metadata, not minting, freezing, or spending wallet tokens. Finalized mint slot 464830029.",
+        "source": "Solana RPC authorities",
+        "fetchedAt": "2026-11-03T08:23:35.072Z"
+      },
+      {
+        "key": "solana_extensions",
+        "title": "Token-2022 extension decoding",
+        "status": "clear",
+        "value": "Metadata-only extensions",
+        "description": "Returned extensions affect metadata only. No additional transfer-control extension was reported in this finalized mint snapshot. This is not a historical or protocol-wide audit.",
+        "source": "Solana RPC authorities",
+        "fetchedAt": "2026-11-03T08:23:35.072Z"
+      }
+    ],
+    "identities": [
+      {
+        "address": "69z4qTgQ5DBRTJvnQzx2h8jZhNsv5UgADotEwwKUm2JS",
+        "role": "creator",
+        "source": "Alchemy finalized Solana transaction history",
+        "timestamp": "2026-10-28T06:29:08Z",
+        "timestampBasis": "provider-event",
+        "transaction": "4mpEz1qWqpoQQ7Y72Z3hHEi1WHQQEPLfzNP3hJRKYNs2hnhcHWjtap8BTGkA7ETwLmhKiDXgQZ7HrWoeJhK9bCJE",
+        "label": "Creator specified in canonical Pump creation instruction",
+        "slot": 462375117
+      },
+      {
+        "address": "69z4qTgQ5DBRTJvnQzx2h8jZhNsv5UgADotEwwKUm2JS",
+        "role": "creator",
+        "source": "Alchemy finalized Solana transaction history",
+        "timestamp": "2026-10-28T06:29:08Z",
+        "timestampBasis": "provider-event",
+        "transaction": "4mpEz1qWqpoQQ7Y72Z3hHEi1WHQQEPLfzNP3hJRKYNs2hnhcHWjtap8BTGkA7ETwLmhKiDXgQZ7HrWoeJhK9bCJE",
+        "label": "Creator specified in canonical Pump creation instruction",
+        "slot": 462375117
+      }
+    ],
+    "sources": [
+      {
+        "name": "DEX Screener",
+        "fetchedAt": "2026-11-03T08:23:34.907Z",
+        "status": "available",
+        "detail": "Most liquid matching base-token pair. Market data can lag."
+      },
+      {
+        "name": "GoPlus Security",
+        "status": "unsupported",
+        "detail": "This GoPlus EVM endpoint does not cover Solana. See the direct Solana RPC sources for mint and freeze authority checks."
+      },
+      {
+        "name": "GeckoTerminal trades",
+        "status": "available",
+        "detail": "Up to 300 recent trades from one selected market pool; sender attribution, not a complete wallet or launch history.",
+        "fetchedAt": "2026-11-03T08:23:36.679Z"
+      },
+      {
+        "name": "Solana RPC supply",
+        "status": "available",
+        "detail": "Configured Solana RPC: Current mint supply from getTokenSupply at finalized commitment.",
+        "fetchedAt": "2026-11-03T08:23:34.775Z"
+      },
+      {
+        "name": "Solana RPC largest accounts",
+        "status": "available",
+        "detail": "Configured Solana RPC: At most 20 token accounts. This is not the top 20 distinct owners or a total holder count.",
+        "fetchedAt": "2026-11-03T08:23:34.966Z"
+      },
+      {
+        "name": "Solana RPC Holders",
+        "status": "available",
+        "detail": "Configured Solana RPC: Selected token accounts grouped by their parsed owner. Amounts cover only those accounts; other accounts owned by the same wallet are outside scope.",
+        "fetchedAt": "2026-11-03T08:23:35.073Z"
+      },
+      {
+        "name": "Solana RPC authorities",
+        "status": "available",
+        "detail": "Configured Solana RPC: mint and freeze roles read from finalized mint slot 464830029. Null means that particular role is revoked; absent fields remain unknown.",
+        "fetchedAt": "2026-11-03T08:23:35.072Z"
+      },
+      {
+        "name": "Alchemy finalized Solana transaction history",
+        "status": "available",
+        "detail": "24 verified Pump trades, 1 creator records, 279 observed transfers. Bounded evidence; launch history is incomplete.",
+        "fetchedAt": "2026-11-03T08:23:38.443Z"
+      },
+      {
+        "name": "Alchemy durable Solana mint-address history",
+        "status": "available",
+        "detail": "65600 distinct indexed transactions visited in 656 pages; 381 decoded trades and 97095 observed transfers. History retrieval paused at the saved checkpoint. Included in this report: 381/381 trades, 3000/97095 transfers, 1/1 identities, 1/1 labels.",
+        "fetchedAt": "2026-11-02T00:50:28.099Z"
+      },
+      {
+        "name": "Configured Solana RPC - PumpSwap reserve accounts",
+        "status": "available",
+        "fetchedAt": "2026-11-03T08:23:35.306Z",
+        "detail": "Verified PumpSwap pool and vault snapshot at finalized slot 464830030. Quote token extensions are outside the simplified constant-product model: permanentDelegate, defaultAccountState, pausableConfig, confidentialTransferMint, transferHook, scaledUiAmountConfig, pausableAccount, transferHookAccount."
+      },
+      {
+        "name": "Solana RPC wallet activity",
+        "status": "available",
+        "fetchedAt": "2026-11-03T08:23:35.075Z",
+        "detail": "Bounded wallet activity predicate. See chain-specific count semantics and unknown histories."
+      }
+    ],
+    "investigation": {
+      "wallets": [
+        {
+          "address": "AxfHbztLN7uxmgA4d2HxpP539FzFAHNEGXYY9T3JC8v9",
+          "share": 23.91455221057522,
+          "categories": [
+            "pool"
+          ],
+          "evidenceIds": [
+            "label:AxfHbztLN7uxmgA4d2HxpP539FzFAHNEGXYY9T3JC8v9:pool",
+            "holding:solana:AxfHbztLN7uxmgA4d2HxpP539FzFAHNEGXYY9T3JC8v9"
+          ],
+          "balance": 185701577.388283,
+          "label": "Market pair address"
+        },
+        {
+          "address": "CECRG1AKyo2UnemBQwXvtpmMkEgfhuDnLsaLK1HABmxb",
+          "share": 3.82008746451179,
+          "categories": [
+            "unclassified"
+          ],
+          "evidenceIds": [
+            "holding:solana:CECRG1AKyo2UnemBQwXvtpmMkEgfhuDnLsaLK1HABmxb"
+          ],
+          "balance": 29663790.55207
+        },
+        {
+          "address": "69z4qTgQ5DBRTJvnQzx2h8jZhNsv5UgADotEwwKUm2JS",
+          "share": 3.414801772949835,
+          "categories": [
+            "creator",
+            "accumulator"
+          ],
+          "evidenceIds": [
+            "identity:creator:69z4qTgQ5DBRTJvnQzx2h8jZhNsv5UgADotEwwKUm2JS",
+            "trade:alchemy:4mpEz1qWqpoQQ7Y72Z3hHEi1WHQQEPLfzNP3hJRKYNs2hnhcHWjtap8BTGkA7ETwLmhKiDXgQZ7HrWoeJhK9bCJE:pump:3:69z4qTgQ5DBRTJvnQzx2h8jZhNsv5UgADotEwwKUm2JS:buy",
+            "holding:solana:69z4qTgQ5DBRTJvnQzx2h8jZhNsv5UgADotEwwKUm2JS"
+          ],
+          "balance": 26516661.074033,
+          "label": "Creator specified in canonical Pump creation instruction",
+          "bought": 50028206.361229,
+          "firstBuyAt": "2026-10-28T06:29:08Z"
+        },
+        {
+          "address": "GJw27NxayUE4BCDxhACojUUKSAKcaS8C6zsogUmMQ7Kt",
+          "share": 2.957459620463578,
+          "categories": [
+            "unclassified"
+          ],
+          "evidenceIds": [
+            "holding:solana:GJw27NxayUE4BCDxhACojUUKSAKcaS8C6zsogUmMQ7Kt"
+          ],
+          "balance": 22965302.120078
+        },
+        {
+          "address": "DGzrc2ij2VJMQCmXqs9ozZsLyeAuvPPF7M37ZTLVHDtM",
+          "share": 2.8531352270477814,
+          "categories": [
+            "unclassified"
+          ],
+          "evidenceIds": [
+            "holding:solana:DGzrc2ij2VJMQCmXqs9ozZsLyeAuvPPF7M37ZTLVHDtM"
+          ],
+          "balance": 22155201.046606
+        },
+        {
+          "address": "VJSDW6S74YXR4rRR9P4xwhMvLZJQMhrUb8XMFirUsy1",
+          "share": 2.5720275236412213,
+          "categories": [
+            "unclassified"
+          ],
+          "evidenceIds": [
+            "holding:solana:VJSDW6S74YXR4rRR9P4xwhMvLZJQMhrUb8XMFirUsy1"
+          ],
+          "balance": 19972340.022116
+        },
+        {
+          "address": "2dquZCEv3E9rPHQzRE2CH8ViZLsWywNJBdArQYkBBUN6",
+          "share": 2.452625357327036,
+          "categories": [
+            "unclassified"
+          ],
+          "evidenceIds": [
+            "holding:solana:2dquZCEv3E9rPHQzRE2CH8ViZLsWywNJBdArQYkBBUN6"
+          ],
+          "balance": 19045156.839555
+        },
+        {
+          "address": "BKTVrpi7HgtDjgXJPZt6ZjLsY6JKRGG2CtraCq1U3skV",
+          "share": 2.272340590607833,
+          "categories": [
+            "unclassified"
+          ],
+          "evidenceIds": [
+            "holding:solana:BKTVrpi7HgtDjgXJPZt6ZjLsY6JKRGG2CtraCq1U3skV"
+          ],
+          "balance": 17645207.333328
+        },
+        {
+          "address": "GeZzkXSKJ2AWkt6wnQewmhkerxYwAU88LWzEp9MxYfqW",
+          "share": 2.2151575221890307,
+          "categories": [
+            "unclassified"
+          ],
+          "evidenceIds": [
+            "holding:solana:GeZzkXSKJ2AWkt6wnQewmhkerxYwAU88LWzEp9MxYfqW"
+          ],
+          "balance": 17201168.661319
+        },
+        {
+          "address": "CqA1NdxecqkNBfwsNHAkA5cfW57VC25Y2cxijxbecyxz",
+          "share": 1.9656420905725598,
+          "categories": [
+            "unclassified"
+          ],
+          "evidenceIds": [
+            "holding:solana:CqA1NdxecqkNBfwsNHAkA5cfW57VC25Y2cxijxbecyxz"
+          ],
+          "balance": 15263628.337507
+        },
+        {
+          "address": "H1W6pU2KteBJuyau8kcLsnLTB9xZq2WLBw9H9Vv5UBHZ",
+          "share": 1.9161386331727486,
+          "categories": [
+            "unclassified"
+          ],
+          "evidenceIds": [
+            "holding:solana:H1W6pU2KteBJuyau8kcLsnLTB9xZq2WLBw9H9Vv5UBHZ"
+          ],
+          "balance": 14879223.476217
+        },
+        {
+          "address": "3LKKGCCL9dF4KQ7dqFUywvkWDWzERz115N8m6LePfP48",
+          "share": 1.8603676358980252,
+          "categories": [
+            "accumulator"
+          ],
+          "evidenceIds": [
+            "holding:solana:3LKKGCCL9dF4KQ7dqFUywvkWDWzERz115N8m6LePfP48"
+          ],
+          "balance": 14446149.836567,
+          "bought": 903925.25255,
+          "firstBuyAt": "2026-11-02T20:48:26Z"
+        },
+        {
+          "address": "GcKCNbiof4k4SFqAiuyoSSMnxxiusMgB5Cg4cgqKvBhz",
+          "share": 1.8551265481660117,
+          "categories": [
+            "unclassified"
+          ],
+          "evidenceIds": [
+            "holding:solana:GcKCNbiof4k4SFqAiuyoSSMnxxiusMgB5Cg4cgqKvBhz"
+          ],
+          "balance": 14405451.677116
+        },
+        {
+          "address": "6bdcRRXk84RRKoYTe8U5Wx3UMkf97bLDkBfJWMg6AKgt",
+          "share": 1.8276031497511325,
+          "categories": [
+            "unclassified"
+          ],
+          "evidenceIds": [
+            "holding:solana:6bdcRRXk84RRKoYTe8U5Wx3UMkf97bLDkBfJWMg6AKgt"
+          ],
+          "balance": 14191726.642429
+        },
+        {
+          "address": "2JbqddDEhTimPbaK9a2DCapxNesvQwMRjW4eapi91z2f",
+          "share": 1.7441023496431771,
+          "categories": [
+            "unclassified"
+          ],
+          "evidenceIds": [
+            "holding:solana:2JbqddDEhTimPbaK9a2DCapxNesvQwMRjW4eapi91z2f"
+          ],
+          "balance": 13543325.193943
+        },
+        {
+          "address": "7MEPpotvTVUJUA4affxeaL1mhUJAQ34Mu86tUT429NWs",
+          "share": 1.4668361529297786,
+          "categories": [
+            "unclassified"
+          ],
+          "evidenceIds": [
+            "holding:solana:7MEPpotvTVUJUA4affxeaL1mhUJAQ34Mu86tUT429NWs"
+          ],
+          "balance": 11390294.284865
+        },
+        {
+          "address": "CP3eg5iBZ7nA1R9VUTqbS1Y2Shx8Agoyzbo2VAwF7As2",
+          "share": 1.400034894238674,
+          "categories": [
+            "unclassified"
+          ],
+          "evidenceIds": [
+            "holding:solana:CP3eg5iBZ7nA1R9VUTqbS1Y2Shx8Agoyzbo2VAwF7As2"
+          ],
+          "balance": 10871568.322479
+        },
+        {
+          "address": "43YEt3no1xeLxsC54TQyFzDo73AQFsUfTds5gqugjVoo",
+          "share": 1.304560704441359,
+          "categories": [
+            "unclassified"
+          ],
+          "evidenceIds": [
+            "holding:solana:43YEt3no1xeLxsC54TQyFzDo73AQFsUfTds5gqugjVoo"
+          ],
+          "balance": 10130190.959896
+        },
+        {
+          "address": "G77BxGNAAVzRHzJTTardEcMefnHWg4FdWir4uH6NKeWw",
+          "share": 1.2551659458426132,
+          "categories": [
+            "unclassified"
+          ],
+          "evidenceIds": [
+            "holding:solana:G77BxGNAAVzRHzJTTardEcMefnHWg4FdWir4uH6NKeWw"
+          ],
+          "balance": 9746630.167884
+        },
+        {
+          "address": "E16jC5cGCqgyFfvygmdgD7SfhaqfbBRhtoSyQyqNWJV8",
+          "share": 1.2060112003604146,
+          "categories": [
+            "accumulator"
+          ],
+          "evidenceIds": [
+            "holding:solana:E16jC5cGCqgyFfvygmdgD7SfhaqfbBRhtoSyQyqNWJV8"
+          ],
+          "balance": 9364933.128701,
+          "bought": 703821.5332660001,
+          "firstBuyAt": "2026-11-03T00:14:35Z"
+        }
+      ],
+      "relationships": [],
+      "evidence": [
+        {
+          "id": "label:AxfHbztLN7uxmgA4d2HxpP539FzFAHNEGXYY9T3JC8v9:pool",
+          "kind": "label",
+          "timestamp": "2026-11-03T08:23:34.907Z",
+          "description": "Market pair address",
+          "source": "DEX Screener"
+        },
+        {
+          "id": "label:HmEnwE4srtCkZzsm5iuZi5LvTZjujsjWJaPeQGus9bh3:pool",
+          "kind": "label",
+          "timestamp": "2026-10-28T06:29:08Z",
+          "description": "Pump bonding curve verified from swap instruction",
+          "source": "Alchemy finalized Solana transaction history"
+        },
+        {
+          "id": "identity:creator:69z4qTgQ5DBRTJvnQzx2h8jZhNsv5UgADotEwwKUm2JS",
+          "kind": "authority",
+          "timestamp": "2026-10-28T06:29:08Z",
+          "transaction": "4mpEz1qWqpoQQ7Y72Z3hHEi1WHQQEPLfzNP3hJRKYNs2hnhcHWjtap8BTGkA7ETwLmhKiDXgQZ7HrWoeJhK9bCJE",
+          "description": "Provider-reported deployment/creator address, which may be a factory. This does not establish current control.",
+          "source": "Alchemy finalized Solana transaction history"
+        },
+        {
+          "id": "trade:alchemy:4mpEz1qWqpoQQ7Y72Z3hHEi1WHQQEPLfzNP3hJRKYNs2hnhcHWjtap8BTGkA7ETwLmhKiDXgQZ7HrWoeJhK9bCJE:pump:3:69z4qTgQ5DBRTJvnQzx2h8jZhNsv5UgADotEwwKUm2JS:buy",
+          "kind": "trade",
+          "transaction": "4mpEz1qWqpoQQ7Y72Z3hHEi1WHQQEPLfzNP3hJRKYNs2hnhcHWjtap8BTGkA7ETwLmhKiDXgQZ7HrWoeJhK9bCJE",
+          "timestamp": "2026-10-28T06:29:08Z",
+          "amount": 31176944.462916,
+          "amountRaw": "31176944462916",
+          "decimals": 6,
+          "token": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+          "description": "Observed buy of the scanned token. Amounts are token units.",
+          "source": "Alchemy finalized Solana transaction history"
+        },
+        {
+          "id": "holding:solana:AxfHbztLN7uxmgA4d2HxpP539FzFAHNEGXYY9T3JC8v9",
+          "kind": "holding",
+          "timestamp": "2026-11-03T08:23:35.072Z",
+          "amount": 185701577.388283,
+          "token": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+          "source": "Solana RPC Holders",
+          "description": "Verified parsed owner AxfHbztLN7uxmgA4d2HxpP539FzFAHNEGXYY9T3JC8v9 at finalized slot 464830029. Token accounts: AJQTsRNH1VyNZSQNSiCarDy5Yom2pLh56NPJwSkyncgf: 185701577388283 raw units / 10^6 (initialized). Supply denominator: 776521240.093152 token units from the same finalized bank; sampled supply share 23.91455221057522%. Only these sampled accounts are included; this is account state, not a transaction or complete wallet balance. Timestamp is local retrieval time, not block time."
+        },
+        {
+          "id": "holding:solana:CECRG1AKyo2UnemBQwXvtpmMkEgfhuDnLsaLK1HABmxb",
+          "kind": "holding",
+          "timestamp": "2026-11-03T08:23:35.072Z",
+          "amount": 29663790.55207,
+          "token": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+          "source": "Solana RPC Holders",
+          "description": "Verified parsed owner CECRG1AKyo2UnemBQwXvtpmMkEgfhuDnLsaLK1HABmxb at finalized slot 464830029. Token accounts: J5SgNRchyE5DzATQLGxDD8QkDJNqEp5argf7XQVDZBRg: 29663790552070 raw units / 10^6 (initialized). Supply denominator: 776521240.093152 token units from the same finalized bank; sampled supply share 3.82008746451179%. Only these sampled accounts are included; this is account state, not a transaction or complete wallet balance. Timestamp is local retrieval time, not block time."
+        },
+        {
+          "id": "holding:solana:69z4qTgQ5DBRTJvnQzx2h8jZhNsv5UgADotEwwKUm2JS",
+          "kind": "holding",
+          "timestamp": "2026-11-03T08:23:35.072Z",
+          "amount": 26516661.074033,
+          "token": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+          "source": "Solana RPC Holders",
+          "description": "Verified parsed owner 69z4qTgQ5DBRTJvnQzx2h8jZhNsv5UgADotEwwKUm2JS at finalized slot 464830029. Token accounts: 8WMScVJpmjk5SfGnL36B6Kh9TxvApX32RsWXfb8Wy3Di: 26516661074033 raw units / 10^6 (initialized). Supply denominator: 776521240.093152 token units from the same finalized bank; sampled supply share 3.414801772949835%. Only these sampled accounts are included; this is account state, not a transaction or complete wallet balance. Timestamp is local retrieval time, not block time."
+        },
+        {
+          "id": "holding:solana:GJw27NxayUE4BCDxhACojUUKSAKcaS8C6zsogUmMQ7Kt",
+          "kind": "holding",
+          "timestamp": "2026-11-03T08:23:35.072Z",
+          "amount": 22965302.120078,
+          "token": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+          "source": "Solana RPC Holders",
+          "description": "Verified parsed owner GJw27NxayUE4BCDxhACojUUKSAKcaS8C6zsogUmMQ7Kt at finalized slot 464830029. Token accounts: 2ceCbamwK9a4MQB9J33LbDrzNBMtQzhxDhq7wKm9ePkA: 22965302120078 raw units / 10^6 (initialized). Supply denominator: 776521240.093152 token units from the same finalized bank; sampled supply share 2.957459620463578%. Only these sampled accounts are included; this is account state, not a transaction or complete wallet balance. Timestamp is local retrieval time, not block time."
+        },
+        {
+          "id": "holding:solana:DGzrc2ij2VJMQCmXqs9ozZsLyeAuvPPF7M37ZTLVHDtM",
+          "kind": "holding",
+          "timestamp": "2026-11-03T08:23:35.072Z",
+          "amount": 22155201.046606,
+          "token": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+          "source": "Solana RPC Holders",
+          "description": "Verified parsed owner DGzrc2ij2VJMQCmXqs9ozZsLyeAuvPPF7M37ZTLVHDtM at finalized slot 464830029. Token accounts: 37rPYytpG6q6MYp91pz8MXSbZ2jyCKMf3vswtAGAWcC6: 22155201046606 raw units / 10^6 (initialized). Supply denominator: 776521240.093152 token units from the same finalized bank; sampled supply share 2.8531352270477814%. Only these sampled accounts are included; this is account state, not a transaction or complete wallet balance. Timestamp is local retrieval time, not block time."
+        },
+        {
+          "id": "holding:solana:VJSDW6S74YXR4rRR9P4xwhMvLZJQMhrUb8XMFirUsy1",
+          "kind": "holding",
+          "timestamp": "2026-11-03T08:23:35.072Z",
+          "amount": 19972340.022116,
+          "token": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+          "source": "Solana RPC Holders",
+          "description": "Verified parsed owner VJSDW6S74YXR4rRR9P4xwhMvLZJQMhrUb8XMFirUsy1 at finalized slot 464830029. Token accounts: BsmTG9frsnAWquv5YPSH55Ytf7KjxMCvVJ1v6MmvuScW: 19972340022116 raw units / 10^6 (initialized). Supply denominator: 776521240.093152 token units from the same finalized bank; sampled supply share 2.5720275236412213%. Only these sampled accounts are included; this is account state, not a transaction or complete wallet balance. Timestamp is local retrieval time, not block time."
+        },
+        {
+          "id": "holding:solana:2dquZCEv3E9rPHQzRE2CH8ViZLsWywNJBdArQYkBBUN6",
+          "kind": "holding",
+          "timestamp": "2026-11-03T08:23:35.072Z",
+          "amount": 19045156.839555,
+          "token": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+          "source": "Solana RPC Holders",
+          "description": "Verified parsed owner 2dquZCEv3E9rPHQzRE2CH8ViZLsWywNJBdArQYkBBUN6 at finalized slot 464830029. Token accounts: CSPpoEh9wc3v9qmMTqS9wyxDJkMk5mXK67eczG9d9MF7: 19045156839555 raw units / 10^6 (initialized). Supply denominator: 776521240.093152 token units from the same finalized bank; sampled supply share 2.452625357327036%. Only these sampled accounts are included; this is account state, not a transaction or complete wallet balance. Timestamp is local retrieval time, not block time."
+        },
+        {
+          "id": "holding:solana:BKTVrpi7HgtDjgXJPZt6ZjLsY6JKRGG2CtraCq1U3skV",
+          "kind": "holding",
+          "timestamp": "2026-11-03T08:23:35.072Z",
+          "amount": 17645207.333328,
+          "token": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+          "source": "Solana RPC Holders",
+          "description": "Verified parsed owner BKTVrpi7HgtDjgXJPZt6ZjLsY6JKRGG2CtraCq1U3skV at finalized slot 464830029. Token accounts: 7yaWNkwApPAcsGxFMqXmxEeB9girAdwi1Db92Qj3SQqa: 17645207333328 raw units / 10^6 (initialized). Supply denominator: 776521240.093152 token units from the same finalized bank; sampled supply share 2.272340590607833%. Only these sampled accounts are included; this is account state, not a transaction or complete wallet balance. Timestamp is local retrieval time, not block time."
+        },
+        {
+          "id": "holding:solana:GeZzkXSKJ2AWkt6wnQewmhkerxYwAU88LWzEp9MxYfqW",
+          "kind": "holding",
+          "timestamp": "2026-11-03T08:23:35.072Z",
+          "amount": 17201168.661319,
+          "token": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+          "source": "Solana RPC Holders",
+          "description": "Verified parsed owner GeZzkXSKJ2AWkt6wnQewmhkerxYwAU88LWzEp9MxYfqW at finalized slot 464830029. Token accounts: CvsFvrq3cTi6xeUPEqGoVo9EtqZNtn5zgX7WdvqoFgeq: 17201168661319 raw units / 10^6 (initialized). Supply denominator: 776521240.093152 token units from the same finalized bank; sampled supply share 2.2151575221890307%. Only these sampled accounts are included; this is account state, not a transaction or complete wallet balance. Timestamp is local retrieval time, not block time."
+        },
+        {
+          "id": "holding:solana:CqA1NdxecqkNBfwsNHAkA5cfW57VC25Y2cxijxbecyxz",
+          "kind": "holding",
+          "timestamp": "2026-11-03T08:23:35.072Z",
+          "amount": 15263628.337507,
+          "token": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+          "source": "Solana RPC Holders",
+          "description": "Verified parsed owner CqA1NdxecqkNBfwsNHAkA5cfW57VC25Y2cxijxbecyxz at finalized slot 464830029. Token accounts: GxtYHfCAcWD4dGqtzBfboy6Cb4CVAvHH1RMeb6hUcL7h: 15263628337507 raw units / 10^6 (initialized). Supply denominator: 776521240.093152 token units from the same finalized bank; sampled supply share 1.9656420905725598%. Only these sampled accounts are included; this is account state, not a transaction or complete wallet balance. Timestamp is local retrieval time, not block time."
+        },
+        {
+          "id": "holding:solana:H1W6pU2KteBJuyau8kcLsnLTB9xZq2WLBw9H9Vv5UBHZ",
+          "kind": "holding",
+          "timestamp": "2026-11-03T08:23:35.072Z",
+          "amount": 14879223.476217,
+          "token": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+          "source": "Solana RPC Holders",
+          "description": "Verified parsed owner H1W6pU2KteBJuyau8kcLsnLTB9xZq2WLBw9H9Vv5UBHZ at finalized slot 464830029. Token accounts: AbcArnVPCZCnRUKGsufjnFoUPQ1FGZz18acU36CMpmFR: 14879223476217 raw units / 10^6 (initialized). Supply denominator: 776521240.093152 token units from the same finalized bank; sampled supply share 1.9161386331727486%. Only these sampled accounts are included; this is account state, not a transaction or complete wallet balance. Timestamp is local retrieval time, not block time."
+        },
+        {
+          "id": "holding:solana:3LKKGCCL9dF4KQ7dqFUywvkWDWzERz115N8m6LePfP48",
+          "kind": "holding",
+          "timestamp": "2026-11-03T08:23:35.072Z",
+          "amount": 14446149.836567,
+          "token": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+          "source": "Solana RPC Holders",
+          "description": "Verified parsed owner 3LKKGCCL9dF4KQ7dqFUywvkWDWzERz115N8m6LePfP48 at finalized slot 464830029. Token accounts: FxMA1QKuufVTY1z64ReoQwLS3WtwnZt2WVqPaMdeDZ5x: 14446149836567 raw units / 10^6 (initialized). Supply denominator: 776521240.093152 token units from the same finalized bank; sampled supply share 1.8603676358980252%. Only these sampled accounts are included; this is account state, not a transaction or complete wallet balance. Timestamp is local retrieval time, not block time."
+        },
+        {
+          "id": "holding:solana:GcKCNbiof4k4SFqAiuyoSSMnxxiusMgB5Cg4cgqKvBhz",
+          "kind": "holding",
+          "timestamp": "2026-11-03T08:23:35.072Z",
+          "amount": 14405451.677116,
+          "token": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+          "source": "Solana RPC Holders",
+          "description": "Verified parsed owner GcKCNbiof4k4SFqAiuyoSSMnxxiusMgB5Cg4cgqKvBhz at finalized slot 464830029. Token accounts: CDWSJXLS19uK4FfCt1mfqrgRK8x472uYdi1U8rMcgZmu: 14405451677116 raw units / 10^6 (initialized). Supply denominator: 776521240.093152 token units from the same finalized bank; sampled supply share 1.8551265481660117%. Only these sampled accounts are included; this is account state, not a transaction or complete wallet balance. Timestamp is local retrieval time, not block time."
+        },
+        {
+          "id": "holding:solana:6bdcRRXk84RRKoYTe8U5Wx3UMkf97bLDkBfJWMg6AKgt",
+          "kind": "holding",
+          "timestamp": "2026-11-03T08:23:35.072Z",
+          "amount": 14191726.642429,
+          "token": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+          "source": "Solana RPC Holders",
+          "description": "Verified parsed owner 6bdcRRXk84RRKoYTe8U5Wx3UMkf97bLDkBfJWMg6AKgt at finalized slot 464830029. Token accounts: 5nmLTDL9hHLxJdxXC2BvKq3focGcbLCcLKUWf8V7iUQR: 14191726642429 raw units / 10^6 (initialized). Supply denominator: 776521240.093152 token units from the same finalized bank; sampled supply share 1.8276031497511325%. Only these sampled accounts are included; this is account state, not a transaction or complete wallet balance. Timestamp is local retrieval time, not block time."
+        },
+        {
+          "id": "holding:solana:2JbqddDEhTimPbaK9a2DCapxNesvQwMRjW4eapi91z2f",
+          "kind": "holding",
+          "timestamp": "2026-11-03T08:23:35.072Z",
+          "amount": 13543325.193943,
+          "token": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+          "source": "Solana RPC Holders",
+          "description": "Verified parsed owner 2JbqddDEhTimPbaK9a2DCapxNesvQwMRjW4eapi91z2f at finalized slot 464830029. Token accounts: Fm9fVAbhdvWMaVo8Y1k8wcDkHDgeBgd1Wmtd3KUFxkkw: 13543325193943 raw units / 10^6 (initialized). Supply denominator: 776521240.093152 token units from the same finalized bank; sampled supply share 1.7441023496431771%. Only these sampled accounts are included; this is account state, not a transaction or complete wallet balance. Timestamp is local retrieval time, not block time."
+        },
+        {
+          "id": "holding:solana:7MEPpotvTVUJUA4affxeaL1mhUJAQ34Mu86tUT429NWs",
+          "kind": "holding",
+          "timestamp": "2026-11-03T08:23:35.072Z",
+          "amount": 11390294.284865,
+          "token": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+          "source": "Solana RPC Holders",
+          "description": "Verified parsed owner 7MEPpotvTVUJUA4affxeaL1mhUJAQ34Mu86tUT429NWs at finalized slot 464830029. Token accounts: 3YpWSrZiLyo1rvDV3xQcHCWWKm6qXH3QRgGDnTBQ39hz: 11390294284865 raw units / 10^6 (initialized). Supply denominator: 776521240.093152 token units from the same finalized bank; sampled supply share 1.4668361529297786%. Only these sampled accounts are included; this is account state, not a transaction or complete wallet balance. Timestamp is local retrieval time, not block time."
+        },
+        {
+          "id": "holding:solana:CP3eg5iBZ7nA1R9VUTqbS1Y2Shx8Agoyzbo2VAwF7As2",
+          "kind": "holding",
+          "timestamp": "2026-11-03T08:23:35.072Z",
+          "amount": 10871568.322479,
+          "token": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+          "source": "Solana RPC Holders",
+          "description": "Verified parsed owner CP3eg5iBZ7nA1R9VUTqbS1Y2Shx8Agoyzbo2VAwF7As2 at finalized slot 464830029. Token accounts: 6SHZH1JUwvQgnFFmHf38o6V5eDS4HFPpVPXfQeGhAhTt: 10871568322479 raw units / 10^6 (initialized). Supply denominator: 776521240.093152 token units from the same finalized bank; sampled supply share 1.400034894238674%. Only these sampled accounts are included; this is account state, not a transaction or complete wallet balance. Timestamp is local retrieval time, not block time."
+        },
+        {
+          "id": "holding:solana:43YEt3no1xeLxsC54TQyFzDo73AQFsUfTds5gqugjVoo",
+          "kind": "holding",
+          "timestamp": "2026-11-03T08:23:35.072Z",
+          "amount": 10130190.959896,
+          "token": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+          "source": "Solana RPC Holders",
+          "description": "Verified parsed owner 43YEt3no1xeLxsC54TQyFzDo73AQFsUfTds5gqugjVoo at finalized slot 464830029. Token accounts: HgoprYFkiLcPz5KQaf4jwYiEdWx1zTWa2De1CxJECuaQ: 10130190959896 raw units / 10^6 (initialized). Supply denominator: 776521240.093152 token units from the same finalized bank; sampled supply share 1.304560704441359%. Only these sampled accounts are included; this is account state, not a transaction or complete wallet balance. Timestamp is local retrieval time, not block time."
+        },
+        {
+          "id": "holding:solana:G77BxGNAAVzRHzJTTardEcMefnHWg4FdWir4uH6NKeWw",
+          "kind": "holding",
+          "timestamp": "2026-11-03T08:23:35.072Z",
+          "amount": 9746630.167884,
+          "token": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+          "source": "Solana RPC Holders",
+          "description": "Verified parsed owner G77BxGNAAVzRHzJTTardEcMefnHWg4FdWir4uH6NKeWw at finalized slot 464830029. Token accounts: EcXWDBtD2a9Gpcbw4nARB28b8a4JUvuPjNpPDuVaS2Rd: 9746630167884 raw units / 10^6 (initialized). Supply denominator: 776521240.093152 token units from the same finalized bank; sampled supply share 1.2551659458426132%. Only these sampled accounts are included; this is account state, not a transaction or complete wallet balance. Timestamp is local retrieval time, not block time."
+        },
+        {
+          "id": "holding:solana:E16jC5cGCqgyFfvygmdgD7SfhaqfbBRhtoSyQyqNWJV8",
+          "kind": "holding",
+          "timestamp": "2026-11-03T08:23:35.072Z",
+          "amount": 9364933.128701,
+          "token": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+          "source": "Solana RPC Holders",
+          "description": "Verified parsed owner E16jC5cGCqgyFfvygmdgD7SfhaqfbBRhtoSyQyqNWJV8 at finalized slot 464830029. Token accounts: DcVp3q16c7CpygAE2hZ6HdyUgAY2zfLXgtKNnTtinnPG: 9364933128701 raw units / 10^6 (initialized). Supply denominator: 776521240.093152 token units from the same finalized bank; sampled supply share 1.2060112003604146%. Only these sampled accounts are included; this is account state, not a transaction or complete wallet balance. Timestamp is local retrieval time, not block time."
+        },
+        {
+          "id": "reserve:pumpswap:AxfHbztLN7uxmgA4d2HxpP539FzFAHNEGXYY9T3JC8v9:464830030",
+          "kind": "label",
+          "timestamp": "2026-11-03T08:23:35.306Z",
+          "source": "Configured Solana RPC - PumpSwap reserve accounts",
+          "description": "Verified pool reserves at finalized slot 464830030. Base 185701577388283 raw units; quote 78464028 raw units. Virtual quote 12914432. Live dynamic trading, creator and transfer fees are not verified. No execution quote or fee rate is asserted; a fee-free constant-product scenario must be labeled as an explicit modeling assumption."
+        }
+      ],
+      "timeline": [
+        {
+          "id": "trade:alchemy:4mpEz1qWqpoQQ7Y72Z3hHEi1WHQQEPLfzNP3hJRKYNs2hnhcHWjtap8BTGkA7ETwLmhKiDXgQZ7HrWoeJhK9bCJE:pump:3:69z4qTgQ5DBRTJvnQzx2h8jZhNsv5UgADotEwwKUm2JS:buy",
+          "timestamp": "2026-10-28T06:29:08Z",
+          "kind": "buy",
+          "wallet": "69z4qTgQ5DBRTJvnQzx2h8jZhNsv5UgADotEwwKUm2JS",
+          "amount": 31176944.462916,
+          "evidenceId": "trade:alchemy:4mpEz1qWqpoQQ7Y72Z3hHEi1WHQQEPLfzNP3hJRKYNs2hnhcHWjtap8BTGkA7ETwLmhKiDXgQZ7HrWoeJhK9bCJE:pump:3:69z4qTgQ5DBRTJvnQzx2h8jZhNsv5UgADotEwwKUm2JS:buy"
+        }
+      ],
+      "findings": [],
+      "assessment": {
+        "status": "caution",
+        "title": "Caution",
+        "summary": "Some scoring inputs are not fully evaluated. The range shows how unresolved evidence can affect the six-factor score."
+      },
+      "coverage": {
+        "status": "partial",
+        "launchVerified": false,
+        "clock": {
+          "basis": "provider-quorum",
+          "referenceAt": "2026-11-03T08:22:39.091Z",
+          "localCapturedAt": "2026-11-03T08:23:35.007Z",
+          "offsetMs": -55915,
+          "sources": [
+            {
+              "name": "Ethereum Blockscout",
+              "date": "Tue, 03 Nov 2026 08:22:39 GMT",
+              "age": null,
+              "cache": "DYNAMIC",
+              "roundTripMs": 486,
+              "cacheHeaders": {}
+            },
+            {
+              "name": "Ethereum PublicNode",
+              "date": "Tue, 03 Nov 2026 08:22:39 GMT",
+              "age": null,
+              "cache": "DYNAMIC",
+              "roundTripMs": 395,
+              "cacheHeaders": {}
+            },
+            {
+              "name": "Solana public RPC",
+              "date": "Tue, 03 Nov 2026 08:22:39 GMT",
+              "age": null,
+              "cache": null,
+              "roundTripMs": 307,
+              "cacheHeaders": {}
+            }
+          ],
+          "excluded": [],
+          "referenceAgeMs": 0,
+          "detail": "Timestamp validation uses corroborated provider response time (-56 seconds relative to the local capture clock). Event timestamps and local capture times are unchanged. HTTP clocks may share infrastructure; this is not independent UTC certification."
+        },
+        "earliestTradeAt": "2026-10-28T06:29:08Z",
+        "holderLimit": 100,
+        "buyerLimit": 100,
+        "fundingHops": 1,
+        "truncated": true,
+        "reasons": [
+          "Timestamp validation uses corroborated provider response time (-56 seconds relative to the local capture clock). Event timestamps and local capture times are unchanged. HTTP clocks may share infrastructure; this is not independent UTC certification.",
+          "Public explorer holder, creator and funding fallback currently supports Ethereum and Base. Other chains retain available public snapshots and pool trades.",
+          "Public trade scope: at most 300 recent trades from one selected pool, normally within 24 hours. Transaction sender may be a relayer or shared service. Sample net buying is not current holdings; no complete launch or first-buyer history is established.",
+          "Token-2022 recognized mint extension capabilities are decoded from the finalized RPC snapshot; unsupported or malformed extensions remain explicit. Hook program behavior, historical changes and hidden balances are not audited. Displayed balances are raw base amounts divided by decimals.",
+          "Solana snapshot covers at most 20 token accounts selected at one finalized slot, then aggregates their verified balances by parsed owner at a later finalized slot. An owner may have more accounts outside this sample; these are sampled balances and shares, not complete wallet holdings or a distinct-holder census.",
+          "RPC snapshot slots are preserved; retrieval timestamps are not block timestamps. Current mint/freeze authority does not identify the historical creator. No launch, first-buyer, funding or historical-balance completeness is established.",
+          "Alchemy decoded 200 successful timestamped transactions from bounded oldest/latest mint-address history. 0 invalid/failed records were withheld. Only canonical Pump swaps with verified token-account transfers are classified; other programs and routes remain unclassified.",
+          "Mint-address indexing and bounded pages do not prove complete token-wide launch coverage. First-minute sniper labels are withheld. Native funding checks cover the first 20 indexed transactions of up to 6 observed buyers/current holders, one hop. Only incoming transfers strictly before a known first observed buy and outside target-token activity are eligible funding; sale proceeds, refunds, same-second transfers and holders without a known buy remain observations only. An absent result does not establish self-funding.",
+          "This archive covers ascending finalized mint-address indexed transactions only, not complete token-wide history or verified launch coverage. Native transfers remain observations, not acquisition funding. Only supported canonical Pump instructions establish trades.",
+          "History retrieval paused at the saved checkpoint.",
+          "Report subset: transfers includes 3000 of 97095 archived records (oldest half and newest half by event timestamp). Other records remain saved but are outside this report analysis.",
+          "Selected-pool verification currently supports Ethereum and Base only.",
+          "One or more row or wallet caps were reached. Expand scope where available; results are not exhaustive.",
+          "413 native receipt(s) below the 0.0001 SOL per-transfer inference floor remain visible as observations but do not establish funding, creator links or connected selling. This conservative policy is not proof of spam and can omit genuine small funding; split receipts are not summed to bypass the floor. No equivalent EVM or token-amount threshold is applied."
+        ],
+        "source": "Indexed and public provider evidence",
+        "fetchedAt": "2026-11-03T08:23:35.007Z"
+      }
+    },
+    "solana": {
+      "snapshot": {
+        "commitment": "finalized",
+        "selectedTokenAccounts": 20,
+        "unresolvedTokenAccounts": 0,
+        "fetchedAt": "2026-11-03T08:23:35.074Z",
+        "supplySlot": 464830029,
+        "largestAccountsSlot": 464830028,
+        "selectionSource": "rpc-largest-accounts",
+        "selectionTimestamp": "2026-11-03T08:23:34.965Z",
+        "ownersSlot": 464830029,
+        "tokenProgram": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+        "mintSlot": 464830029
+      },
+      "tokenAccounts": [
+        {
+          "address": "AJQTsRNH1VyNZSQNSiCarDy5Yom2pLh56NPJwSkyncgf",
+          "owner": "AxfHbztLN7uxmgA4d2HxpP539FzFAHNEGXYY9T3JC8v9",
+          "mint": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+          "amountRaw": "185701577388283",
+          "decimals": 6,
+          "slot": 464830029,
+          "timestamp": "2026-11-03T08:23:35.072Z",
+          "state": "initialized",
+          "extensions": [
+            "immutableOwner"
+          ]
+        },
+        {
+          "address": "J5SgNRchyE5DzATQLGxDD8QkDJNqEp5argf7XQVDZBRg",
+          "owner": "CECRG1AKyo2UnemBQwXvtpmMkEgfhuDnLsaLK1HABmxb",
+          "mint": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+          "amountRaw": "29663790552070",
+          "decimals": 6,
+          "slot": 464830029,
+          "timestamp": "2026-11-03T08:23:35.072Z",
+          "state": "initialized",
+          "extensions": [
+            "immutableOwner"
+          ]
+        },
+        {
+          "address": "8WMScVJpmjk5SfGnL36B6Kh9TxvApX32RsWXfb8Wy3Di",
+          "owner": "69z4qTgQ5DBRTJvnQzx2h8jZhNsv5UgADotEwwKUm2JS",
+          "mint": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+          "amountRaw": "26516661074033",
+          "decimals": 6,
+          "slot": 464830029,
+          "timestamp": "2026-11-03T08:23:35.072Z",
+          "state": "initialized",
+          "extensions": [
+            "immutableOwner"
+          ]
+        },
+        {
+          "address": "2ceCbamwK9a4MQB9J33LbDrzNBMtQzhxDhq7wKm9ePkA",
+          "owner": "GJw27NxayUE4BCDxhACojUUKSAKcaS8C6zsogUmMQ7Kt",
+          "mint": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+          "amountRaw": "22965302120078",
+          "decimals": 6,
+          "slot": 464830029,
+          "timestamp": "2026-11-03T08:23:35.072Z",
+          "state": "initialized",
+          "extensions": [
+            "immutableOwner"
+          ]
+        },
+        {
+          "address": "37rPYytpG6q6MYp91pz8MXSbZ2jyCKMf3vswtAGAWcC6",
+          "owner": "DGzrc2ij2VJMQCmXqs9ozZsLyeAuvPPF7M37ZTLVHDtM",
+          "mint": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+          "amountRaw": "22155201046606",
+          "decimals": 6,
+          "slot": 464830029,
+          "timestamp": "2026-11-03T08:23:35.072Z",
+          "state": "initialized",
+          "extensions": [
+            "immutableOwner"
+          ]
+        },
+        {
+          "address": "BsmTG9frsnAWquv5YPSH55Ytf7KjxMCvVJ1v6MmvuScW",
+          "owner": "VJSDW6S74YXR4rRR9P4xwhMvLZJQMhrUb8XMFirUsy1",
+          "mint": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+          "amountRaw": "19972340022116",
+          "decimals": 6,
+          "slot": 464830029,
+          "timestamp": "2026-11-03T08:23:35.072Z",
+          "state": "initialized",
+          "extensions": [
+            "immutableOwner"
+          ]
+        },
+        {
+          "address": "CSPpoEh9wc3v9qmMTqS9wyxDJkMk5mXK67eczG9d9MF7",
+          "owner": "2dquZCEv3E9rPHQzRE2CH8ViZLsWywNJBdArQYkBBUN6",
+          "mint": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+          "amountRaw": "19045156839555",
+          "decimals": 6,
+          "slot": 464830029,
+          "timestamp": "2026-11-03T08:23:35.072Z",
+          "state": "initialized",
+          "extensions": [
+            "immutableOwner"
+          ]
+        },
+        {
+          "address": "7yaWNkwApPAcsGxFMqXmxEeB9girAdwi1Db92Qj3SQqa",
+          "owner": "BKTVrpi7HgtDjgXJPZt6ZjLsY6JKRGG2CtraCq1U3skV",
+          "mint": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+          "amountRaw": "17645207333328",
+          "decimals": 6,
+          "slot": 464830029,
+          "timestamp": "2026-11-03T08:23:35.072Z",
+          "state": "initialized",
+          "extensions": [
+            "immutableOwner"
+          ]
+        },
+        {
+          "address": "CvsFvrq3cTi6xeUPEqGoVo9EtqZNtn5zgX7WdvqoFgeq",
+          "owner": "GeZzkXSKJ2AWkt6wnQewmhkerxYwAU88LWzEp9MxYfqW",
+          "mint": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+          "amountRaw": "17201168661319",
+          "decimals": 6,
+          "slot": 464830029,
+          "timestamp": "2026-11-03T08:23:35.072Z",
+          "state": "initialized",
+          "extensions": [
+            "immutableOwner"
+          ]
+        },
+        {
+          "address": "GxtYHfCAcWD4dGqtzBfboy6Cb4CVAvHH1RMeb6hUcL7h",
+          "owner": "CqA1NdxecqkNBfwsNHAkA5cfW57VC25Y2cxijxbecyxz",
+          "mint": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+          "amountRaw": "15263628337507",
+          "decimals": 6,
+          "slot": 464830029,
+          "timestamp": "2026-11-03T08:23:35.072Z",
+          "state": "initialized",
+          "extensions": [
+            "immutableOwner"
+          ]
+        },
+        {
+          "address": "AbcArnVPCZCnRUKGsufjnFoUPQ1FGZz18acU36CMpmFR",
+          "owner": "H1W6pU2KteBJuyau8kcLsnLTB9xZq2WLBw9H9Vv5UBHZ",
+          "mint": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+          "amountRaw": "14879223476217",
+          "decimals": 6,
+          "slot": 464830029,
+          "timestamp": "2026-11-03T08:23:35.072Z",
+          "state": "initialized",
+          "extensions": [
+            "immutableOwner"
+          ]
+        },
+        {
+          "address": "FxMA1QKuufVTY1z64ReoQwLS3WtwnZt2WVqPaMdeDZ5x",
+          "owner": "3LKKGCCL9dF4KQ7dqFUywvkWDWzERz115N8m6LePfP48",
+          "mint": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+          "amountRaw": "14446149836567",
+          "decimals": 6,
+          "slot": 464830029,
+          "timestamp": "2026-11-03T08:23:35.072Z",
+          "state": "initialized",
+          "extensions": [
+            "immutableOwner"
+          ]
+        },
+        {
+          "address": "CDWSJXLS19uK4FfCt1mfqrgRK8x472uYdi1U8rMcgZmu",
+          "owner": "GcKCNbiof4k4SFqAiuyoSSMnxxiusMgB5Cg4cgqKvBhz",
+          "mint": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+          "amountRaw": "14405451677116",
+          "decimals": 6,
+          "slot": 464830029,
+          "timestamp": "2026-11-03T08:23:35.072Z",
+          "state": "initialized",
+          "extensions": [
+            "immutableOwner"
+          ]
+        },
+        {
+          "address": "5nmLTDL9hHLxJdxXC2BvKq3focGcbLCcLKUWf8V7iUQR",
+          "owner": "6bdcRRXk84RRKoYTe8U5Wx3UMkf97bLDkBfJWMg6AKgt",
+          "mint": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+          "amountRaw": "14191726642429",
+          "decimals": 6,
+          "slot": 464830029,
+          "timestamp": "2026-11-03T08:23:35.072Z",
+          "state": "initialized",
+          "extensions": [
+            "immutableOwner"
+          ]
+        },
+        {
+          "address": "Fm9fVAbhdvWMaVo8Y1k8wcDkHDgeBgd1Wmtd3KUFxkkw",
+          "owner": "2JbqddDEhTimPbaK9a2DCapxNesvQwMRjW4eapi91z2f",
+          "mint": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+          "amountRaw": "13543325193943",
+          "decimals": 6,
+          "slot": 464830029,
+          "timestamp": "2026-11-03T08:23:35.072Z",
+          "state": "initialized",
+          "extensions": [
+            "immutableOwner"
+          ]
+        },
+        {
+          "address": "3YpWSrZiLyo1rvDV3xQcHCWWKm6qXH3QRgGDnTBQ39hz",
+          "owner": "7MEPpotvTVUJUA4affxeaL1mhUJAQ34Mu86tUT429NWs",
+          "mint": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+          "amountRaw": "11390294284865",
+          "decimals": 6,
+          "slot": 464830029,
+          "timestamp": "2026-11-03T08:23:35.072Z",
+          "state": "initialized",
+          "extensions": [
+            "immutableOwner"
+          ]
+        },
+        {
+          "address": "6SHZH1JUwvQgnFFmHf38o6V5eDS4HFPpVPXfQeGhAhTt",
+          "owner": "CP3eg5iBZ7nA1R9VUTqbS1Y2Shx8Agoyzbo2VAwF7As2",
+          "mint": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+          "amountRaw": "10871568322479",
+          "decimals": 6,
+          "slot": 464830029,
+          "timestamp": "2026-11-03T08:23:35.072Z",
+          "state": "initialized",
+          "extensions": [
+            "immutableOwner"
+          ]
+        },
+        {
+          "address": "HgoprYFkiLcPz5KQaf4jwYiEdWx1zTWa2De1CxJECuaQ",
+          "owner": "43YEt3no1xeLxsC54TQyFzDo73AQFsUfTds5gqugjVoo",
+          "mint": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+          "amountRaw": "10130190959896",
+          "decimals": 6,
+          "slot": 464830029,
+          "timestamp": "2026-11-03T08:23:35.072Z",
+          "state": "initialized",
+          "extensions": [
+            "immutableOwner"
+          ]
+        },
+        {
+          "address": "EcXWDBtD2a9Gpcbw4nARB28b8a4JUvuPjNpPDuVaS2Rd",
+          "owner": "G77BxGNAAVzRHzJTTardEcMefnHWg4FdWir4uH6NKeWw",
+          "mint": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+          "amountRaw": "9746630167884",
+          "decimals": 6,
+          "slot": 464830029,
+          "timestamp": "2026-11-03T08:23:35.072Z",
+          "state": "initialized",
+          "extensions": [
+            "immutableOwner"
+          ]
+        },
+        {
+          "address": "DcVp3q16c7CpygAE2hZ6HdyUgAY2zfLXgtKNnTtinnPG",
+          "owner": "E16jC5cGCqgyFfvygmdgD7SfhaqfbBRhtoSyQyqNWJV8",
+          "mint": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+          "amountRaw": "9364933128701",
+          "decimals": 6,
+          "slot": 464830029,
+          "timestamp": "2026-11-03T08:23:35.072Z",
+          "state": "initialized",
+          "extensions": [
+            "immutableOwner"
+          ]
+        }
+      ],
+      "authorities": {
+        "mint": {
+          "address": null,
+          "slot": 464830029,
+          "timestamp": "2026-11-03T08:23:35.072Z"
+        },
+        "freeze": {
+          "address": null,
+          "slot": 464830029,
+          "timestamp": "2026-11-03T08:23:35.072Z"
+        }
+      },
+      "extensions": [
+        "metadataPointer",
+        "tokenMetadata"
+      ]
+    },
+    "poolReserves": {
+      "status": "verified",
+      "reasons": [],
+      "snapshot": {
+        "protocol": "pumpswap",
+        "pool": "AxfHbztLN7uxmgA4d2HxpP539FzFAHNEGXYY9T3JC8v9",
+        "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+        "base": {
+          "mint": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+          "vault": "AJQTsRNH1VyNZSQNSiCarDy5Yom2pLh56NPJwSkyncgf",
+          "amountRaw": "185701577388283",
+          "decimals": 6,
+          "tokenProgram": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+          "mintExtensions": [
+            "metadataPointer",
+            "tokenMetadata"
+          ],
+          "vaultExtensions": [
+            "immutableOwner"
+          ]
+        },
+        "quote": {
+          "mint": "SPCXxcqXj6e5dJDVNovHN8744zkbhM2bYudU45BimGb",
+          "vault": "Rhg95M9UqaapVf3Nx3BTSwReAxVd7jb8VnDMEG41P1z",
+          "amountRaw": "78464028",
+          "decimals": 6,
+          "tokenProgram": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+          "mintExtensions": [
+            "metadataPointer",
+            "permanentDelegate",
+            "defaultAccountState",
+            "pausableConfig",
+            "confidentialTransferMint",
+            "transferHook",
+            "scaledUiAmountConfig",
+            "tokenMetadata"
+          ],
+          "vaultExtensions": [
+            "immutableOwner",
+            "pausableAccount",
+            "transferHookAccount"
+          ]
+        },
+        "slot": 464830030,
+        "observedAt": "2026-11-03T08:23:35.306Z",
+        "commitment": "finalized",
+        "source": "Configured Solana RPC - PumpSwap reserve accounts",
+        "blockRef": "solana:finalized:464830030",
+        "evidenceId": "reserve:pumpswap:AxfHbztLN7uxmgA4d2HxpP539FzFAHNEGXYY9T3JC8v9:464830030",
+        "baseMint": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+        "quoteMint": "SPCXxcqXj6e5dJDVNovHN8744zkbhM2bYudU45BimGb",
+        "baseVault": "AJQTsRNH1VyNZSQNSiCarDy5Yom2pLh56NPJwSkyncgf",
+        "quoteVault": "Rhg95M9UqaapVf3Nx3BTSwReAxVd7jb8VnDMEG41P1z",
+        "virtualQuoteReservesRaw": "12914432",
+        "creatorFeeBpsRaw": "100",
+        "protocolFeesRaw": "150",
+        "creatorFeesRaw": "5998",
+        "effectiveQuoteAmountRaw": "91378460",
+        "constantProductEligible": false,
+        "feeBps": null,
+        "feeAssumption": "Live dynamic trading, creator and transfer fees are not verified. No execution quote or fee rate is asserted; a fee-free constant-product scenario must be labeled as an explicit modeling assumption.",
+        "limitations": [
+          "Quote token extensions are outside the simplified constant-product model: permanentDelegate, defaultAccountState, pausableConfig, confidentialTransferMint, transferHook, scaledUiAmountConfig, pausableAccount, transferHookAccount."
+        ]
+      }
+    },
+    "walletActivity": {
+      "source": "Solana RPC wallet activity",
+      "observedAt": "2026-11-03T08:23:35.075Z",
+      "wallets": [
+        {
+          "address": "CECRG1AKyo2UnemBQwXvtpmMkEgfhuDnLsaLK1HABmxb",
+          "count": 11,
+          "exact": false,
+          "fresh": false,
+          "basis": "solana-address-signatures",
+          "reason": "At least 11 distinct finalized address transactions observed.",
+          "observedAt": "2026-11-03T08:23:35.075Z"
+        },
+        {
+          "address": "69z4qTgQ5DBRTJvnQzx2h8jZhNsv5UgADotEwwKUm2JS",
+          "count": 11,
+          "exact": false,
+          "fresh": false,
+          "basis": "solana-address-signatures",
+          "reason": "At least 11 distinct finalized address transactions observed.",
+          "observedAt": "2026-11-03T08:23:35.075Z"
+        },
+        {
+          "address": "GJw27NxayUE4BCDxhACojUUKSAKcaS8C6zsogUmMQ7Kt",
+          "count": 11,
+          "exact": false,
+          "fresh": false,
+          "basis": "solana-address-signatures",
+          "reason": "At least 11 distinct finalized address transactions observed.",
+          "observedAt": "2026-11-03T08:23:35.075Z"
+        },
+        {
+          "address": "DGzrc2ij2VJMQCmXqs9ozZsLyeAuvPPF7M37ZTLVHDtM",
+          "count": 11,
+          "exact": false,
+          "fresh": false,
+          "basis": "solana-address-signatures",
+          "reason": "At least 11 distinct finalized address transactions observed.",
+          "observedAt": "2026-11-03T08:23:35.075Z"
+        },
+        {
+          "address": "VJSDW6S74YXR4rRR9P4xwhMvLZJQMhrUb8XMFirUsy1",
+          "count": 11,
+          "exact": false,
+          "fresh": false,
+          "basis": "solana-address-signatures",
+          "reason": "At least 11 distinct finalized address transactions observed.",
+          "observedAt": "2026-11-03T08:23:35.075Z"
+        },
+        {
+          "address": "2dquZCEv3E9rPHQzRE2CH8ViZLsWywNJBdArQYkBBUN6",
+          "count": 11,
+          "exact": false,
+          "fresh": false,
+          "basis": "solana-address-signatures",
+          "reason": "At least 11 distinct finalized address transactions observed.",
+          "observedAt": "2026-11-03T08:23:35.075Z"
+        },
+        {
+          "address": "BKTVrpi7HgtDjgXJPZt6ZjLsY6JKRGG2CtraCq1U3skV",
+          "count": null,
+          "exact": false,
+          "fresh": null,
+          "basis": "solana-address-signatures",
+          "reason": "The bounded RPC deadline expired before wallet activity could be verified.",
+          "observedAt": "2026-11-03T08:23:35.075Z"
+        },
+        {
+          "address": "GeZzkXSKJ2AWkt6wnQewmhkerxYwAU88LWzEp9MxYfqW",
+          "count": null,
+          "exact": false,
+          "fresh": null,
+          "basis": "solana-address-signatures",
+          "reason": "The bounded RPC deadline expired before wallet activity could be verified.",
+          "observedAt": "2026-11-03T08:23:35.075Z"
+        },
+        {
+          "address": "CqA1NdxecqkNBfwsNHAkA5cfW57VC25Y2cxijxbecyxz",
+          "count": null,
+          "exact": false,
+          "fresh": null,
+          "basis": "solana-address-signatures",
+          "reason": "The bounded RPC deadline expired before wallet activity could be verified.",
+          "observedAt": "2026-11-03T08:23:35.075Z"
+        },
+        {
+          "address": "H1W6pU2KteBJuyau8kcLsnLTB9xZq2WLBw9H9Vv5UBHZ",
+          "count": null,
+          "exact": false,
+          "fresh": null,
+          "basis": "solana-address-signatures",
+          "reason": "The bounded RPC deadline expired before wallet activity could be verified.",
+          "observedAt": "2026-11-03T08:23:35.075Z"
+        },
+        {
+          "address": "3LKKGCCL9dF4KQ7dqFUywvkWDWzERz115N8m6LePfP48",
+          "count": null,
+          "exact": false,
+          "fresh": null,
+          "basis": "solana-address-signatures",
+          "reason": "The bounded RPC deadline expired before wallet activity could be verified.",
+          "observedAt": "2026-11-03T08:23:35.075Z"
+        },
+        {
+          "address": "GcKCNbiof4k4SFqAiuyoSSMnxxiusMgB5Cg4cgqKvBhz",
+          "count": null,
+          "exact": false,
+          "fresh": null,
+          "basis": "solana-address-signatures",
+          "reason": "The bounded RPC deadline expired before wallet activity could be verified.",
+          "observedAt": "2026-11-03T08:23:35.075Z"
+        },
+        {
+          "address": "6bdcRRXk84RRKoYTe8U5Wx3UMkf97bLDkBfJWMg6AKgt",
+          "count": null,
+          "exact": false,
+          "fresh": null,
+          "basis": "solana-address-signatures",
+          "reason": "The bounded RPC deadline expired before wallet activity could be verified.",
+          "observedAt": "2026-11-03T08:23:35.075Z"
+        },
+        {
+          "address": "2JbqddDEhTimPbaK9a2DCapxNesvQwMRjW4eapi91z2f",
+          "count": null,
+          "exact": false,
+          "fresh": null,
+          "basis": "solana-address-signatures",
+          "reason": "The bounded RPC deadline expired before wallet activity could be verified.",
+          "observedAt": "2026-11-03T08:23:35.075Z"
+        },
+        {
+          "address": "7MEPpotvTVUJUA4affxeaL1mhUJAQ34Mu86tUT429NWs",
+          "count": null,
+          "exact": false,
+          "fresh": null,
+          "basis": "solana-address-signatures",
+          "reason": "The bounded RPC deadline expired before wallet activity could be verified.",
+          "observedAt": "2026-11-03T08:23:35.075Z"
+        },
+        {
+          "address": "CP3eg5iBZ7nA1R9VUTqbS1Y2Shx8Agoyzbo2VAwF7As2",
+          "count": null,
+          "exact": false,
+          "fresh": null,
+          "basis": "solana-address-signatures",
+          "reason": "The bounded RPC deadline expired before wallet activity could be verified.",
+          "observedAt": "2026-11-03T08:23:35.075Z"
+        },
+        {
+          "address": "43YEt3no1xeLxsC54TQyFzDo73AQFsUfTds5gqugjVoo",
+          "count": null,
+          "exact": false,
+          "fresh": null,
+          "basis": "solana-address-signatures",
+          "reason": "The bounded RPC deadline expired before wallet activity could be verified.",
+          "observedAt": "2026-11-03T08:23:35.075Z"
+        },
+        {
+          "address": "G77BxGNAAVzRHzJTTardEcMefnHWg4FdWir4uH6NKeWw",
+          "count": null,
+          "exact": false,
+          "fresh": null,
+          "basis": "solana-address-signatures",
+          "reason": "The bounded RPC deadline expired before wallet activity could be verified.",
+          "observedAt": "2026-11-03T08:23:35.075Z"
+        },
+        {
+          "address": "E16jC5cGCqgyFfvygmdgD7SfhaqfbBRhtoSyQyqNWJV8",
+          "count": null,
+          "exact": false,
+          "fresh": null,
+          "basis": "solana-address-signatures",
+          "reason": "The bounded RPC deadline expired before wallet activity could be verified.",
+          "observedAt": "2026-11-03T08:23:35.075Z"
+        }
+      ],
+      "truncated": false
+    }
+  },
+  "expected": {
+    "score": 87,
+    "confidence": 0.801,
+    "holders": 19,
+    "readableNonCreator": 5,
+    "unreadNonCreator": 13
+  }
+}

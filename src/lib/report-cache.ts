@@ -7,7 +7,7 @@ import type {InvestigationReport} from './investigation-types';
 export const REPORT_CACHE_TTL=10*60_000;
 export const REPORT_CACHE_MAX_REPORT_BYTES=16*1024*1024;
 export const REPORT_CACHE_MAX_BYTES=64*1024*1024;
-const SCHEMA_VERSION=4,MAX_ENTRIES=32;
+const SCHEMA_VERSION=5,MAX_ENTRIES=32;
 export type CachedReport={expires:number;report:InvestigationReport};
 export type PersistentReportCache={get:(chain:Chain,token:string,limit:number)=>CachedReport|null;set:(chain:Chain,token:string,limit:number,entry:CachedReport)=>void};
 const object=(value:unknown):value is Record<string,unknown>=>!!value&&typeof value==='object'&&!Array.isArray(value);

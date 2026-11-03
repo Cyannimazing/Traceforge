@@ -8,6 +8,7 @@ import { mergeReportRefresh, mergeDeepReport } from './report-refresh';
 import type { PoolLaunchResult } from './pool-launch';
 import { getDisplayAssessment } from './verdict-summary';
 import {trustRating} from './trust-rating';
+import {observedDecision} from './observed-decision';
 import {computeRiskMetrics} from './risk-metrics';
 import type {SolanaPoolReserveResult} from './solana-pool-reserves';
 import {clockReferenceTime,type EvidenceClock} from './evidence-clock';
@@ -303,6 +304,7 @@ export function createInvestigationService(deps: Dependencies & {persistentCache
         result.riskMetrics=computeRiskMetrics(result);
         result.investigation.assessment=getDisplayAssessment(result);
         result.trustRating=trustRating(result);
+        result.observedDecision=observedDecision(result,result.trustRating);
         if(inFlight.get(key)===revision){
           if(mode==='deep')store(key,result,limit);
           else if(mode==='holders'&&prior&&prior.expires>now())cache.set(key,{expires:prior.expires,report:{...prior.report,...result,market:prior.report.market,sources:[...new Map([...prior.report.sources,...result.sources.filter(s=>s.name!=='DEX Screener')].map(s=>[s.name,s])).values()]}});

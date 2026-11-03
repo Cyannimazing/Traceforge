@@ -7,7 +7,7 @@ import { gsap } from 'gsap';
 import { short } from '@/lib/analysis';
 import { getDisplayAssessment } from '@/lib/verdict-summary';
 import { findingBreakdown } from '@/lib/finding-breakdown';
-import { verdictConfidence } from '@/lib/verdict-confidence';
+import {observedDecision} from '@/lib/observed-decision';
 import {trustRating} from '@/lib/trust-rating';
 import {buildCurrentHolderGraph} from '@/lib/current-holder-graph';
 import {holderScope} from '@/lib/holder-scope';
@@ -125,20 +125,39 @@ export default function ReportOverview({ report, selection, onSelect, onInspect,
   const breakdown = findingBreakdown(inv.findings);
   const reasons = breakdown.risks.filter(finding=>!finding.id.startsWith('funder:'));
   const fundingPatterns = breakdown.risks.filter(finding=>finding.id.startsWith('funder:'));
-  const rating=trustRating(report);
-  const decision = agentReview?.decision||rating.decision;
-  const scoreText=rating.score!==null?String(rating.score):rating.range?`${rating.range.lower}-${rating.range.upper}`:'Unavailable';
+  const rating=useMemo(()=>trustRating(report),[report]);
+  const observed=useMemo(()=>observedDecision(report,rating),[report,rating]);
+  const decision = agentReview?.decision||observed?.judge.decision||rating.decision;
+  const simpleReason=agentReview?.summary||rating.hard?.[0]||rating.soft?.[0]||(observed?.judge.p?decision==='OK'?'No stop rule was triggered in the observed activity.':'The observed activity raised warning signs.':rating.score===null?'Some wallet checks are incomplete.':rating.decision==='CLEAN'||rating.decision==='OK'?'No major warning found in the completed checks.':'The completed checks found warning signs.');
+  const scoreText=rating.score!==null?String(rating.score):'Unavailable';
   const points=(n:number)=>Number(n.toFixed(1)).toLocaleString();
-  const confidence = verdictConfidence(report);
+  const confidencePercent=observed?.judge.confidence==null?null:Math.round(observed.judge.confidence*1000)/10;
+  const unresolved=new Set(rating.components.filter(component=>component.state==='unknown').map(component=>component.id));
+  const why: {title:string;detail:string}[]=[];
+  for(const reason of [...(rating.hard||[]),...(rating.soft||[])])why.push({title:'Verified warning',detail:reason});
+  if(observed?.judge.p){
+   const factor=(id:string)=>observed.factors.find(f=>f.id===id)!;
+   why.push({title:'Holder concentration',detail:`The largest documented holder group holds ${(observed.largestShare*100).toFixed(2)}% of adjusted supply. The top ten groups hold ${(factor('concentration').value*100).toFixed(2)}%.`});
+   why.push({title:'Creator-linked holdings',detail:`${(factor('dev').value*100).toFixed(2)}% is held by the identified creator and directly linked wallets found in the retrieved records. Other funding paths remain unverified.`});
+   why.push({title:'Large-sale model',detail:`A hypothetical sale by the largest group moves the raw pool price ${(observed.impact*100).toFixed(1)}% in the model, before fees or token restrictions. This is not a verified trade quote.`});
+   why.push({title:'Wallet activity checked',detail:`Fresh-wallet exposure is ${(factor('fresh').value*100).toFixed(1)}% among ${observed.scope.readableFreshWallets} readable non-creator wallets; ${observed.scope.unreadFreshWallets} unread wallets are excluded. Early-buyer findings use retrieved records, not complete launch history.`});
+  }else{
+   if(unresolved.has('fresh'))why.push({title:'Some holder histories are unread',detail:'Lifetime activity has not been verified for every current holder, so the fresh-wallet check is incomplete.'});
+   if(unresolved.has('insiders')||unresolved.has('snipers'))why.push({title:'Early buying is unverified',detail:'The retrieved records do not cover the complete launch. First-minute buyers and pre-trading transfers are still unresolved.'});
+   if(unresolved.has('dev'))why.push({title:'Creator funding is not fully traced',detail:'The complete funding trail is missing, so the total held by the creator and creator-funded wallets cannot be confirmed.'});
+   if(unresolved.has('swarm'))why.push({title:'Sell impact is unverified',detail:'The available pool evidence cannot establish how much a sale by the largest holder group could move the price.'});
+  }
+  if(!why.length&&rating.score===null)why.push({title:'Required checks are incomplete',detail:'Some current contract controls or holder balances could not be verified. Open the evidence to see which source results are missing.'});
   const roles: { category: WalletCategory; name: string }[] = [{ category: 'creator', name: 'Creator' }, { category: 'authority', name: 'Authority' }, { category: 'sniper', name: 'Possible snipers' }];
   const verifiedTiming = inv.coverage.launchVerified || !!inv.coverage.poolTiming || !!inv.coverage.poolTimings?.length;
 
   return <section ref={root} className="report-overview" aria-label="Wallet network and assessment" data-paused={!animate}>
-    <div className={`ro-assessment ro-status-${agentReview?(decision==='AVOID'?'critical':decision==='OK'?'clear':'caution'):assessment.status}`}>
-      <header className="ro-verdict-heading"><h2>{agentReview?'Gemini verdict':'Independent verdict'}</h2><span className="ro-coverage">{inv.coverage.status === 'complete' ? 'Scope complete' : inv.coverage.status === 'partial' ? 'Partial evidence' : 'Evidence unavailable'}</span></header>
-      <div className="ro-rating"><strong className="ro-decision">{decision}</strong>{!LLM_REVIEW_ENABLED&&<div className="ro-overall-confidence" aria-label={`Six-factor ${rating.score===null?'score range':'score'}: ${scoreText} out of 100`}><strong>{scoreText}<small>/100</small></strong><span>{rating.score===null?'Score range - unresolved inputs':'Six-factor score'}</span></div>}{agentReview?.confidencePercent!=null&&<div className="ro-overall-confidence" aria-label={`Overall verdict confidence: ${agentReview.confidencePercent}% in ${decision}`}><strong>{agentReview.confidencePercent.toLocaleString(undefined,{maximumFractionDigits:1})}<small>%</small></strong><span>Verdict confidence</span></div>}</div>
-      {!LLM_REVIEW_ENABLED&&<p className="ro-overall-explanation">Sell impact, wallet activity, early exposure, concentration, first-minute buyers and creator holdings. Unresolved evidence widens the range; it is not a safety probability.</p>}
-      {agentReview?.confidencePercent!=null&&<p className="ro-overall-explanation">{agentReview.confidencePercent.toLocaleString(undefined,{maximumFractionDigits:1})}% model weight for {decision}. The breakdown below shows the alternatives.</p>}
+    <div className={`ro-assessment ro-status-${decision==='AVOID'?'critical':decision==='OK'||decision==='CLEAN'?'clear':'caution'}`}>
+      <header className="ro-verdict-heading"><h2>Verdict</h2><span className="ro-coverage">{observed?.judge.p?'Observed activity':inv.coverage.status === 'complete' ? 'Checks complete' : inv.coverage.status === 'partial' ? 'Incomplete checks' : 'Evidence unavailable'}</span></header>
+      <div className="ro-rating"><strong className="ro-decision">{decision}</strong><div className="ro-evidence-confidence" aria-label={confidencePercent===null?'Model confidence unavailable':`Model confidence: ${confidencePercent}%`}><span>Model confidence</span><strong>{confidencePercent===null?'Unavailable':<>{confidencePercent.toLocaleString(undefined,{maximumFractionDigits:1})}<small>%</small></>}</strong></div></div>
+      <p className="ro-simple-reason">{simpleReason}</p>
+      {why.length>0&&<section className="ro-plain-reasons" aria-label={`Why ${decision.toLowerCase()}?`}><h3>Why {decision.toLowerCase()}?</h3><ul>{why.map((reason,index)=><li key={`${reason.title}:${index}`}><strong>{reason.title}</strong><p>{reason.detail}</p></li>)}</ul></section>}
+      <details className="ro-analysis-details"><summary>Analysis details</summary><div className="ro-analysis-body">
       {agentReview&&<section className="ro-decision-weights" aria-label="AI decision weights">
         <h3>AI decision weights</h3>
         {agentReview.distribution?<>
@@ -148,8 +167,8 @@ export default function ReportOverview({ report, selection, onSelect, onInspect,
           <p>How Gemini weighs this evidence across the three decisions. Not a probability of token safety.</p>
         </>:<p>{agentReview.overrides.length?'Decision weights withheld because an evidence rule changed or restricted the AI verdict.':'The available evidence does not support decision weights.'}</p>}
       </section>}
-      <p className="ro-summary">{agentReview?.summary||assessment.summary}</p>
-      {!LLM_REVIEW_ENABLED&&rating.judge&&<DecisionOutput result={rating.judge}/>}
+      {!LLM_REVIEW_ENABLED&&(observed?.judge.p||rating.judge?.p)&&<DecisionOutput result={observed?.judge.p?observed.judge:rating.judge!}/>}
+      {observed&&<details className="ro-rating-details"><summary>Observed score - {observed.score}/100</summary><dl>{observed.factors.map(factor=><div key={factor.id}><dt>{factor.id}<small>{factor.detail}</small></dt><dd>{(factor.value*100).toFixed(2)}%</dd></div>)}</dl><p>{observed.scope.readableFreshWallets} readable non-creator wallets assessed; {observed.scope.unreadFreshWallets} unread excluded.</p>{observed.scope.notes.map(note=><p key={note}>{note}</p>)}</details>}
       <div className="ro-holder-scope">
         <dl aria-label="Holder snapshot and investigation scope">
           <div><dt>Snapshot holders</dt><dd>{snapshot.holders.length.toLocaleString()}</dd></div>
@@ -158,9 +177,9 @@ export default function ReportOverview({ report, selection, onSelect, onInspect,
         </dl>
         <p>Holder counts exclude {snapshot.infrastructure.length.toLocaleString()} observed infrastructure address{snapshot.infrastructure.length===1?'':'es'}. Traced addresses also include historical activity.{largestHolding?.value!=null?' Adjusted supply excludes observed infrastructure balances.':''}</p>
       </div>
-      <details className="ro-rating-details" open><summary>Six-factor score calculation</summary><p>{rating.score===null?`Current evidence supports a score between ${scoreText} out of 100. Missing measurements are not awarded clean points.`:`Measured score: ${scoreText}/100.`}</p><dl>{rating.components.map(component=><div key={component.id}><dt>{component.label}<details className="ro-factor-detail"><summary>Measurement details</summary><p>{component.detail}</p></details>{!!component.evidenceIds?.length&&<button className="ro-factor-evidence" onClick={()=>onSelect({kind:'group',id:`factor:${component.id}`,wallets:[],evidenceIds:component.evidenceIds!})}>Inspect {component.evidenceIds.length} evidence records <ArrowUpRight size={12}/></button>}</dt><dd>{component.state==='unknown'?`${points(component.lower??0)}-${points(component.upper??component.maximum)}`:points(component.earned)}<span> / {component.maximum}</span></dd></div>)}</dl>{!!rating.hard?.length&&<p>Stop rules: {rating.hard.join(' ')}</p>}{!!rating.soft?.length&&<p>Score cap: {rating.soft.join(' ')}</p>}<p>{rating.basis}</p></details>
+      <details className="ro-rating-details"><summary>Score breakdown</summary><p>{rating.score===null?'The overall score is unavailable while required checks remain incomplete.':`Measured score: ${scoreText}/100.`}</p><dl>{rating.components.map(component=><div key={component.id}><dt>{component.label}<details className="ro-factor-detail"><summary>Measurement details</summary><p>{component.detail}</p></details>{!!component.evidenceIds?.length&&<button className="ro-factor-evidence" onClick={()=>onSelect({kind:'group',id:`factor:${component.id}`,wallets:[],evidenceIds:component.evidenceIds!})}>Inspect {component.evidenceIds.length} evidence records <ArrowUpRight size={12}/></button>}</dt><dd>{component.state==='unknown'?'Not verified':points(component.earned)}<span> / {component.maximum}</span></dd></div>)}</dl>{!!rating.hard?.length&&<p>Stop rules: {rating.hard.join(' ')}</p>}{!!rating.soft?.length&&<p>Score cap: {rating.soft.join(' ')}</p>}<p>{rating.basis}</p></details>
       {report.controlProbes&&<details className="ro-rating-details"><summary>Direct RPC control observations - {report.controlProbes.observations.filter(o=>o.status==='observed').length} observed</summary><p>{report.controlProbes.anchor?`Block ${report.controlProbes.anchor.number}, ${report.controlProbes.anchor.finality}. `:''}{report.controlProbes.status}. Read at {dateText(report.controlProbes.fetchedAt)}.</p><dl>{report.controlProbes.observations.map(o=><div key={o.key}><dt>{o.key.split(':')[0]}<small>{o.detail}</small></dt><dd>{o.status==='unknown'?'Unresolved':o.outcome.replaceAll('-',' ')}</dd></div>)}</dl>{report.controlProbes.limitations.map(note=><p key={note}>{note}</p>)}</details>}
-      <details className="ro-confidence"><summary>Evidence support: {confidence.level}</summary><p>{confidence.reason}</p><p>Coverage describes what was checked. The rating describes the findings within that scope. Neither is a measured probability of future safety.</p></details>
+      <details className="ro-confidence"><summary>How confidence is calculated</summary><p>{confidencePercent===null?'The required model inputs are unavailable.':`${confidencePercent.toLocaleString(undefined,{maximumFractionDigits:1})}% is the normalized model weight for ${decision}, calculated from the observed score and risk signals.`} It is not a measured probability of token safety. Unread wallets are excluded from the fresh-wallet denominator; undocumented matches do not add risk to this observed-scope model. Unverified history remains a coverage limit.</p></details>
       {LLM_REVIEW_ENABLED&&<CryptoAgentPanel report={report} onSelect={onSelect} result={agentResult}/>}
       <p className="ro-findings-total">{breakdown.label}</p>
       <CheckBreakdown report={report} />
@@ -172,6 +191,7 @@ export default function ReportOverview({ report, selection, onSelect, onInspect,
         {!breakdown.risks.length && <p>{'No additional wallet-risk finding was established in the retrieved scope. See the verdict reasoning and coverage above.'}</p>}
       </div>
       {!inv.coverage.launchVerified&&<div className="ro-coverage-note"><strong>Coverage gap - launch history</strong><p>{verifiedTiming?'Selected pool windows are verified; the first-ever token launch is not.':'First-minute buyer coverage is unverified, so possible snipers cannot be assessed.'} This is missing evidence, not an additional detected risk.</p></div>}
+      </div></details>
       <div className="ro-age"><Clock3 size={18} aria-hidden="true" /><div><span>{age.basis}</span><strong>{age.value}</strong></div><details><summary>Source</summary><p>{age.detail}</p></details></div>
       {provider && <div className="ro-provider"><div><a href={provider.sourceUrl} target="_blank" rel="noreferrer">SwarmEngine report <ArrowUpRight size={13} /></a><span>{provider.band || 'No rating'}{provider.score != null && ` - ${provider.score}/100`}</span></div><small>Scanned {provider.providerTimestamp ? dateText(provider.providerTimestamp) : 'at an unreported time'}. Retrieved {dateText(provider.fetchedAt)}.</small><small>Provider claims are not independently verified. Its score is not a safety probability.</small></div>}
       <div className="ro-roles" aria-label="Roles in the supplied sample">{roles.map(({ category, name }) => {
@@ -181,8 +201,8 @@ export default function ReportOverview({ report, selection, onSelect, onInspect,
         const revoked=category==='authority'&&report.solana?.authorities.mint.address===null&&report.solana?.authorities.freeze.address===null;
         return <div key={category}><span>{name}</span>{wallets.length ? <button type="button" onClick={() => wallets.length === 1 ? selectWallet(wallets[0].address) : onInspect()}>{wallets.length} {reported ? 'reported' : 'identified'}<ArrowUpRight size={12} /></button> : <small>{revoked ? 'Mint / freeze revoked' : negative ? '0 reported in sample' : provider ? 'Not reported' : 'Not established'}</small>}{reportedCount > 0 && reportedCount < wallets.length && <small>{reportedCount} provider-reported</small>}{poolScoped && <small>Selected pools only</small>}</div>;
       })}</div>
-      <button type="button" className="ro-inspect" onClick={onInspect}>Inspect evidence and coverage <ArrowUpRight size={17} /></button>
-      <p className="ro-boundary">{report.fixture ? 'Synthetic example. ' : ''}A bounded investigation, not a guarantee of safety.</p>
+      <button type="button" className="ro-inspect" onClick={onInspect}>View evidence <ArrowUpRight size={17} /></button>
+      {report.fixture&&<p className="ro-boundary">Synthetic example.</p>}
     </div>
     <div className="ro-map">
       <header className="ro-map-heading"><h2>Holder map <Crosshair size={17} aria-hidden="true" /></h2><span>{graph.nodes.length} / {graph.total} holders</span></header>
