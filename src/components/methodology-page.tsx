@@ -15,14 +15,14 @@ const chapters = [
     'Provider scan time and retrieval time are separate. Cached reports can predate your request. A provider score is not a probability of safety, and a clean provider result does not resolve missing historical evidence.',
   ], takeaway: 'Open Sources & coverage to see what actually responded and which records the report accepted.' },
   { id: 'wallets', name: 'Wallets & connections', icon: Users, title: 'Start with the holder table', lead: 'An address is an observed participant. It is not an identity.', paragraphs: [
-    'Each row is a wallet or contract identified by a source. Supply share is a current snapshot. Creator, current owner, buyers and infrastructure remain separate roles. A wallet can have more than one role.',
+    'Each row is a wallet or contract identified by a source. Supply share is a current snapshot. Creator, current owner, buyers and infrastructure remain separate flags. A wallet can have more than one flag.',
     'Connections only appear when the investigation has supporting funding, transfer or deployment evidence. Connected groups may share a source of funds; they are not automatically one person. Unconnected wallets are not automatically independent.',
   ], detailTitle: 'What a first-minute label establishes', details: [
     "First-minute labels from a live pool proof refer only to transaction initiators in that selected pool. They do not establish the token's first-ever launch or beneficial ownership. The assessment links to the creation record, interval and transaction evidence.",
   ], takeaway: 'Inspect the wallet, its source and its relationship evidence before interpreting a group.' },
-  { id: 'labels', name: 'Roles & findings', icon: Fingerprint, title: 'Labels you can challenge', lead: 'Every role needs a basis. Every inference has a scope.', paragraphs: [
+  { id: 'labels', name: 'Flags & findings', icon: Fingerprint, title: 'Labels you can challenge', lead: 'Every flag needs a basis. Every inference has a scope.', paragraphs: [
     'Creator and authority labels require provider evidence. Early buyers and snipers require timestamped activity and a verified trading start in the stated scope. Accumulation and coordinated-selling labels describe only the observed trade sample. Every finding identifies its basis.',
-    'Exchange, bridge, pool and burn labels describe known address roles where sources supply them. Unclassified means the investigation lacks a supported label.',
+    'Exchange, bridge, pool and burn labels describe known address functions where sources supply them. Unclassified means the investigation lacks a supported label.',
   ], detailTitle: 'Independent findings and external labels', details: [
     'SwarmEngine flags are explicitly marked provider-reported and do not establish verified launch timing. External classifications remain separate from independently verified findings.',
   ], takeaway: 'A label is a claim you can inspect, not a substitute for its supporting evidence.' },
@@ -49,7 +49,7 @@ const chapters = [
 const channels = [
   { name: 'Market context', detail: 'Price, liquidity & pairs', icon: Search, chapter: 0 },
   { name: 'Token controls', detail: 'Security & authority evidence', icon: ShieldCheck, chapter: 2 },
-  { name: 'Holder snapshots', detail: 'Balances & address roles', icon: Users, chapter: 1 },
+  { name: 'Holder snapshots', detail: 'Balances & wallet flags', icon: Users, chapter: 1 },
   { name: 'Activity records', detail: 'Trades, transfers & funding', icon: GitBranch, chapter: 3 },
 ] as const;
 
@@ -122,7 +122,7 @@ export function MethodologyPage({ paused }: { paused: boolean }) {
         </svg>
         <div className="mp-evidence-junction"><Network size={23} strokeWidth={1.5}/><span>Evidence + scope</span></div>
       </div>
-      <div className="mp-flow-result"><button type="button" onClick={() => changeChapter(4)} aria-controls={`${uid}-reader`}><span>Independent report</span><ArrowUpRight size={18}/></button><p>Conceptual evidence flow. Motion does not represent live requests or transactions.</p></div>
+      <div className="mp-flow-result"><button type="button" onClick={() => changeChapter(4)} aria-controls={`${uid}-reader`}><span>Independent report</span><ArrowUpRight size={18}/></button><p>Conceptual evidence flow.</p></div>
     </div>
 
     <div className="mp-reading-layout" id={`${uid}-reader`}>

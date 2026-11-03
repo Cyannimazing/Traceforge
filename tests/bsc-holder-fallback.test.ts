@@ -70,15 +70,15 @@ test('known address seeds are reread at the anchor when discovery fails; zero is
 });
 
 
-function coldCurveMock(options:{zero?:boolean;fail?:boolean;reorg?:boolean}={}){
- const manager='0x5c952063c7fc8610ffdb798152d69f0b9550762b',buyer='0x662055e3e1d5171c922653f632ec08450607d86d',sold='0x964a7f99bb4276138e7e0cbc068fcb411ca72757',height=parseInt(mei.blocks.at(-1)!.number,16)+512,anchor='0x'+height.toString(16),time=parseInt(mei.blocks.at(-1)!.timestamp,16)+240;let anchorReads=0;const calls:any[]=[];
+function coldCurveMock(options:{zero?:boolean;fail?:boolean;reorg?:boolean;old?:boolean;zeroLaunchTime?:boolean}={}){
+ const manager='0x5c952063c7fc8610ffdb798152d69f0b9550762b',buyer='0x662055e3e1d5171c922653f632ec08450607d86d',sold='0x964a7f99bb4276138e7e0cbc068fcb411ca72757',height=parseInt(mei.blocks.at(-1)!.number,16)+(options.old?40000:512),anchor='0x'+height.toString(16),time=parseInt(mei.blocks.at(-1)!.timestamp,16)+(options.old?18000:240);let anchorReads=0;const calls:any[]=[];
  const fetcher:typeof fetch=async(_,init)=>{const raw=JSON.parse(String(init?.body)),requests=Array.isArray(raw)?raw:[raw],out=requests.map((r:any)=>{calls.push(r);let value:any;const p=r.params,creation=mei.receipts[0];
   if(r.method==='eth_chainId')value='0x38';
-  if(r.method==='eth_getBlockByNumber'){if(p[0]==='finalized'||p[0]===anchor){anchorReads++;value={number:anchor,hash:options.reorg&&anchorReads>=3?'0x'+'e'.repeat(64):hash,timestamp:'0x'+time.toString(16)};}else value=mei.blocks.find(b=>b.number===p[0])||{number:p[0],hash,timestamp:'0x'+(time-120).toString(16)};}
+  if(r.method==='eth_getBlockByNumber'){if(p[0]==='finalized'||p[0]===anchor){anchorReads++;value={number:anchor,hash:options.reorg&&anchorReads>=3?'0x'+'e'.repeat(64):hash,timestamp:'0x'+time.toString(16)};}else value=mei.blocks.find(b=>b.number===p[0])||{number:p[0],hash,timestamp:'0x'+(options.old?Math.floor(time-(height-parseInt(p[0],16))*.45):time-120).toString(16)};}
   if(r.method==='eth_getLogs'){const f=p[0],rows=f.address===manager?mei.receipts.flatMap(r=>r.logs).filter(l=>l.address.toLowerCase()===manager&&f.topics[0].includes(l.topics[0])):[...creation.logs,...mei.receipts[2].logs].filter(l=>l.address.toLowerCase()===mei.token&&l.topics[0]===transfer);value=rows.filter(l=>parseInt(l.blockNumber,16)>=parseInt(f.fromBlock,16)&&parseInt(l.blockNumber,16)<=parseInt(f.toBlock,16));}
   if(r.method==='eth_getTransactionReceipt')value=mei.receipts.find(r=>r.transactionHash===p[0]);
   if(r.method==='eth_getCode')value='0x6001';
-  if(r.method==='eth_call'){const data=p[0].data;if(data==='0x18160ddd')value=word(1000n*10n**18n);else if(data==='0x313ce567')value=word(18n);else if(data.startsWith('0x70a08231')){const address='0x'+data.slice(-40);if(options.fail&&address===buyer)return {id:r.id,error:{code:-32000}};value=word((address===manager?(options.zero?1000n:990n):address===buyer&&!options.zero?10n:0n)*10n**18n);}else value='0x'+[word(2n),topic(manager),word(0n),...Array(9).fill(word(0n))].map(w=>w.slice(2)).join('');}
+  if(r.method==='eth_call'){const data=p[0].data;if(data==='0x18160ddd')value=word(1000n*10n**18n);else if(data==='0x313ce567')value=word(18n);else if(data.startsWith('0x70a08231')){const address='0x'+data.slice(-40);if(options.fail&&address===buyer)return {id:r.id,error:{code:-32000}};value=word((address===manager?(options.zero?1000n:990n):address===buyer&&!options.zero?10n:0n)*10n**18n);}else{const fields=[word(2n),topic(manager),word(0n),...Array(9).fill(word(0n))];if(options.old&&!options.zeroLaunchTime)fields[6]=word(BigInt(mei.blocks[0].timestamp));value='0x'+fields.map(w=>w.slice(2)).join('');}}
   return {jsonrpc:'2.0',id:r.id,result:value};});return Response.json(Array.isArray(raw)?out:out[0]);};
  return {fetcher,now:()=>time*1000,report:{...report,token:mei.token,identities:[],holders:[{address:manager,share:99,contract:null,locked:null,tag:''}]},buyer,sold,anchor,calls};
 }
@@ -93,4 +93,15 @@ test('post-history zero balances stay absent, failed reads stay unknown, and cha
 test('post-history request failure preserves the verified snapshot and marks additional candidates unknown',async()=>{
  const m=coldCurveMock(),base=m.fetcher,fetcher:typeof fetch=async(url,init)=>{const raw=JSON.parse(String(init?.body)),rows=Array.isArray(raw)?raw:[raw];if(rows.some((r:any)=>r.method==='eth_call'&&r.params[0].data==='0x70a08231'+m.buyer.slice(2).padStart(64,'0')))throw new DOMException('Request deadline','TimeoutError');return base(url,init);};
  const r=await createBscHolderFallback({...m,fetcher})(m.report);assert(r.snapshot);assert.equal(r.holders?.length,1);assert(!r.snapshot.balances.some(b=>b.address===m.buyer));assert.match(r.reasons.join(' '),/Post-history balance verification.*unknown/);assert(r.curveTiming);
+});
+
+test('cold old launch is discovered from helper time within bounded queries and saved for restart',async()=>{
+ const m=coldCurveMock({old:true});let saved:any=null;const proofStore={get:()=>saved,set:(p:any)=>{saved=p;},delete:()=>{saved=null;}};
+ const first=await createBscHolderFallback({...m,proofStore})(m.report);assert(first.curveTiming);assert(saved);assert.equal(first.holders?.find(h=>h.address===m.buyer)?.share,1);assert(!first.holders?.some(h=>h.address===m.sold));
+ const discovery=m.calls.filter(c=>c.method==='eth_getLogs'&&c.params[0].address===mei.token);assert.equal(discovery.length,5);assert(discovery.every(c=>parseInt(c.params[0].toBlock,16)-parseInt(c.params[0].fromBlock,16)<5000));
+ const next=coldCurveMock({old:true,zero:true}),restored=await createBscHolderFallback({...next,proofStore})(next.report);assert(restored.curveTiming);assert(!restored.holders?.some(h=>h.address===m.buyer));assert.equal(next.calls.filter(c=>c.method==='eth_getLogs'&&c.params[0].address===mei.token).length,4);assert(next.calls.some(c=>c.method==='eth_getTransactionReceipt'));
+});
+
+test('zero helper launch time can use exact launchpad market time only as a receipt-discovery hint',async()=>{
+ for(const valid of [true,false]){const m=coldCurveMock({old:true,zeroLaunchTime:true}),market={chainId:'bsc',dexId:'fourmeme',pairAddress:mei.token+':4meme',baseToken:{address:valid?mei.token:other},pairCreatedAt:parseInt(mei.blocks[0].timestamp,16)*1000};const r=await createBscHolderFallback(m)({...m.report,market});assert.equal(!!r.curveTiming,valid);if(valid){assert(r.holders?.some(h=>h.address===m.buyer));assert.match(r.reasons.join(' '),/discovery hint/i);}}
 });

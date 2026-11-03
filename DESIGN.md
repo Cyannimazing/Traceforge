@@ -14,7 +14,7 @@ Reports: token/market context, verdict/reasons alongside the wallet map on deskt
 
 ## Visual system
 
-Solid black/charcoal surfaces, neutral borders, white text/controls. Space Grotesk for interface copy; JetBrains Mono for data. Teal only in map data; amber/red for findings with text labels. Boxy chrome matches the Ctrl K control: one shared 2px corner token for panels, buttons, inputs, menus, badges and drawers; thin neutral borders. Radar rings, circular data markers and status dots retain their functional geometry. No gradients. Controls 44-52px; dropdown exactly matches trigger width.
+Solid black/charcoal surfaces, neutral borders, white text/controls. Space Grotesk for interface copy; JetBrains Mono for data. Graphite and silver map data and controls, with no green theme; amber/red remain reserved for findings with text labels. Boxy chrome matches the Ctrl K control: one shared 2px corner token for panels, buttons, inputs, menus, badges and drawers; thin neutral borders. Radar rings, circular data markers and status dots retain their functional geometry. No gradients. Controls 44-52px; dropdown exactly matches trigger width.
 
 The fixed viewport light field responds to pointer without scrolling. The central form uses 14-16px padding, 44px controls and compact gaps. Content scrolls normally. Bounded canvas linework, CSS/GSAP pipeline signals, radar sweep, graph entry, observed-edge flow, selection and drawer transitions. Hidden/offscreen instruments and OS reduced-motion stop decoration. No visible pause switch. Animation never implies a live transaction or successful source response.
 
@@ -31,6 +31,12 @@ Desktop holder ledger uses explicit column widths and an 860px minimum inside it
 ## Verification
 
 Desktop/phone renders, real retrieval times, map/card selection, age/source disclosures, holder filters, exact dropdown width, fresh-load console. Regression tests, typecheck, production build. A redesign does not complete independent historical coverage.
+
+## Navigation and holder map - November 4
+
+The 62px sticky navigation uses a black brand rail, framed ForgeMark, silver route icons and one sliding active-route underline. Hover shifts the route icon and opens the brand registration corners. Below 901px, a square Menu control reveals the route panel with a short clipped transition; tablet routes use two columns and phone routes one. Short landscape screens retain two compact columns. Native hrefs, keyboard shortcuts, focus return, Escape and outside-click closing remain functional. Hidden/reduced-motion states stop decorative transitions.
+
+The holder map, its basis selector and flag details use graphite/silver throughout. A 14-second bounded floating field moves nodes while keeping real connection paths attached and holdings unchanged. Hover, keyboard focus, panning, selection and evidence inspection hold the relevant map still. Packing reserves the drift and selection-outline envelope. On phones the largest bubble labels are enlarged; smaller nodes retain their tooltip and table/card equivalent instead of crowded text. Holder interfaces say Flags, including the filter and evidence summaries.
 
 Home sizing uses a viewport minimum height and compact responsive source rows, ending at the provider trust strip. The separate Verdict explanation notice has been removed. Content can grow for short screens and large text. Discovery and the report feed do not appear below the home scan. The report feed remains available with completed reports, using only completed non-fixture scans stored on this device, with original retrieval times and no synthetic danger alerts. It rotates every seven seconds while visible, pausing on hover, focus, hidden tabs and reduced motion.
 

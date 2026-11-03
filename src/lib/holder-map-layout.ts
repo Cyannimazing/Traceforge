@@ -2,12 +2,12 @@ export type HolderMapPoint={share:number|null};
 export type HolderMapGeometry={x:number;y:number;radius:number};
 
 /** One common area scale, apart from the explicit minimum marker. Padding and
- * separation reserve room for the map's bounded five-pixel decorative drift.
+ * separation reserve room for the map's bounded floating field and local drift.
  * Deterministic shelf packing is a guaranteed fallback, never dropped holders. */
 export function layoutHolderMap(holders:readonly HolderMapPoint[],width=700,height=400):HolderMapGeometry[]{
  if(!holders.length)return [];
  if(!Number.isFinite(width)||!Number.isFinite(height)||width<160||height<160||holders.length>100)throw Error('Unsupported holder map dimensions or count.');
- const padding=32,gap=14,minRadius=7,w=width-padding*2,h=height-padding*2;
+ const padding=44,gap=14,minRadius=7,w=width-padding*2,h=height-padding*2;
  const weights=holders.map(holder=>typeof holder.share==='number'&&Number.isFinite(holder.share)&&holder.share>0?holder.share:0);
  const maximum=Math.max(...weights,0),order=weights.map((_,i)=>i).sort((a,b)=>weights[b]-weights[a]||a-b);
  function pack(scale:number):HolderMapGeometry[]|null{

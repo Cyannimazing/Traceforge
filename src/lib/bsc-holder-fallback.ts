@@ -1,6 +1,7 @@
 import {toFunctionSelector} from 'viem';
 import {readFourMemeHistory,FOUR_MEME_MANAGER,FOUR_MEME_HISTORY_SOURCE} from './four-meme-history';
 import type {CurveTimingProof} from './investigation-types';
+import type {PersistentLaunchProofs} from './launch-proof-store';
 export {FOUR_MEME_MANAGER} from './four-meme-history';
 import {validateToken,type Report} from './analysis';
 import type {PublicHistoryResult} from './public-history';
@@ -18,7 +19,7 @@ export type BscHolderFallbackResult=PublicHistoryResult&{curveTiming?:CurveTimin
  * are independently read at one finalized block, then its hash is rechecked.
  * RPC semantics: ethereum.org/developers/docs/apis/json-rpc/.
  * Public endpoint: bsc.publicnode.com. No archive entitlement is assumed. */
-export function createBscHolderFallback(deps:{rpcUrl?:string;fetcher?:typeof fetch;now?:()=>number;timeoutMs?:number;requestTimeoutMs?:number}={}){
+export function createBscHolderFallback(deps:{rpcUrl?:string;fetcher?:typeof fetch;now?:()=>number;timeoutMs?:number;requestTimeoutMs?:number;proofStore?:PersistentLaunchProofs}={}){
  const fetcher=deps.fetcher||fetch,now=deps.now||Date.now,url=deps.rpcUrl||'https://bsc-rpc.publicnode.com';
  return async(report:Report,options:{signal?:AbortSignal;history?:boolean;candidateAddresses?:string[]}={}):Promise<BscHolderFallbackResult>=>{
   const result:BscHolderFallbackResult={holders:[],holderCount:null,trades:[],transfers:[],identities:[],labels:[],reasons:[],sources:[],truncated:true};
@@ -84,12 +85,12 @@ export function createBscHolderFallback(deps:{rpcUrl?:string;fetcher?:typeof fet
     }catch{options.signal?.throwIfAborted();failed+=selected.length-start;break;}
    }
    if(inconsistent||balances.reduce((sum,b)=>sum+BigInt(b.amountRaw),0n)>supply)throw Error('Verified balances exceed total supply.');
-   let verifiedCustody=false;
+   let verifiedCustody=false,launchTimeHint:number|undefined;
    if(balances.some(b=>b.address===FOUR_MEME_MANAGER)){
     // Published chain-specific deployment, then verify token membership and code at the same anchor.
     // https://github.com/four-meme-community/fourmeme-docs/blob/main/docs/trade-guide.md
     try{const [code,info]=await batch([{method:'eth_getCode',params:[FOUR_MEME_MANAGER,anchor]},{method:'eth_call',params:[{to:FOUR_MEME_HELPER,data:toFunctionSelector('getTokenInfo(address)')+token.slice(2).padStart(64,'0')},anchor]}]);
-     if(typeof code==='string'&&/^0x(?:[0-9a-fA-F]{2})+$/.test(code)&&typeof info==='string'&&/^0x[0-9a-fA-F]{768}$/.test(info)){const fields=info.slice(2).match(/.{64}/g)!;verifiedCustody=BigInt('0x'+fields[0])===2n&&fields[1].toLowerCase()==='0'.repeat(24)+FOUR_MEME_MANAGER.slice(2)&&/^0{24}[0-9a-fA-F]{40}$/.test(fields[2])&&BigInt('0x'+fields[11])<=1n;}
+     if(typeof code==='string'&&/^0x(?:[0-9a-fA-F]{2})+$/.test(code)&&typeof info==='string'&&/^0x[0-9a-fA-F]{768}$/.test(info)){const fields=info.slice(2).match(/.{64}/g)!;verifiedCustody=BigInt('0x'+fields[0])===2n&&fields[1].toLowerCase()==='0'.repeat(24)+FOUR_MEME_MANAGER.slice(2)&&/^0{24}[0-9a-fA-F]{40}$/.test(fields[2])&&BigInt('0x'+fields[11])<=1n;const launch=Number(BigInt('0x'+fields[6]));if(verifiedCustody&&Number.isSafeInteger(launch)&&launch>0&&launch<=timestamp/1000)launchTimeHint=launch;}
     }catch{options.signal?.throwIfAborted();}
    }
    const checked=await rpc('eth_getBlockByNumber',[anchor,false]);
@@ -103,7 +104,13 @@ export function createBscHolderFallback(deps:{rpcUrl?:string;fetcher?:typeof fet
    result.reasons.push(`${result.holders.length} positive balances verified from ${selected.length} candidates; ${failed} reads unavailable, ${Math.max(0,candidates.size-selected.length)} candidates outside the 100-address bound. This is a sampled finalized snapshot, not a complete holder count or historical launch reconstruction.`);
    result.sources.push({name:source,status:result.holders.length?'available':'unavailable',fetchedAt:new Date(now()).toISOString(),detail:`balanceOf, totalSupply and decimals verified at finalized block ${block} (${head.hash}); block time ${at}. ${result.reasons.join(' ')}`});
    if(verifiedCustody&&options.history!==false&&!signal.aborted){
-    const history=await readFourMemeHistory({token,decimals,candidateLogs,anchor:{number:block,hash:head.hash,timestamp:timestamp/1000},observedAt:new Date(now()).toISOString(),batch,signal:options.signal});
+    // A public launchpad market timestamp is another untrusted search hint, not
+    // event evidence. Require the exact chain/token/pseudo-pair before using it.
+    const market=report.market;
+    if(!launchTimeHint&&market?.chainId==='bsc'&&market.dexId==='fourmeme'&&market.baseToken?.address.toLowerCase()===token&&market.pairAddress?.toLowerCase()===token+':4meme'&&typeof market.pairCreatedAt==='number'&&Number.isSafeInteger(market.pairCreatedAt)&&market.pairCreatedAt>0&&market.pairCreatedAt<=timestamp)launchTimeHint=Math.floor(market.pairCreatedAt/1000);
+    let savedProof:CurveTimingProof|null=null;try{savedProof=deps.proofStore?.get('bsc',token)??null;}catch{}
+    const history=await readFourMemeHistory({token,decimals,candidateLogs,savedProof,launchTimeHint,anchor:{number:block,hash:head.hash,timestamp:timestamp/1000},observedAt:new Date(now()).toISOString(),batch,signal:options.signal});
+    try{if(history.savedProofInvalid)deps.proofStore?.delete('bsc',token);if(history.proof)deps.proofStore?.set(history.proof);}catch{}
     result.trades=history.trades;result.identities=history.identities;result.curveTiming=history.proof;result.reasons.push(...history.reasons);
     result.sources.push({name:FOUR_MEME_HISTORY_SOURCE,status:history.trades.length||history.identities.length?'available':'unavailable',fetchedAt:new Date(now()).toISOString(),detail:history.reasons.join(' ')});
     // Canonical receipts can reveal recipients missing from a failed candidate range.

@@ -67,3 +67,34 @@ test('same-block purchases must follow the canonical creation log',async()=>{
  for(const l of buy.logs)l.logIndex='0x'+(parseInt(l.logIndex,16)+0x200).toString(16);
  assert.equal((await readFourMemeHistory(setup(data))).proof?.scope,'selected-launchpad');
 });
+
+test('saved launch anchors recover an expired recent window only after fresh receipts and contiguous logs',async()=>{
+ const initial=await readFourMemeHistory(setup());assert(initial.proof);
+ const input=setup();input.candidateLogs=[];input.anchor.number+=40000;input.anchor.timestamp+=20000;input.observedAt=new Date((input.anchor.timestamp+60)*1000).toISOString();
+ let receipts=0,ranges=0;const original=input.batch;input.batch=async calls=>{receipts+=calls.filter(c=>c.method==='eth_getTransactionReceipt').length;ranges+=calls.filter(c=>c.method==='eth_getLogs').length;return original(calls);};
+ const restored=await readFourMemeHistory({...input,savedProof:initial.proof});assert(restored.proof);assert.equal(restored.proof.firstPurchaseAt,initial.proof.firstPurchaseAt);assert(receipts>=3);assert(ranges>0);assert.notEqual(restored.proof.verifiedAt,initial.proof.verifiedAt);
+});
+test('saved anchors cannot survive canonical hash changes, missing receipts or wrong token binding',async()=>{
+ const initial=await readFourMemeHistory(setup());assert(initial.proof);
+ for(const mode of ['reorg','receipt','token']){const input=setup(mei,{failedReceipt:mode==='receipt'});input.candidateLogs=[];const original=input.batch;
+ if(mode==='reorg')input.batch=async calls=>(await original(calls)).map((v,i)=>calls[i].method==='eth_getBlockByNumber'?{...v as object,hash:'0x'+'0'.repeat(64)}:v);
+ const savedProof=mode==='token'?{...initial.proof,token:'0x'+'a'.repeat(40)}:initial.proof;
+ const restored=await readFourMemeHistory({...input,savedProof});assert.equal(restored.proof,undefined,mode);assert.equal(restored.trades.length,0,mode);
+ }
+});
+
+test('definitively failed saved receipts invalidate anchors while unavailable receipts retain retry hints',async()=>{
+ const savedProof=(await readFourMemeHistory(setup())).proof!;
+ for(const failed of [true,false]){const input=setup(),base=input.batch;input.candidateLogs=[];input.batch=async calls=>(await base(calls)).map((v,i)=>calls[i].method==='eth_getTransactionReceipt'&&calls[i].params[0]===savedProof.creation.transaction?(failed?{...v as object,status:'0x0'}:undefined):v);const result=await readFourMemeHistory({...input,savedProof});assert.equal(result.proof,undefined);assert.equal(!!result.savedProofInvalid,failed);}
+});
+
+test('changed final saved-proof boundary evicts the anchor and clears reconstructed trades',async()=>{
+ const savedProof=(await readFourMemeHistory(setup())).proof!,input=setup(),base=input.batch;input.candidateLogs=[];let pairs=0;
+ input.batch=async calls=>{const values=await base(calls);if(calls.length===2&&calls.every(c=>c.method==='eth_getBlockByNumber')&&calls[1].params[0]==='0x'+savedProof.through.blockNumber.toString(16)&&++pairs===2)return values.map(v=>({...v as object,hash:'0x'+'a'.repeat(64)}));return values;};
+ const result=await readFourMemeHistory({...input,savedProof});assert.equal(result.proof,undefined);assert.equal(result.savedProofInvalid,true);assert.equal(result.trades.length,0);
+});
+test('timestamp discovery respects cancellation without producing historical classifications',async()=>{
+ const input=setup(),controller=new AbortController();input.candidateLogs=[];let calls=0;
+ input.batch=async rows=>{if(rows.some(r=>r.method==='eth_getBlockByNumber')){calls++;controller.abort();controller.signal.throwIfAborted();}return rows.map(()=>undefined);};
+ await assert.rejects(readFourMemeHistory({...input,launchTimeHint:parseInt(mei.blocks[0].timestamp,16),signal:controller.signal}),{name:'AbortError'});assert.equal(calls,1);
+});

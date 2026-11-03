@@ -14,6 +14,7 @@ import {decisionDisplayPercentages} from '@/lib/decision-display';
 import {decisionLabels,decisionLabel,presentationText} from '@/lib/assessment-presentation';
 import {buildCurrentHolderGraph} from '@/lib/current-holder-graph';
 import {layoutHolderMap} from '@/lib/holder-map-layout';
+import {holderMapDrift} from '@/lib/holder-map-motion';
 import {holderMapFloatBasis,mapDisplayShare,resolveShareBasis,sharePercentText,type MapShareBasis} from '@/lib/holder-map-basis';
 import {holderScope} from '@/lib/holder-scope';
 import {computeRiskMetrics} from '@/lib/risk-metrics';
@@ -61,6 +62,7 @@ export default function ReportOverview({ report, selection, onSelect, onInspect,
   const root = useRef<HTMLElement>(null), viewport = useRef<SVGGElement>(null), motion = useRef<gsap.core.Timeline | null>(null), entrance = useRef<gsap.core.Timeline|null>(null);
   const [view, setView] = useState({ x: 0, y: 0, zoom: 1 });
   const [hovered, setHovered] = useState<string | null>(null), [localSelection, setLocalSelection] = useState<string | null>(null);
+  const [mapFocusHeld,setMapFocusHeld]=useState(false),[mapDragging,setMapDragging]=useState(false);
   const [onScreen, setOnScreen] = useState(false), [visible, setVisible] = useState(true), [reduced, setReduced] = useState(false);
   const selectedRaw = selection === undefined ? localSelection : selection?.kind === 'wallet' ? selection.id : null;
   const selected = selectedRaw&&report.chain!=='solana'?selectedRaw.toLowerCase():selectedRaw;
@@ -82,6 +84,7 @@ export default function ReportOverview({ report, selection, onSelect, onInspect,
     }
     return { total:current.total,excludedInfrastructure:current.excludedInfrastructure,truncated:current.truncated,documentedGroups:current.documentedGroups,nodes, edges, neighbors, linked: groups.sort((a, b) => b.length - a.length)[0] || [], positions: new Map(nodes.map(node => [node.address, node])) };
   }, [report]);
+  const floating = animate && graph.nodes.length>0 && !hovered && !mapFocusHeld && !mapDragging && !(selection === undefined ? localSelection : selection);
 
   useEffect(() => {
     const media = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -94,6 +97,7 @@ export default function ReportOverview({ report, selection, onSelect, onInspect,
   useEffect(() => {
     const context = gsap.context(() => {
       const sequence = gsap.timeline({ paused: true });
+      const clock={phase:0};
       const points = graph.nodes.map(node=>({address:node.address,x:node.x,y:node.y}));
       const positions = new Map(points.map(point=>[point.address,point]));
       const elements = [...(root.current?.querySelectorAll<SVGGElement>('[data-map-node]') || [])];
@@ -110,18 +114,19 @@ export default function ReportOverview({ report, selection, onSelect, onInspect,
       arrival.fromTo(root.current?.querySelectorAll('.ro-connection')||[],{strokeDasharray:'100 100',strokeDashoffset:100},{strokeDashoffset:0,duration:1.6,stagger:{amount:.65},ease:'power2.inOut',clearProps:'strokeDasharray,strokeDashoffset'},.35);
       entrance.current=arrival;
       const redraw = () => {
+        points.forEach((point,index)=>{const node=graph.nodes[index],drift=holderMapDrift(clock.phase,index);point.x=node.x+drift.x;point.y=node.y+drift.y;});
         elements.forEach((element,index)=>{const point=points[index];element.setAttribute('transform',`translate(${point.x} ${point.y})`);});
         edges.forEach((element,index)=>{const edge=graph.edges[index],a=positions.get(edge.from)!,b=positions.get(edge.to)!;const path=`M ${a.x} ${a.y} Q ${(a.x+b.x)/2} ${(a.y+b.y)/2-Math.min(30,Math.abs(a.x-b.x)/7)} ${b.x} ${b.y}`;element.querySelectorAll('path').forEach(line=>line.setAttribute('d',path));});
       };
-      // A six-pixel maximum drift preserves target spacing and makes the static
-      // snapshot explorable without pretending that these are live transfers.
-      points.forEach((point,index)=>sequence.to(point,{x:point.x+Math.cos(index*2.4)*5,y:point.y+Math.sin(index*1.7)*4,duration:6+index%5,repeat:-1,yoyo:true,ease:'sine.inOut'},0));
+      // One continuous field clock keeps every real edge attached. Packing
+      // reserves the full envelope; holding a target makes inspection stable.
+      sequence.to(clock,{phase:Math.PI*2,duration:14,repeat:-1,ease:'none'},0);
       sequence.eventCallback('onUpdate',redraw);
       motion.current = sequence;
     }, root);
     return () => { context.revert(); motion.current = null; entrance.current=null; };
   }, [graph]);
-  useEffect(() => { motion.current?.paused(!animate); if(reduced||paused)entrance.current?.progress(1).pause();else entrance.current?.paused(!animate); }, [animate, reduced, paused, graph]);
+  useEffect(() => { motion.current?.paused(!floating); if(reduced||paused)entrance.current?.progress(1).pause();else entrance.current?.paused(!animate); }, [animate, floating, reduced, paused, graph]);
   useEffect(() => {
     const tween = gsap.to(viewport.current, { attr: { transform: `translate(${view.x} ${view.y}) translate(350 200) scale(${view.zoom}) translate(-350 -200)` }, duration: animate && !drag.current ? .3 : 0, ease: 'power3.out', overwrite: true });
     return () => { tween.kill(); };
@@ -170,7 +175,7 @@ export default function ReportOverview({ report, selection, onSelect, onInspect,
   const roles: { category: WalletCategory; name: string }[] = [{ category: 'creator', name: 'Creator' }, { category: 'authority', name: 'Owner' }, { category: 'sniper', name: 'Snipers' }];
   const verifiedTiming = inv.coverage.launchVerified || !!inv.coverage.poolTiming || !!inv.coverage.poolTimings?.length || !!inv.coverage.curveTiming;
 
-  return <section ref={root} className="report-overview" aria-label="Wallet network and assessment" data-paused={!animate}>
+  return <section ref={root} className="report-overview" aria-label="Wallet network and assessment" data-paused={!animate} data-floating={floating}>
     <div className={`ro-assessment ro-status-${decision==='AVOID'?'critical':decision==='OK'?'clear':'caution'}`}>
       <header className="ro-verdict-heading"><h2>Assessment</h2><span className="ro-coverage">{rating.hard?.length?'Stop rule triggered':observed?.judge.p?'Observed activity':inv.coverage.status === 'complete' ? 'Checks complete' : inv.coverage.status === 'partial' ? 'Incomplete checks' : 'Evidence unavailable'}</span></header>
       <div className="ro-rating"><strong className="ro-decision">{decisionLabel(decision)}</strong><div className="ro-evidence-confidence" aria-label={`${verdictOutput.basis==='rule'?'Rule allocation':'Decision support'}: ${confidencePercent}%`}><span>{verdictOutput.basis==='rule'?'Rule allocation':'Decision support'}</span><strong>{confidencePercent.toLocaleString(undefined,{maximumFractionDigits:1})}<small>%</small></strong></div></div>
@@ -213,12 +218,13 @@ export default function ReportOverview({ report, selection, onSelect, onInspect,
       </div></details>
       <div className="ro-age"><Clock3 size={18} aria-hidden="true" /><div><span>{age.basis}</span><strong>{age.value}</strong></div><details><summary>Source</summary><p>{age.detail}</p></details></div>
       {provider && <div className="ro-provider"><div><a href={provider.sourceUrl} target="_blank" rel="noreferrer">SwarmEngine report <ArrowUpRight size={13} /></a><span>{provider.band || 'No rating'}{provider.score != null && ` - ${provider.score}/100`}</span></div><small>Scanned {provider.providerTimestamp ? dateText(provider.providerTimestamp) : 'at an unreported time'}. Retrieved {dateText(provider.fetchedAt)}.</small><small>Provider claims are not independently verified. Its score is not a safety probability.</small></div>}
-      <div className="ro-roles" aria-label="Roles in the supplied sample">{roles.map(({ category, name }) => {
+      <div className="ro-roles" aria-label="Flags in the supplied sample">{roles.map(({ category, name }) => {
         const wallets = inv.wallets.filter(wallet => wallet.categories.includes(category)), reportedCount = wallets.filter(wallet => wallet.categorySources?.[category] === 'swarm').length;
+        const currentCount = wallets.filter(wallet => snapshot.holders.some(holder => normalizeWallet(holder.address) === normalizeWallet(wallet.address))).length;
         const reported = reportedCount === wallets.length && reportedCount > 0, poolScoped = !reported && category === 'sniper' && !inv.coverage.launchVerified && verifiedTiming;
         const negative = category === 'sniper' && provider && provider.holders.length > 0 && provider.holders.every(holder => holder.signals.sniper === false);
         const revoked=category==='authority'&&report.solana?.authorities.mint.address===null&&report.solana?.authorities.freeze.address===null;
-        return <div key={category}><span>{name}</span>{wallets.length ? <button type="button" onClick={() => wallets.length === 1 ? selectWallet(wallets[0].address) : onInspect()}>{wallets.length} {reported ? 'reported' : 'identified'}<ArrowUpRight size={12} /></button> : <small>{revoked ? 'Mint / freeze revoked' : negative ? '0 reported in sample' : provider ? 'Not reported' : 'Not established'}</small>}{reportedCount > 0 && reportedCount < wallets.length && <small>{reportedCount} provider-reported</small>}{poolScoped && <small>{inv.coverage.curveTiming?'Selected launchpad / pool windows only':'Selected pools only'}</small>}</div>;
+        return <div key={category}><span>{name}</span>{wallets.length ? <button type="button" onClick={() => wallets.length === 1 ? selectWallet(wallets[0].address) : onInspect()}>{wallets.length} {reported ? 'reported' : 'identified'}<ArrowUpRight size={12} /></button> : <small>{revoked ? 'Mint / freeze revoked' : negative ? '0 reported in sample' : provider ? 'Not reported' : 'Not established'}</small>}{category==='sniper'&&wallets.length>0&&<small>{currentCount} current / {wallets.length} flagged {wallets.length===1?'wallet':'wallets'}</small>}{reportedCount > 0 && reportedCount < wallets.length && <small>{reportedCount} provider-reported</small>}{poolScoped && <small>{inv.coverage.curveTiming?'Selected launchpad / pool windows only':'Selected pools only'}</small>}</div>;
       })}</div>
       <button type="button" className="ro-inspect" onClick={onInspect}>View evidence <ArrowUpRight size={17} /></button>
       {report.fixture&&<p className="ro-boundary">Synthetic example.</p>}
@@ -229,11 +235,12 @@ export default function ReportOverview({ report, selection, onSelect, onInspect,
       <div className="ro-map-metrics"><span><strong>{graph.nodes.length}<small> / {graph.total}</small></strong>Holders shown</span><span><strong>{graph.edges.length}</strong>Documented links</span><span><strong>{graph.documentedGroups}</strong>Connected groups</span></div>
       <div className="ro-canvas">
         <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="group" aria-labelledby={`${id}-map-title`} aria-describedby={`${id}-map-help`} tabIndex={0}
+          onFocusCapture={()=>setMapFocusHeld(true)} onBlurCapture={event=>{if(!event.currentTarget.contains(event.relatedTarget as Node|null))setMapFocusHeld(false);}}
           onKeyDown={event => { if (event.target !== event.currentTarget) return; const steps: Record<string, [number, number]> = { ArrowLeft: [-25, 0], ArrowRight: [25, 0], ArrowUp: [0, -25], ArrowDown: [0, 25] }; if (steps[event.key]) { event.preventDefault(); const [x, y] = steps[event.key]; setView(value => ({ ...value, x: value.x + x, y: value.y + y })); } if (event.key === '+' || event.key === '=') { event.preventDefault(); zoom(.25); } if (event.key === '-') { event.preventDefault(); zoom(-.25); } if (event.key === 'Home') { event.preventDefault(); setView({ x: 0, y: 0, zoom: 1 }); } }}
-          onPointerDown={event => { if ((event.target as Element).closest('[data-wallet], [data-map-edge]') || event.button !== 0) return; drag.current = { x: event.clientX, y: event.clientY, originX: view.x, originY: view.y }; event.currentTarget.setPointerCapture(event.pointerId); }}
+          onPointerDown={event => { if ((event.target as Element).closest('[data-wallet], [data-map-edge]') || event.button !== 0) return; setMapDragging(true); drag.current = { x: event.clientX, y: event.clientY, originX: view.x, originY: view.y }; event.currentTarget.setPointerCapture(event.pointerId); }}
           onPointerMove={event => { if (animate && !drag.current && event.pointerType!=='touch') { const bounds=event.currentTarget.getBoundingClientRect(),scale=Math.min(bounds.width/WIDTH,bounds.height/HEIGHT),x=(event.clientX-bounds.left-(bounds.width-WIDTH*scale)/2)/scale,y=(event.clientY-bounds.top-(bounds.height-HEIGHT*scale)/2)/scale,inside=x>=20&&x<=680&&y>=20&&y<=380; event.currentTarget.parentElement?.setAttribute('data-reticle-active',String(inside)); if(inside){event.currentTarget.querySelector('[data-map-reticle]')?.setAttribute('transform',`translate(${x} ${y})`);event.currentTarget.querySelector('[data-map-cell]')?.setAttribute('transform',`translate(${20+Math.floor((x-20)/60)*60} ${20+Math.floor((y-20)/60)*60})`);} } if (!drag.current) return; const rect = event.currentTarget.getBoundingClientRect(), scale = Math.max(WIDTH / rect.width, HEIGHT / rect.height), origin = drag.current; setView(value => ({ ...value, x: origin.originX + (event.clientX - origin.x) * scale, y: origin.originY + (event.clientY - origin.y) * scale })); }}
           onPointerLeave={event=>{event.currentTarget.parentElement?.setAttribute('data-reticle-active','false');}}
-          onPointerUp={() => { drag.current = null; }} onPointerCancel={() => { drag.current = null; }} onLostPointerCapture={() => { drag.current = null; }}>
+          onPointerUp={() => { drag.current = null; setMapDragging(false); }} onPointerCancel={() => { drag.current = null; setMapDragging(false); }} onLostPointerCapture={() => { drag.current = null; setMapDragging(false); }}>
           <desc id={`${id}-map-title`}>Current holder snapshot. Connections require matching transaction evidence. Position and motion are visual layout only.</desc>
           <defs><clipPath id={`${id}-board-clip`}><rect x="20" y="20" width="660" height="360"/></clipPath></defs>
           <g className="ro-map-board" aria-hidden="true">
@@ -248,12 +255,12 @@ export default function ReportOverview({ report, selection, onSelect, onInspect,
             {graph.edges.map(edge => { const a = graph.positions.get(edge.from)!, b = graph.positions.get(edge.to)!, path = `M ${a.x} ${a.y} Q ${(a.x + b.x) / 2} ${(a.y + b.y) / 2 - Math.min(30, Math.abs(a.x - b.x) / 7)} ${b.x} ${b.y}`; return <g key={edge.id} data-map-edge="true" className={`ro-edge ${edge.attribution === 'provider-reported' ? 'is-reported' : ''} ${highlighted.has(edge.from) && highlighted.has(edge.to) ? 'is-highlighted' : ''} ${focusAddress&&(!highlighted.has(edge.from)||!highlighted.has(edge.to))?'is-muted':''}`}><path className="ro-connection" pathLength="100" d={path} aria-hidden="true"/><path className="ro-edge-flow" pathLength="100" d={path} aria-hidden="true"/><path className="ro-edge-hit" d={path} role="button" tabIndex={0} aria-label={`Inspect connection between ${short(edge.from)} and ${short(edge.to)}. ${edge.evidenceIds.length} evidence records.`} onClick={()=>onSelect({kind:'group',id:edge.id,wallets:[edge.from,edge.to],evidenceIds:edge.evidenceIds})} onKeyDown={event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();onSelect({kind:'group',id:edge.id,wallets:[edge.from,edge.to],evidenceIds:edge.evidenceIds});}}}/></g>; })}
             {graph.nodes.map(node => <g key={node.address} data-map-node="true" transform={`translate(${node.x} ${node.y})`}><g data-wallet="true" className={`ro-wallet ${selectedWallets.has(node.address) ? 'is-selected' : ''} ${focusAddress && !highlighted.has(node.address) ? 'is-muted' : ''}`} role="button" tabIndex={0} aria-label={`${node.label || node.address}, ${shareText(node.share)}. Inspect wallet evidence.`} aria-pressed={selectedWallets.has(node.address)} onPointerEnter={() => setHovered(node.address)} onPointerLeave={() => setHovered(null)} onFocus={() => setHovered(node.address)} onBlur={() => setHovered(null)} onClick={() => selectWallet(node.address)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectWallet(node.address); } }}>
               <circle className="ro-hit" r={Math.max(20, node.radius + 8)} />
-              <g className="ro-node-arrival"><circle className={`ro-node ${node.share == null ? 'is-unknown' : ''}`} r={node.radius} />{node.radius>=17&&<circle className="ro-node-inner" r={node.radius-4}/>}<circle className="ro-node-focus" r={node.radius+7} pathLength="100"/><circle className="ro-selection-orbit" r={node.radius+11} pathLength="100"/><circle key={selectedWallets.has(node.address)?'selected':'idle'} className="ro-selection-response" r={node.radius+15} pathLength="100"/>{node.categories.includes('creator')&&<circle className="ro-creator-ring" r={node.radius+3}/>}<path className="ro-node-brackets" d={`M${-node.radius-8} -5v-7h7M${node.radius+8} 5v7h-7`}/>{node.categories.includes('authority')&&<rect className="ro-authority-mark" x="-3" y={-node.radius-7} width="6" height="6"/>}{node.radius>=24?<text className="ro-node-label" textAnchor="middle" y="-2"><tspan x="0">{bubbleShare(node.share)}</tspan><tspan className="ro-node-rank" x="0" dy="16">{node.categories.includes('creator')?'CREATOR':node.categories.includes('authority')?'OWNER':`#${node.rank}`}</tspan></text>:<circle className="ro-node-core" r={node.share===null?0:1.6}/>}</g>
+              <g className="ro-node-arrival"><circle className={`ro-node ${node.share == null ? 'is-unknown' : ''}`} r={node.radius} />{node.radius>=17&&<circle className="ro-node-inner" r={node.radius-4}/>}<circle className="ro-node-focus" r={node.radius+7} pathLength="100"/><circle className="ro-selection-orbit" r={node.radius+11} pathLength="100"/><circle key={selectedWallets.has(node.address)?'selected':'idle'} className="ro-selection-response" r={node.radius+15} pathLength="100"/>{node.categories.includes('creator')&&<circle className="ro-creator-ring" r={node.radius+3}/>}<path className="ro-node-brackets" d={`M${-node.radius-8} -5v-7h7M${node.radius+8} 5v7h-7`}/>{node.categories.includes('authority')&&<rect className="ro-authority-mark" x="-3" y={-node.radius-7} width="6" height="6"/>}{node.radius>=24?<text className={node.radius<40 ? "ro-node-label ro-label-compact" : "ro-node-label"} textAnchor="middle" y="-2"><tspan x="0">{bubbleShare(node.share)}</tspan><tspan className="ro-node-rank" x="0" dy="16">{node.categories.includes('creator')?'CREATOR':node.categories.includes('authority')?'OWNER':`#${node.rank}`}</tspan></text>:<circle className="ro-node-core" r={node.share===null?0:1.6}/>}</g>
             </g></g>)}
           </g>
         </svg>
         {!graph.nodes.length && <p className="ro-map-empty">Holder map unavailable<small>No current holder addresses were returned. No relationship can be inferred from this empty view.</small></p>}
-        {focused&&<div className="ro-map-tooltip" aria-hidden="true"><strong>{focused.label||short(focused.address)}</strong><span>{shareText(focused.share)}</span>{shareBasis==='float'&&<span className="ro-map-raw-share">{formatMapShare(focused.share,'total')}</span>}<small>{focused.categories.filter(category=>category!=='unclassified').map(category=>category==='authority'?'Owner':category==='deployer-linked'?'Dev-linked':category.replaceAll('-',' ')).join(' / ')||'Wallet role not established'}</small></div>}
+        {focused&&<div className="ro-map-tooltip" aria-hidden="true"><strong>{focused.label||short(focused.address)}</strong><span>{shareText(focused.share)}</span>{shareBasis==='float'&&<span className="ro-map-raw-share">{formatMapShare(focused.share,'total')}</span>}<small>{focused.categories.filter(category=>category!=='unclassified').map(category=>category==='authority'?'Owner':category==='deployer-linked'?'Dev-linked':category.replaceAll('-',' ')).join(' / ')||'No additional wallet flag'}</small></div>}
         <div className="ro-map-controls" aria-label="Network view controls"><button type="button" aria-label="Zoom out" disabled={view.zoom <= .75} onClick={() => zoom(-.25)}><Minus size={16} /></button><output aria-label="Network zoom">{Math.round(view.zoom * 100)}%</output><button type="button" aria-label="Zoom in" disabled={view.zoom >= 2.5} onClick={() => zoom(.25)}><Plus size={16} /></button><button type="button" aria-label="Reset network view" onClick={() => setView({ x: 0, y: 0, zoom: 1 })}><RotateCcw size={15} /></button></div>
       </div>
       {graph.nodes.length>0&&<div className="ro-holder-rail" aria-label="Largest displayed holders">{graph.nodes.slice(0,3).map(node=><button type="button" key={node.address} className={selectedWallets.has(node.address)?'is-selected':''} onPointerEnter={()=>setHovered(node.address)} onPointerLeave={()=>setHovered(null)} onFocus={()=>setHovered(node.address)} onBlur={()=>setHovered(null)} onClick={()=>selectWallet(node.address)} aria-label={`Inspect holder rank ${node.rank}, ${node.address}, ${shareText(node.share)}`}><span className="ro-rail-rank">{String(node.rank).padStart(2,'0')}</span><span><strong>{node.label||short(node.address)}</strong><small>{shareText(node.share)}</small></span><ArrowUpRight size={13}/></button>)}</div>}
