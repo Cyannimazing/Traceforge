@@ -10,7 +10,7 @@ const at=(n:number)=>new Date(Date.UTC(2026,0,1)+n*1000).toISOString();
 function report():InvestigationReport{
  const input:InvestigationInput={chain:'ethereum',token:'token',holders:[{address:'buyer',share:12,balance:8}],trades:[{id:'feed',wallet:'buyer',timestamp:at(10),side:'buy',amount:99,transaction:'tx-p1',source:'Public feed'},{id:'other',wallet:'buyer',timestamp:at(300),side:'sell',amount:2,transaction:'sell',source:'Public feed'}],transfers:[{id:'fund',from:'creator',to:'buyer',timestamp:at(-1),amount:1,token:'ETH',native:true,transaction:'fundtx',source:'Explorer'}],identities:[{address:'creator',role:'creator',timestamp:at(-10),source:'Explorer'}],labels:[{address:'exchange',category:'exchange',label:'Known exchange',timestamp:at(0),source:'Explorer'}],launchVerified:false,complete:false,reasons:['Provider limited sample'],fetchedAt:at(600),holderLimit:100,buyerLimit:100,fundingHops:1,truncated:true};
  const investigation=analyzeInvestigation(input);investigation.evidence.push({id:'holding:ethereum:buyer',kind:'holding',timestamp:at(500),description:'Snapshot',source:'Holders'},{id:'security:mint',kind:'label',timestamp:at(500),description:'Can mint',source:'GoPlus Security'});investigation.wallets.find(w=>w.address==='buyer')!.evidenceIds.push('holding:ethereum:buyer');investigation.findings.push({id:'security:mint',title:'Mint',description:'Can mint',level:'critical',certainty:'observed',wallets:[],evidenceIds:['security:mint']});
- return {chain:'ethereum',token:'token',name:'Token',symbol:'T',fetchedAt:at(600),market:null,holders:[{address:'buyer',share:12,contract:null,locked:null,tag:''}],holderCount:null,identities:input.identities,checks:[{key:'mint',title:'Mint',status:'critical',value:'Yes',description:'Can mint'}],sources:[{name:'Holders',status:'available',detail:'Current',fetchedAt:at(500)}],investigation};
+ return {chain:'ethereum',token:'token',name:'Token',symbol:'T',fetchedAt:at(600),market:null,holders:[{address:'buyer',share:12,contract:null,locked:null,tag:''}],holderCount:null,identities:input.identities,checks:[{key:'mint',title:'Mint',status:'critical',value:'Yes',description:'Can mint',source:'GoPlus Security',fetchedAt:at(600)}],sources:[{name:'GoPlus Security',status:'available',detail:'Current controls',fetchedAt:at(600)},{name:'Holders',status:'available',detail:'Current',fetchedAt:at(500)}],investigation};
 }
 function pool(name='p1',start=0):HistoryPool{
  const id=`ethereum:${name}:tx-${name}:1`,proof:PoolTimingProof={verified:true,scope:'selected-pool',chain:'ethereum',pool:name,token0:'token',token1:'other',factory:'factory',firstSwapAt:at(start),firstSwapTransaction:`tx-${name}`,firstSwapLogIndex:1,windowEndAt:at(start+60),through:{blockNumber:100,blockHash:'hash',timestamp:at(start+61)},creation:{blockNumber:1,blockHash:'createhash',transaction:'create'},eligibleTradeIds:[id],verifiedAt:at(700)};
@@ -32,7 +32,7 @@ test('completed pool evidence replaces overlapping feed totals while retaining s
  assert.equal(buyer.bought,5);assert.equal(buyer.sold,2);assert.equal(buyer.share,12);assert.equal(buyer.balance,8);assert(buyer.categories.includes('sniper'));assert(buyer.categories.includes('deployer-linked'));
  assert(merged.investigation.wallets.find(w=>w.address==='exchange')?.categories.includes('exchange'));assert.equal(merged.investigation.relationships.find(r=>r.kind==='funding')?.from,'creator');
  for(const evidence of original.investigation.evidence)assert.deepEqual(merged.investigation.evidence.find(e=>e.id===evidence.id),evidence);
- assert(buyer.evidenceIds.includes('holding:ethereum:buyer'));assert.equal(merged.investigation.assessment.status,'critical');assert.equal(merged.sources[0].fetchedAt,at(500));assert.equal(merged.fetchedAt,at(600));assert.equal(merged.investigation.coverage.launchVerified,false);
+ assert(buyer.evidenceIds.includes('holding:ethereum:buyer'));assert.equal(merged.investigation.assessment.status,'critical');assert.equal(merged.sources.find(s=>s.name==='Holders')?.fetchedAt,at(500));assert.equal(merged.fetchedAt,at(600));assert.equal(merged.investigation.coverage.launchVerified,false);
  assert.equal(original.investigation.wallets.find(w=>w.address==='buyer')?.bought,99);
 });
 
@@ -40,7 +40,7 @@ test('completed history recomputes stale derived metrics and decision including 
  const original=report();original.riskMetrics={version:'evidence-metrics-v1',metrics:[],gaps:['stale snapshot']};original.trustRating={version:'evidence-v3',score:80,decision:'OK',basis:'stale',reasons:[],components:[],ceiling:null};
  const merged=mergeHistoryReport(original,job());
  assert.equal(merged.riskMetrics?.metrics.find(metric=>metric.id==='largest-holder-supply')?.value,12);
- assert.equal(merged.trustRating?.decision,'AVOID');assert.equal(merged.trustRating?.score,0);
+ assert.equal(merged.trustRating?.decision,'AVOID');assert.equal(merged.trustRating?.score,null);
  assert.deepEqual(original.riskMetrics.gaps,['stale snapshot']);assert.equal(original.trustRating.decision,'OK');
 });
 
@@ -51,7 +51,7 @@ test('history reconstruction scores freshly computed holder metrics rather than 
  original.riskMetrics=computeRiskMetrics(small);
  const merged=mergeHistoryReport(original,job()),distribution=merged.trustRating!.components.find(c=>c.id==='concentration')!;
  assert.equal(merged.riskMetrics!.metrics.find(m=>m.id==='largest-holder-adjusted-float')!.value,12);
- assert.equal(distribution.state,'flagged');assert.equal(distribution.earned,0);assert.match(distribution.detail,/12\.00%/);
+ assert.equal(distribution.state,'unknown');assert.equal(distribution.lower,0);assert.equal(distribution.upper,15);assert.match(distribution.detail,/12\.0000%/);
  assert.equal(merged.investigation.assessment.status,'caution');
  assert.deepEqual(merged.trustRating,trustRating(merged));assert.equal(original.riskMetrics.metrics.find(m=>m.id==='largest-holder-adjusted-float')?.value,3);
 });

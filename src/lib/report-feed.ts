@@ -4,7 +4,7 @@ import {getDisplayAssessment} from './verdict-summary';
 import {trustRating} from './trust-rating';
 
 export type FeedItem={chain:Chain;token:string;name:string;symbol:string;status:'critical'|'caution'|'insufficient'|'clear';title:string;reason:string;fetchedAt:string;source:string;score?:number|null;providerTimestamp?:string|null};
-export const FEED_KEY='traceforge.report-feed.v5';
+export const FEED_KEY='traceforge.report-feed.v6';
 export const FEED_EVENT='traceforge:report-feed';
 
 export function feedItem(report:InvestigationReport):FeedItem|null{

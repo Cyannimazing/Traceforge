@@ -1,0 +1,1775 @@
+{
+  "captured": "2026-11-03",
+  "purpose": "Public provider input/output observations, not safety labels or verified complete coverage. Curves remain behavioral inference.",
+  "rows": [
+    {
+      "token": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+      "chain": "solana",
+      "at": 1793566184,
+      "score": 91,
+      "parts": {
+        "swarm": 22.5,
+        "fresh": 20,
+        "insiders": 15,
+        "concentration": 14.8,
+        "snipers": 10,
+        "dev": 8.7
+      },
+      "metrics": {
+        "hands": 19,
+        "wallets": 19,
+        "impact": 0.22560688571848853,
+        "biggest": 0.045867200149329324,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0,
+        "concentration": 0.30611340644939544,
+        "dev": 0.0372706392013827
+      },
+      "split": "prior-observation"
+    },
+    {
+      "token": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+      "chain": "solana",
+      "at": 1793579659,
+      "score": 89,
+      "parts": {
+        "swarm": 20,
+        "fresh": 20,
+        "insiders": 15,
+        "concentration": 14.9,
+        "snipers": 10,
+        "dev": 8.8
+      },
+      "metrics": {
+        "hands": 19,
+        "wallets": 19,
+        "impact": 0.26697999378074344,
+        "biggest": 0.049356821565905734,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0,
+        "concentration": 0.3019722298019409,
+        "dev": 0.036084063294484374
+      },
+      "split": "prior-observation"
+    },
+    {
+      "token": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+      "chain": "solana",
+      "at": 1793597691,
+      "score": 87,
+      "parts": {
+        "swarm": 19.3,
+        "fresh": 20,
+        "insiders": 15,
+        "concentration": 14.4,
+        "snipers": 10,
+        "dev": 8.6
+      },
+      "metrics": {
+        "hands": 19,
+        "wallets": 19,
+        "impact": 0.27857553120154543,
+        "biggest": 0.048602188514686326,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0,
+        "concentration": 0.3210510358904391,
+        "dev": 0.0384360483834429
+      },
+      "split": "prior-observation"
+    },
+    {
+      "token": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+      "chain": "solana",
+      "at": 1793580362,
+      "score": 89,
+      "parts": {
+        "swarm": 20.4,
+        "fresh": 20,
+        "insiders": 15,
+        "concentration": 14.9,
+        "snipers": 10,
+        "dev": 8.7
+      },
+      "metrics": {
+        "hands": 19,
+        "wallets": 19,
+        "impact": 0.26048643009127415,
+        "biggest": 0.049818702759843125,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0,
+        "concentration": 0.3047980862815891,
+        "dev": 0.03642173800099508
+      },
+      "split": "prior-observation"
+    },
+    {
+      "token": "0x4f4d98b892063d4e811b6c6c7a8c6a0ba2306ce7",
+      "chain": "ethereum",
+      "at": 1793689525,
+      "score": 75,
+      "parts": {
+        "swarm": 30,
+        "fresh": 20,
+        "insiders": 15,
+        "concentration": 0,
+        "snipers": 0,
+        "dev": 10
+      },
+      "metrics": {
+        "hands": 14,
+        "wallets": 14,
+        "impact": 0.013011666044774217,
+        "biggest": 0.14042249390149644,
+        "fresh": 0.07142857142857142,
+        "insiders": 0,
+        "snipers": 0.9861260250779722,
+        "concentration": 0.9571648156770151,
+        "dev": 0
+      },
+      "split": "prior-observation"
+    },
+    {
+      "chain": "solana",
+      "token": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+      "at": 1793687765,
+      "score": 87,
+      "band": "CLEAN",
+      "parts": {
+        "swarm": 20.7,
+        "fresh": 20,
+        "insiders": 15,
+        "concentration": 13.5,
+        "snipers": 10,
+        "dev": 8.1
+      },
+      "metrics": {
+        "hands": 19,
+        "wallets": 19,
+        "impact": 0.25428266133388566,
+        "biggest": 0.05038098465246228,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0,
+        "concentration": 0.34869458203235715,
+        "dev": 0.04503589965214935
+      },
+      "gates": [],
+      "unread": 13,
+      "split": "additional-validation"
+    },
+    {
+      "chain": "solana",
+      "token": "FxQ5GbqCBxNHDpFTpiL9RDVHiP58ar5nMkR3eMwepump",
+      "at": 1793690374,
+      "score": 80,
+      "band": "CLEAN",
+      "parts": {
+        "swarm": 10.5,
+        "fresh": 20,
+        "insiders": 15,
+        "concentration": 15,
+        "snipers": 10,
+        "dev": 10
+      },
+      "metrics": {
+        "hands": 18,
+        "wallets": 18,
+        "impact": 0.4257890999158499,
+        "biggest": 0.03579135297698886,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0,
+        "concentration": 0.21319838473314384,
+        "dev": 0
+      },
+      "gates": [],
+      "unread": 16,
+      "split": "discovery"
+    },
+    {
+      "chain": "ethereum",
+      "token": "0x58d63f81cb1ec28280b23307fe3245c5fcbfa573",
+      "at": 1793689296,
+      "score": 90,
+      "band": "CLEAN",
+      "parts": {
+        "swarm": 24,
+        "fresh": 20,
+        "insiders": 15,
+        "concentration": 10.7,
+        "snipers": 10,
+        "dev": 10
+      },
+      "metrics": {
+        "hands": 48,
+        "wallets": 48,
+        "impact": 0.19991776822472573,
+        "biggest": 0.08348962656639583,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0,
+        "concentration": 0.4417614025470339,
+        "dev": 0
+      },
+      "gates": [],
+      "unread": 33,
+      "split": "discovery"
+    },
+    {
+      "chain": "ethereum",
+      "token": "0x16628313b00b46e5ba16037ddbd5339944f84803",
+      "at": 1793689289,
+      "score": 75,
+      "band": "OK",
+      "parts": {
+        "swarm": 30,
+        "fresh": 20,
+        "insiders": 15,
+        "concentration": 0,
+        "snipers": 0,
+        "dev": 10
+      },
+      "metrics": {
+        "hands": 11,
+        "wallets": 11,
+        "impact": 0.05303277459651834,
+        "biggest": 0.17689387299270742,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0.9348948851651372,
+        "concentration": 0.9740180022478926,
+        "dev": 0
+      },
+      "gates": [],
+      "unread": 0,
+      "split": "discovery"
+    },
+    {
+      "chain": "ethereum",
+      "token": "0x1723cb47047559cdac20a53907ff9057612deef7",
+      "at": 1793689286,
+      "score": 78,
+      "band": "OK",
+      "parts": {
+        "swarm": 27.3,
+        "fresh": 20,
+        "insiders": 15,
+        "concentration": 2.6,
+        "snipers": 2.9,
+        "dev": 10
+      },
+      "metrics": {
+        "hands": 17,
+        "wallets": 17,
+        "impact": 0.14532975325202158,
+        "biggest": 0.10443027654335145,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0.18641382808418883,
+        "concentration": 0.7142875988957628,
+        "dev": 0
+      },
+      "gates": [],
+      "unread": 2,
+      "split": "discovery"
+    },
+    {
+      "chain": "solana",
+      "token": "TFWbVHQmW3Y8kHRPBoc8wttiZ7RufzZMPbgqdquSBQR",
+      "at": 1793689264,
+      "score": 93,
+      "band": "CLEAN",
+      "parts": {
+        "swarm": 30,
+        "fresh": 20,
+        "insiders": 15,
+        "concentration": 11.3,
+        "snipers": 6.8,
+        "dev": 10
+      },
+      "metrics": {
+        "hands": 19,
+        "wallets": 19,
+        "impact": 0.015687027760063588,
+        "biggest": 0.06011409179713289,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0.09950561082919639,
+        "concentration": 0.424488194436084,
+        "dev": 0
+      },
+      "gates": [],
+      "unread": 4,
+      "split": "discovery"
+    },
+    {
+      "chain": "solana",
+      "token": "G5iLk9Nbbua6F2w8AeKfvGAWFJvVjjwZozgNipmvMCtL",
+      "at": 1793689261,
+      "score": 50,
+      "band": "RISKY",
+      "parts": {
+        "swarm": 30,
+        "fresh": 20,
+        "insiders": 0,
+        "concentration": 0,
+        "snipers": 0,
+        "dev": 0
+      },
+      "metrics": {
+        "hands": 19,
+        "wallets": 19,
+        "impact": 0.06646789657230612,
+        "biggest": 0.49418310418159683,
+        "fresh": 0,
+        "insiders": 0.49418310418159683,
+        "snipers": 0.6326947713969082,
+        "concentration": 0.8064843802289293,
+        "dev": 0.49418310418159683
+      },
+      "gates": [
+        "soft: creator and linked wallets hold 49.4% of float"
+      ],
+      "unread": 4,
+      "split": "discovery"
+    },
+    {
+      "chain": "solana",
+      "token": "7haSMtw4vgsWCDmzSDvw85gcc3JH4v8Q2ngGWifHkdZ3",
+      "at": 1793689157,
+      "score": 50,
+      "band": "DANGER",
+      "parts": {
+        "swarm": 0,
+        "fresh": 20,
+        "insiders": 15,
+        "concentration": 0,
+        "snipers": 5,
+        "dev": 10
+      },
+      "metrics": {
+        "hands": 19,
+        "wallets": 19,
+        "impact": 0.6853886410357544,
+        "biggest": 0.8524062746968002,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0.14104964568603204,
+        "concentration": 0.9914692068765648,
+        "dev": 0
+      },
+      "gates": [
+        "biggest hand could dump price −69% (85.2% of float)",
+        "soft: liquidity too thin ($1)",
+        "soft: 2 holders already acted as one swarm in another token"
+      ],
+      "unread": 4,
+      "split": "discovery"
+    },
+    {
+      "chain": "robinhood",
+      "token": "0x819927120effe37e2fbad0e8a72ce018d3cec341",
+      "at": 1793689117,
+      "score": 43,
+      "band": "DANGER",
+      "parts": {
+        "swarm": 0,
+        "fresh": 20,
+        "insiders": 15,
+        "concentration": 5.7,
+        "snipers": 1.9,
+        "dev": 0
+      },
+      "metrics": {
+        "hands": 49,
+        "wallets": 49,
+        "impact": 0.7586453898836824,
+        "biggest": 0.4082284892303537,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0.20711592399489637,
+        "concentration": 0.6087501438838525,
+        "dev": 0.4082284892303537
+      },
+      "gates": [
+        "biggest hand could dump price −76% (40.8% of float)",
+        "soft: creator and linked wallets hold 40.8% of float"
+      ],
+      "unread": 34,
+      "split": "discovery"
+    },
+    {
+      "chain": "robinhood",
+      "token": "0x29fc977a47649a32fadb867d1fa6d07907727777",
+      "at": 1793689117,
+      "score": 43,
+      "band": "DANGER",
+      "parts": {
+        "swarm": 0,
+        "fresh": 20,
+        "insiders": 15,
+        "concentration": 0.7,
+        "snipers": 7,
+        "dev": 0
+      },
+      "metrics": {
+        "hands": 49,
+        "wallets": 49,
+        "impact": 0.7519864938742897,
+        "biggest": 0.6340331001996923,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0.0961826719649771,
+        "concentration": 0.7772800308125041,
+        "dev": 0.6340331001996923
+      },
+      "gates": [
+        "biggest hand could dump price −75% (63.4% of float)",
+        "soft: creator and linked wallets hold 63.4% of float",
+        "soft: 5 holders already acted as one swarm in another token"
+      ],
+      "unread": 34,
+      "split": "holdout"
+    },
+    {
+      "chain": "robinhood",
+      "token": "0x49bfee3ef05608509d05ef24f539fa0b54c943c5",
+      "at": 1793689098,
+      "score": 32,
+      "band": "DANGER",
+      "parts": {
+        "swarm": 7.1,
+        "fresh": 0,
+        "insiders": 15,
+        "concentration": 0,
+        "snipers": 0,
+        "dev": 10
+      },
+      "metrics": {
+        "hands": 18,
+        "wallets": 20,
+        "impact": 0.4816348323033838,
+        "biggest": 0.27967480545800655,
+        "fresh": 1,
+        "insiders": 0,
+        "snipers": 0.6208759059009177,
+        "concentration": 0.8780734082285848,
+        "dev": 0
+      },
+      "gates": [
+        "100% of top holders are fresh wallets",
+        "soft: pack of 3 wallets, 8.0% of float"
+      ],
+      "unread": 5,
+      "split": "holdout"
+    },
+    {
+      "chain": "solana",
+      "token": "3rNMYJTc6EMJzarVatga4dA8yrampk6uyRfrgbas7dGb",
+      "at": 1793689023,
+      "score": 59,
+      "band": "RISKY",
+      "parts": {
+        "swarm": 23.7,
+        "fresh": 20,
+        "insiders": 5.2,
+        "concentration": 11.1,
+        "snipers": 1.2,
+        "dev": 0
+      },
+      "metrics": {
+        "hands": 13,
+        "wallets": 19,
+        "impact": null,
+        "biggest": 0.20521215243987428,
+        "fresh": 0,
+        "insiders": 0.1372382102858269,
+        "snipers": 0.22303826048930578,
+        "concentration": 0.4288850425796641,
+        "dev": 0.20521215243987428
+      },
+      "gates": [
+        "soft: swarm of 7 wallets, 20.5% of float",
+        "soft: creator and linked wallets hold 20.5% of float",
+        "soft: 4 holders already acted as one swarm in another token"
+      ],
+      "unread": 4,
+      "split": "holdout"
+    },
+    {
+      "chain": "solana",
+      "token": "21YSrwzVY6U2r14peJjRwJhs3bRbfZ9aE2YV6qa2pump",
+      "at": 1793689022,
+      "score": 66,
+      "band": "DANGER",
+      "parts": {
+        "swarm": 0,
+        "fresh": 20,
+        "insiders": 15,
+        "concentration": 13.9,
+        "snipers": 7.2,
+        "dev": 10
+      },
+      "metrics": {
+        "hands": 19,
+        "wallets": 19,
+        "impact": 0.7703232999457654,
+        "biggest": 0.20489696912895736,
+        "fresh": 0.13333333333333333,
+        "insiders": 0,
+        "snipers": 0.0926377947438824,
+        "concentration": 0.33791287456691743,
+        "dev": 0
+      },
+      "gates": [
+        "biggest hand could dump price −77% (20.5% of float)"
+      ],
+      "unread": 4,
+      "split": "holdout"
+    },
+    {
+      "chain": "solana",
+      "token": "z8umsXG8tqkBd9G8u5uXdEFYsytH4MgKvkxnizjpump",
+      "at": 1793688843,
+      "score": 45,
+      "band": "DANGER",
+      "parts": {
+        "swarm": 0,
+        "fresh": 20,
+        "insiders": 15,
+        "concentration": 0,
+        "snipers": 10,
+        "dev": 0
+      },
+      "metrics": {
+        "hands": 19,
+        "wallets": 19,
+        "impact": 0.9999805871534897,
+        "biggest": 0.7958921468838438,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0.0000023892268555404367,
+        "concentration": 0.9999960566189184,
+        "dev": 0.7958921468838438
+      },
+      "gates": [
+        "biggest hand could dump price −100% (79.6% of float)",
+        "soft: creator and linked wallets hold 79.6% of float"
+      ],
+      "unread": 7,
+      "split": "additional-validation"
+    },
+    {
+      "chain": "bsc",
+      "token": "0xbaeec1af8b60aa992341a4dd5114203b1ee92681",
+      "at": 1793688586,
+      "score": 59,
+      "band": "RISKY",
+      "parts": {
+        "swarm": 22.8,
+        "fresh": 20,
+        "insiders": 15,
+        "concentration": 4.7,
+        "snipers": 8.3,
+        "dev": 10
+      },
+      "metrics": {
+        "hands": 45,
+        "wallets": 45,
+        "impact": 0.22014820516750866,
+        "biggest": 0.09001450852515112,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0.06749549450339684,
+        "concentration": 0.6430380487444802,
+        "dev": 0
+      },
+      "gates": [
+        "soft: liquidity too thin ($0)",
+        "soft: 2 holders already acted as one swarm in another token"
+      ],
+      "unread": 30,
+      "split": "additional-validation"
+    },
+    {
+      "chain": "bsc",
+      "token": "0x7ce10216d981419be0699e267a29230d2cc67777",
+      "at": 1793688553,
+      "score": 59,
+      "band": "RISKY",
+      "parts": {
+        "swarm": 28.2,
+        "fresh": 20,
+        "insiders": 15,
+        "concentration": 7.7,
+        "snipers": 3.5,
+        "dev": 10
+      },
+      "metrics": {
+        "hands": 48,
+        "wallets": 48,
+        "impact": 0.13055919617704603,
+        "biggest": 0.08540679054156898,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0.1736231876655749,
+        "concentration": 0.5426819623873058,
+        "dev": 0
+      },
+      "gates": [
+        "soft: 2 holders already acted as one swarm in another token"
+      ],
+      "unread": 33,
+      "split": "additional-validation"
+    },
+    {
+      "chain": "bsc",
+      "token": "0xed9dad07308b772b923ce41369706b46b4e77777",
+      "at": 1793688552,
+      "score": 59,
+      "band": "RISKY",
+      "parts": {
+        "swarm": 30,
+        "fresh": 20,
+        "insiders": 15,
+        "concentration": 10.1,
+        "snipers": 7.3,
+        "dev": 10
+      },
+      "metrics": {
+        "hands": 48,
+        "wallets": 48,
+        "impact": 0.07129690747595374,
+        "biggest": 0.06129461999443332,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0.08951716853190543,
+        "concentration": 0.46299794252699156,
+        "dev": 0
+      },
+      "gates": [
+        "soft: 2 holders already acted as one swarm in another token"
+      ],
+      "unread": 33,
+      "split": "additional-validation"
+    },
+    {
+      "chain": "bsc",
+      "token": "0x8dff18972eb87faff92c90988c65c4f506c29709",
+      "at": 1793688533,
+      "score": 75,
+      "band": "OK",
+      "parts": {
+        "swarm": 30,
+        "fresh": 20,
+        "insiders": 15,
+        "concentration": 0,
+        "snipers": 0,
+        "dev": 10
+      },
+      "metrics": {
+        "hands": 9,
+        "wallets": 9,
+        "impact": 0.05299270219326346,
+        "biggest": 0.2671729758441288,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0.5378355640688218,
+        "concentration": 1,
+        "dev": 0
+      },
+      "gates": [],
+      "unread": 0,
+      "split": "additional-validation"
+    },
+    {
+      "chain": "ethereum",
+      "token": "0x9245684997ada3b1a6a8f76bc1712724ea16de9d",
+      "at": 1793687850,
+      "score": 59,
+      "band": "RISKY",
+      "parts": {
+        "swarm": 22.2,
+        "fresh": 20,
+        "insiders": 15,
+        "concentration": 0,
+        "snipers": 5.9,
+        "dev": 0
+      },
+      "metrics": {
+        "hands": 9,
+        "wallets": 9,
+        "impact": 0.22998450028577744,
+        "biggest": 0.3525616396936309,
+        "fresh": 0.125,
+        "insiders": 0,
+        "snipers": 0.12028751088410272,
+        "concentration": 1,
+        "dev": 0.3525616396936309
+      },
+      "gates": [
+        "soft: creator and linked wallets hold 35.3% of float"
+      ],
+      "unread": 0,
+      "split": "additional-validation"
+    },
+    {
+      "chain": "solana",
+      "token": "5cKX3tn119ayha94BD6xEZQekQUG8stwHHNTuNBppump",
+      "at": 1793687433,
+      "score": 89,
+      "band": "CLEAN",
+      "parts": {
+        "swarm": 30,
+        "fresh": 20,
+        "insiders": 14.8,
+        "concentration": 7.4,
+        "snipers": 9.8,
+        "dev": 7.1
+      },
+      "metrics": {
+        "hands": 17,
+        "wallets": 18,
+        "impact": null,
+        "biggest": 0.08167137598309075,
+        "fresh": 0.125,
+        "insiders": 0.02232887446446135,
+        "snipers": 0.03501115982661108,
+        "concentration": 0.5539007368527867,
+        "dev": 0.05734003429107243
+      },
+      "gates": [],
+      "unread": 9,
+      "split": "additional-validation"
+    },
+    {
+      "chain": "ethereum",
+      "token": "0x158c9abd9d104c60cabf9870fbe92f3b30a0c45f",
+      "at": 1793687427,
+      "score": 35,
+      "band": "DANGER",
+      "parts": {
+        "swarm": 0,
+        "fresh": 0,
+        "insiders": 15,
+        "concentration": 0,
+        "snipers": 10,
+        "dev": 10
+      },
+      "metrics": {
+        "hands": 14,
+        "wallets": 26,
+        "impact": 0.7961906328560505,
+        "biggest": 0.8094237334144804,
+        "fresh": 1,
+        "insiders": 0,
+        "snipers": 0,
+        "concentration": 0.9865375566793796,
+        "dev": 2.5715972753730546e-23
+      },
+      "gates": [
+        "biggest hand could dump price −80% (80.9% of float)",
+        "100% of top holders are fresh wallets",
+        "soft: pack of 13 wallets, 80.9% of float"
+      ],
+      "unread": 11,
+      "split": "additional-validation"
+    },
+    {
+      "chain": "base",
+      "token": "0xc19be8916d8641a0e6b91b5f815c97e0204a5cbc",
+      "at": 1793686648,
+      "score": 77,
+      "band": "OK",
+      "parts": {
+        "swarm": 30,
+        "fresh": 20,
+        "insiders": 15,
+        "concentration": 0,
+        "snipers": 1.7,
+        "dev": 10
+      },
+      "metrics": {
+        "hands": 13,
+        "wallets": 13,
+        "impact": 0.021777036650385218,
+        "biggest": 0.1479728107886691,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0.21158439251140676,
+        "concentration": 0.9676861683247631,
+        "dev": 0.000320428746119906
+      },
+      "gates": [],
+      "unread": 0,
+      "split": "additional-validation"
+    },
+    {
+      "chain": "ethereum",
+      "token": "0x05170eb93cd715a641f5f854f9dd3dda3f49de2d",
+      "at": 1793686206,
+      "score": 78,
+      "band": "OK",
+      "parts": {
+        "swarm": 24.7,
+        "fresh": 20,
+        "insiders": 15,
+        "concentration": 3.1,
+        "snipers": 5.1,
+        "dev": 10
+      },
+      "metrics": {
+        "hands": 18,
+        "wallets": 18,
+        "impact": 0.1877396853711465,
+        "biggest": 0.1429804590693431,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0.13743692890471668,
+        "concentration": 0.695993305051317,
+        "dev": 0
+      },
+      "gates": [],
+      "unread": 3,
+      "split": "additional-validation"
+    },
+    {
+      "chain": "base",
+      "token": "0xb719eaacc60fe796507d0ed1023e569e1d1ba020",
+      "at": 1793685699,
+      "score": 80,
+      "band": "CLEAN",
+      "parts": {
+        "swarm": 30,
+        "fresh": 20,
+        "insiders": 15,
+        "concentration": 0,
+        "snipers": 5.1,
+        "dev": 10
+      },
+      "metrics": {
+        "hands": 10,
+        "wallets": 10,
+        "impact": 0.023803665060022516,
+        "biggest": 0.1627638442115124,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0.1379546034289218,
+        "concentration": 1,
+        "dev": 0
+      },
+      "gates": [],
+      "unread": 0,
+      "split": "additional-validation"
+    },
+    {
+      "chain": "ethereum",
+      "token": "0x94074860d930aa5d78379419d422bff8bdbab972",
+      "at": 1793685653,
+      "score": 88,
+      "band": "CLEAN",
+      "parts": {
+        "swarm": 29.8,
+        "fresh": 20,
+        "insiders": 15,
+        "concentration": 8.1,
+        "snipers": 5,
+        "dev": 10
+      },
+      "metrics": {
+        "hands": 38,
+        "wallets": 38,
+        "impact": 0.10264306955038416,
+        "biggest": 0.09717654595460383,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0.14070346211543688,
+        "concentration": 0.5312074849099613,
+        "dev": 0
+      },
+      "gates": [],
+      "unread": 23,
+      "split": "additional-validation"
+    },
+    {
+      "chain": "ethereum",
+      "token": "0xb164e9e453b7d645f7ab087b075589c48904974b",
+      "at": 1793685647,
+      "score": 88,
+      "band": "CLEAN",
+      "parts": {
+        "swarm": 30,
+        "fresh": 20,
+        "insiders": 15,
+        "concentration": 6.7,
+        "snipers": 6.1,
+        "dev": 10
+      },
+      "metrics": {
+        "hands": 36,
+        "wallets": 36,
+        "impact": 0.0904958406098858,
+        "biggest": 0.12382305887331868,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0.11522792039582937,
+        "concentration": 0.5766321203126359,
+        "dev": 0
+      },
+      "gates": [],
+      "unread": 21,
+      "split": "additional-validation"
+    },
+    {
+      "chain": "solana",
+      "token": "8DdVSZdXygYkoVdREDgiWVffkP2fAzZBXQU262ujw8F",
+      "at": 1793685630,
+      "score": 75,
+      "band": "OK",
+      "parts": {
+        "swarm": 30,
+        "fresh": 20,
+        "insiders": 15,
+        "concentration": 0,
+        "snipers": 0,
+        "dev": 10
+      },
+      "metrics": {
+        "hands": 19,
+        "wallets": 19,
+        "impact": 0.08849197200506842,
+        "biggest": 0.2789738092104048,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0.6741859151402252,
+        "concentration": 0.880706190401903,
+        "dev": 0.008068303534210623
+      },
+      "gates": [],
+      "unread": 4,
+      "split": "additional-validation"
+    },
+    {
+      "chain": "solana",
+      "token": "4veoQYsY7ZZ3iSvC7GTJCMZYcTkpCHksREN2P29pE3MS",
+      "at": 1793685625,
+      "score": 44,
+      "band": "DANGER",
+      "parts": {
+        "swarm": 0,
+        "fresh": 20,
+        "insiders": 15,
+        "concentration": 0,
+        "snipers": 9.4,
+        "dev": 0
+      },
+      "metrics": {
+        "hands": 20,
+        "wallets": 20,
+        "impact": 0.9999999951061214,
+        "biggest": 0.886993211591438,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0.043871625711932524,
+        "concentration": 0.9306018636418605,
+        "dev": 0.886993211591438
+      },
+      "gates": [
+        "biggest hand could dump price −100% (88.7% of float)",
+        "soft: creator and linked wallets hold 88.7% of float",
+        "soft: liquidity too thin ($0)"
+      ],
+      "unread": 5,
+      "split": "additional-validation"
+    },
+    {
+      "chain": "robinhood",
+      "token": "0xbd7fad28178084c277f8f0f24b10f7d1f491ec42",
+      "at": 1793685503,
+      "score": 44,
+      "band": "DANGER",
+      "parts": {
+        "swarm": 0,
+        "fresh": 20,
+        "insiders": 15,
+        "concentration": 7.2,
+        "snipers": 1.5,
+        "dev": 0
+      },
+      "metrics": {
+        "hands": 49,
+        "wallets": 49,
+        "impact": 0.7605755048630172,
+        "biggest": 0.3294055611889087,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0.21634349660194307,
+        "concentration": 0.5610916336184748,
+        "dev": 0.3294055611889087
+      },
+      "gates": [
+        "biggest hand could dump price −76% (32.9% of float)",
+        "soft: creator and linked wallets hold 32.9% of float"
+      ],
+      "unread": 34,
+      "split": "additional-validation"
+    },
+    {
+      "chain": "robinhood",
+      "token": "0x3d8e291c6d218ed6b2451b482700e3bee7b84a92",
+      "at": 1793685500,
+      "score": 88,
+      "band": "CLEAN",
+      "parts": {
+        "swarm": 30,
+        "fresh": 20,
+        "insiders": 15,
+        "concentration": 6,
+        "snipers": 6.7,
+        "dev": 10
+      },
+      "metrics": {
+        "hands": 49,
+        "wallets": 49,
+        "impact": 0.07620528802232229,
+        "biggest": 0.08221808411134857,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0.10333648096985516,
+        "concentration": 0.6005996174902692,
+        "dev": 0
+      },
+      "gates": [],
+      "unread": 34,
+      "split": "additional-validation"
+    },
+    {
+      "chain": "robinhood",
+      "token": "0xa8ba01d704b8e73be1352d6821e461ee402e7777",
+      "at": 1793685481,
+      "score": 45,
+      "band": "DANGER",
+      "parts": {
+        "swarm": 0,
+        "fresh": 20,
+        "insiders": 15,
+        "concentration": 2.5,
+        "snipers": 7.1,
+        "dev": 0
+      },
+      "metrics": {
+        "hands": 49,
+        "wallets": 49,
+        "impact": 0.7472010909054647,
+        "biggest": 0.572970622329312,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0.09440284161120514,
+        "concentration": 0.7170611366291478,
+        "dev": 0.572970622329312
+      },
+      "gates": [
+        "biggest hand could dump price −75% (57.3% of float)",
+        "soft: creator and linked wallets hold 57.3% of float"
+      ],
+      "unread": 34,
+      "split": "additional-validation"
+    },
+    {
+      "chain": "robinhood",
+      "token": "0x068c1a8a8c4c5484768e6818c2dcf568f45ff902",
+      "at": 1793685480,
+      "score": 77,
+      "band": "OK",
+      "parts": {
+        "swarm": 21.7,
+        "fresh": 20,
+        "insiders": 15,
+        "concentration": 0.1,
+        "snipers": 10,
+        "dev": 10
+      },
+      "metrics": {
+        "hands": 31,
+        "wallets": 31,
+        "impact": 0.23834151843965268,
+        "biggest": 0.17255153509292334,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0,
+        "concentration": 0.7971646271935663,
+        "dev": 2.658102453453214e-23
+      },
+      "gates": [],
+      "unread": 16,
+      "split": "additional-validation"
+    },
+    {
+      "chain": "solana",
+      "token": "6iaCioryV4NiPLdWMmjjQr4GTCq7zkE4p6XoQyoFxeqS",
+      "at": 1793685408,
+      "score": 59,
+      "band": "RISKY",
+      "parts": {
+        "swarm": 19.9,
+        "fresh": 20,
+        "insiders": 8.9,
+        "concentration": 14.2,
+        "snipers": 10,
+        "dev": 10
+      },
+      "metrics": {
+        "hands": 14,
+        "wallets": 18,
+        "impact": 0.2683862070919546,
+        "biggest": 0.13307788944453433,
+        "fresh": 0,
+        "insiders": 0.0932232050700144,
+        "snipers": 0.015374745779965986,
+        "concentration": 0.3260801198482012,
+        "dev": 0
+      },
+      "gates": [
+        "soft: swarm of 5 wallets, 13.3% of float",
+        "soft: 4 holders already acted as one swarm in another token"
+      ],
+      "unread": 3,
+      "split": "additional-validation"
+    },
+    {
+      "chain": "base",
+      "token": "0x2d89251c64418265888d69e0d9b6d10650affa7d",
+      "at": 1793685314,
+      "score": 59,
+      "band": "RISKY",
+      "parts": {
+        "swarm": 30,
+        "fresh": 20,
+        "insiders": 15,
+        "concentration": 15,
+        "snipers": 10,
+        "dev": 10
+      },
+      "metrics": {
+        "hands": 45,
+        "wallets": 48,
+        "impact": 0.01764552910017858,
+        "biggest": 0.02679837538097579,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0,
+        "concentration": 0.1738243455905224,
+        "dev": 0
+      },
+      "gates": [
+        "soft: 2 holders already acted as one swarm in another token"
+      ],
+      "unread": 33,
+      "split": "fresh-discovery"
+    },
+    {
+      "chain": "bsc",
+      "token": "0x5ce1a8d19c8665024cc9540f8c772b88a9d91638",
+      "at": 1793684916,
+      "score": 59,
+      "band": "RISKY",
+      "parts": {
+        "swarm": 29.1,
+        "fresh": 20,
+        "insiders": 15,
+        "concentration": 0,
+        "snipers": 10,
+        "dev": 10
+      },
+      "metrics": {
+        "hands": 11,
+        "wallets": 48,
+        "impact": 0.11464490764729829,
+        "biggest": 0.15097118862596764,
+        "fresh": 0.07142857142857142,
+        "insiders": 0.000009814990593134653,
+        "snipers": 0,
+        "concentration": 0.9970555028220596,
+        "dev": 0.0014430653502732775
+      },
+      "gates": [
+        "soft: swarm of 38 wallets, 0.2% of float"
+      ],
+      "unread": 33,
+      "split": "fresh-discovery"
+    },
+    {
+      "chain": "bsc",
+      "token": "0xfce50d55c2c3c00a6f5c4779ae4484b5cc3162ea",
+      "at": 1793684943,
+      "score": 59,
+      "band": "RISKY",
+      "parts": {
+        "swarm": 29.8,
+        "fresh": 20,
+        "insiders": 15,
+        "concentration": 0,
+        "snipers": 10,
+        "dev": 10
+      },
+      "metrics": {
+        "hands": 11,
+        "wallets": 48,
+        "impact": 0.10284720458993146,
+        "biggest": 0.16494783755570777,
+        "fresh": 0.14285714285714285,
+        "insiders": 0.00001108913181591707,
+        "snipers": 0,
+        "concentration": 0.9960395957800297,
+        "dev": 0.002538759919373281
+      },
+      "gates": [
+        "soft: swarm of 38 wallets, 0.3% of float"
+      ],
+      "unread": 33,
+      "split": "fresh-discovery"
+    },
+    {
+      "chain": "bsc",
+      "token": "0xb3a7fa8fc56f4ea83426cfb2ee60f2af516baf05",
+      "at": 1793684944,
+      "score": 59,
+      "band": "RISKY",
+      "parts": {
+        "swarm": 27.2,
+        "fresh": 18,
+        "insiders": 15,
+        "concentration": 0,
+        "snipers": 10,
+        "dev": 10
+      },
+      "metrics": {
+        "hands": 11,
+        "wallets": 48,
+        "impact": 0.14746622474437232,
+        "biggest": 0.23453428803783055,
+        "fresh": 0.21428571428571427,
+        "insiders": 0.00001107014519678033,
+        "snipers": 0,
+        "concentration": 0.9957103187362476,
+        "dev": 0.0027464107721112264
+      },
+      "gates": [
+        "soft: swarm of 38 wallets, 0.3% of float"
+      ],
+      "unread": 33,
+      "split": "fresh-discovery"
+    },
+    {
+      "chain": "ethereum",
+      "token": "0x116d5540de4c3463143ce7f2daed7de0bf8488c7",
+      "at": 1793684473,
+      "score": 46,
+      "band": "DANGER",
+      "parts": {
+        "swarm": 1.7,
+        "fresh": 0,
+        "insiders": 15,
+        "concentration": 9,
+        "snipers": 10,
+        "dev": 10
+      },
+      "metrics": {
+        "hands": 49,
+        "wallets": 49,
+        "impact": 0.5718165466288434,
+        "biggest": 0.12092274421744809,
+        "fresh": 1,
+        "insiders": 0,
+        "snipers": 0,
+        "concentration": 0.5007366076664104,
+        "dev": 0
+      },
+      "gates": [
+        "biggest hand could dump price −57% (12.1% of float)",
+        "100% of top holders are fresh wallets"
+      ],
+      "unread": 34,
+      "split": "fresh-discovery"
+    },
+    {
+      "chain": "ethereum",
+      "token": "0x2aeb78b6a79b338a30396cd16aac2646f74a5877",
+      "at": 1793683661,
+      "score": 59,
+      "band": "RISKY",
+      "parts": {
+        "swarm": 16.2,
+        "fresh": 20,
+        "insiders": 15,
+        "concentration": 8,
+        "snipers": 10,
+        "dev": 10
+      },
+      "metrics": {
+        "hands": 44,
+        "wallets": 49,
+        "impact": 0.32959547295876535,
+        "biggest": 0.17061208760303348,
+        "fresh": 0.06666666666666667,
+        "insiders": 0,
+        "snipers": 0.026799153309154618,
+        "concentration": 0.5321447444850078,
+        "dev": 0
+      },
+      "gates": [
+        "soft: swarm of 6 wallets, 17.1% of float",
+        "soft: 3 holders already acted as one swarm in another token"
+      ],
+      "unread": 34,
+      "split": "fresh-discovery"
+    },
+    {
+      "chain": "base",
+      "token": "0x23a10a5479891a05b6e4958a8871a1618f9b1522",
+      "at": 1793683037,
+      "score": 35,
+      "band": "DANGER",
+      "parts": {
+        "swarm": 0,
+        "fresh": 20,
+        "insiders": 15,
+        "concentration": 0,
+        "snipers": 0,
+        "dev": 0
+      },
+      "metrics": {
+        "hands": 31,
+        "wallets": 31,
+        "impact": 0.9999999750374313,
+        "biggest": 0.9998881589481807,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0.999999808272493,
+        "concentration": 0.9999997863472013,
+        "dev": 0.9998881589481807
+      },
+      "gates": [
+        "biggest hand could dump price −100% (100.0% of float)",
+        "soft: creator and linked wallets hold 100.0% of float",
+        "soft: 4 holders already acted as one swarm in another token"
+      ],
+      "unread": 16,
+      "split": "fresh-discovery"
+    },
+    {
+      "chain": "ethereum",
+      "token": "0xb0cbda12088c9a00c50c0bfcd55df8a6a8170b75",
+      "at": 1793682168,
+      "score": 43,
+      "band": "DANGER",
+      "parts": {
+        "swarm": 0,
+        "fresh": 20,
+        "insiders": 15,
+        "concentration": 0,
+        "snipers": 7.7,
+        "dev": 0
+      },
+      "metrics": {
+        "hands": 13,
+        "wallets": 13,
+        "impact": 0.9999999995431127,
+        "biggest": 0.9190198172892459,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0.07962582185933834,
+        "concentration": 0.9944208119626203,
+        "dev": 0.9190198172892459
+      },
+      "gates": [
+        "biggest hand could dump price −100% (91.9% of float)",
+        "soft: creator and linked wallets hold 91.9% of float",
+        "soft: liquidity too thin ($0)"
+      ],
+      "unread": 0,
+      "split": "fresh-discovery"
+    },
+    {
+      "chain": "ethereum",
+      "token": "0xb10e423ac4a6fefeff5fc9e33ad71c1a2d4b3bbd",
+      "at": 1793681987,
+      "score": 69,
+      "band": "OK",
+      "parts": {
+        "swarm": 30,
+        "fresh": 20,
+        "insiders": 15,
+        "concentration": 0,
+        "snipers": 0,
+        "dev": 4.2
+      },
+      "metrics": {
+        "hands": 16,
+        "wallets": 16,
+        "impact": 0.09998027640278151,
+        "biggest": 0.09969438920342968,
+        "fresh": 0.14285714285714285,
+        "insiders": 0,
+        "snipers": 0.5082668654498312,
+        "concentration": 0.8014678326304655,
+        "dev": 0.09500056040461402
+      },
+      "gates": [],
+      "unread": 1,
+      "split": "fresh-discovery"
+    },
+    {
+      "chain": "base",
+      "token": "0x53e3d1904e0aca75d13f91b664dfd0005b0bcb61",
+      "at": 1793681953,
+      "score": 15,
+      "band": "DANGER",
+      "parts": {
+        "swarm": 0,
+        "fresh": 0,
+        "insiders": 15,
+        "concentration": 0,
+        "snipers": 0,
+        "dev": 0
+      },
+      "metrics": {
+        "hands": 29,
+        "wallets": 32,
+        "impact": 0.9999999294133248,
+        "biggest": 0.9999958767901005,
+        "fresh": 0.8571428571428571,
+        "insiders": 0,
+        "snipers": 0.9999997980153335,
+        "concentration": 0.9999998743651446,
+        "dev": 0.9999958767901005
+      },
+      "gates": [
+        "biggest hand could dump price −100% (100.0% of float)",
+        "86% of top holders are fresh wallets",
+        "soft: pack of 4 wallets, 0.0% of float",
+        "soft: creator and linked wallets hold 100.0% of float"
+      ],
+      "unread": 17,
+      "split": "fresh-discovery"
+    },
+    {
+      "chain": "solana",
+      "token": "H6GLNkkFjarESXbXyZpMqXDy5yNiLgbLGxoxduntFHCa",
+      "at": 1793681956,
+      "score": 48,
+      "band": "DANGER",
+      "parts": {
+        "swarm": 0,
+        "fresh": 20,
+        "insiders": 15,
+        "concentration": 0,
+        "snipers": 2.7,
+        "dev": 10
+      },
+      "metrics": {
+        "hands": 17,
+        "wallets": 19,
+        "impact": 0.997527325287238,
+        "biggest": 0.7286682692911363,
+        "fresh": 0,
+        "insiders": 0.00619029574551003,
+        "snipers": 0.19025601154082966,
+        "concentration": 0.9186285816855346,
+        "dev": 0.00619029574551003
+      },
+      "gates": [
+        "biggest hand could dump price −100% (72.9% of float)",
+        "soft: swarm of 3 wallets, 0.6% of float",
+        "soft: 2 holders already acted as one swarm in another token"
+      ],
+      "unread": 4,
+      "split": "fresh-discovery"
+    },
+    {
+      "chain": "robinhood",
+      "token": "0x8e79c41cb486f55e08df206e77fa54963aa37777",
+      "at": 1793681821,
+      "score": 48,
+      "band": "DANGER",
+      "parts": {
+        "swarm": 0,
+        "fresh": 20,
+        "insiders": 15,
+        "concentration": 3.8,
+        "snipers": 9,
+        "dev": 0
+      },
+      "metrics": {
+        "hands": 49,
+        "wallets": 49,
+        "impact": 0.7581601731298393,
+        "biggest": 0.5507073636709391,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0.052288184157353854,
+        "concentration": 0.6731014051252779,
+        "dev": 0.5507073636709391
+      },
+      "gates": [
+        "biggest hand could dump price −76% (55.1% of float)",
+        "soft: creator and linked wallets hold 55.1% of float"
+      ],
+      "unread": 34,
+      "split": "fresh-discovery"
+    },
+    {
+      "chain": "solana",
+      "token": "Eckr1z9aVzZsCfFzUQYWNck6unVWUhGKX3WrXYDF5s5p",
+      "at": 1793685195,
+      "score": 89,
+      "band": "CLEAN",
+      "parts": {
+        "swarm": 30,
+        "fresh": 20,
+        "insiders": 15,
+        "concentration": 7.5,
+        "snipers": 6.4,
+        "dev": 10
+      },
+      "metrics": {
+        "hands": 19,
+        "wallets": 19,
+        "impact": 0.024566826833309574,
+        "biggest": 0.1056590949570604,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0.10956698900941148,
+        "concentration": 0.5507116507724286,
+        "dev": 0
+      },
+      "gates": [],
+      "unread": 4,
+      "split": "fresh-holdout"
+    },
+    {
+      "chain": "bsc",
+      "token": "0xd951dec41c15aeb320c5288f9f6aba8594887777",
+      "at": 1793684882,
+      "score": 95,
+      "band": "CLEAN",
+      "parts": {
+        "swarm": 29.8,
+        "fresh": 20,
+        "insiders": 15,
+        "concentration": 10.4,
+        "snipers": 9.4,
+        "dev": 10
+      },
+      "metrics": {
+        "hands": 48,
+        "wallets": 48,
+        "impact": 0.10269041958261793,
+        "biggest": 0.056915099100850144,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0.0441615975423292,
+        "concentration": 0.4543607556248283,
+        "dev": 0
+      },
+      "gates": [],
+      "unread": 33,
+      "split": "fresh-holdout"
+    },
+    {
+      "chain": "bsc",
+      "token": "0xec5c12cfe80dd21e003afa232a21b5fb2d7b7777",
+      "at": 1793684884,
+      "score": 59,
+      "band": "RISKY",
+      "parts": {
+        "swarm": 30,
+        "fresh": 20,
+        "insiders": 15,
+        "concentration": 3.9,
+        "snipers": 2.9,
+        "dev": 10
+      },
+      "metrics": {
+        "hands": 48,
+        "wallets": 48,
+        "impact": 0.04609741686269464,
+        "biggest": 0.11442743303648359,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0.18563282753288654,
+        "concentration": 0.6693522999848855,
+        "dev": 0
+      },
+      "gates": [
+        "soft: 4 holders already acted as one swarm in another token"
+      ],
+      "unread": 33,
+      "split": "fresh-holdout"
+    },
+    {
+      "chain": "ethereum",
+      "token": "0x4585e09ea485d21e4e42cd97353eb800e71df524",
+      "at": 1793682521,
+      "score": 75,
+      "band": "OK",
+      "parts": {
+        "swarm": 30,
+        "fresh": 20,
+        "insiders": 15,
+        "concentration": 0,
+        "snipers": 0,
+        "dev": 10
+      },
+      "metrics": {
+        "hands": 15,
+        "wallets": 15,
+        "impact": 0.03718231749428691,
+        "biggest": 0.1287076758906706,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0.7082415895724589,
+        "concentration": 0.8306338851495243,
+        "dev": 0
+      },
+      "gates": [],
+      "unread": 0,
+      "split": "fresh-holdout"
+    },
+    {
+      "chain": "ethereum",
+      "token": "0x2f65d60c4c9636fd59643228b72f216b83179d3c",
+      "at": 1793682528,
+      "score": 75,
+      "band": "OK",
+      "parts": {
+        "swarm": 30,
+        "fresh": 20,
+        "insiders": 15,
+        "concentration": 0,
+        "snipers": 0,
+        "dev": 10
+      },
+      "metrics": {
+        "hands": 13,
+        "wallets": 13,
+        "impact": 0.014130165178221965,
+        "biggest": 0.13255274803484385,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0.8061784972937626,
+        "concentration": 0.9287836210578603,
+        "dev": 0
+      },
+      "gates": [],
+      "unread": 0,
+      "split": "fresh-holdout"
+    },
+    {
+      "chain": "ethereum",
+      "token": "0x87dbab859e1a39b0ca11a5e6a3e7298ab319683b",
+      "at": 1793682227,
+      "score": 76,
+      "band": "OK",
+      "parts": {
+        "swarm": 27.4,
+        "fresh": 20,
+        "insiders": 15,
+        "concentration": 5.2,
+        "snipers": 0,
+        "dev": 8.9
+      },
+      "metrics": {
+        "hands": 24,
+        "wallets": 24,
+        "impact": 0.14385333168395775,
+        "biggest": 0.11721244863985023,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0.31254659247118705,
+        "concentration": 0.6283200492504917,
+        "dev": 0.03465783154412163
+      },
+      "gates": [],
+      "unread": 9,
+      "split": "fresh-holdout"
+    },
+    {
+      "chain": "robinhood",
+      "token": "0xece719f8724bcf7e0e1149b912c7dee0e08cbfa2",
+      "at": 1793681855,
+      "score": 84,
+      "band": "CLEAN",
+      "parts": {
+        "swarm": 24.9,
+        "fresh": 20,
+        "insiders": 15,
+        "concentration": 13.7,
+        "snipers": 0,
+        "dev": 10
+      },
+      "metrics": {
+        "hands": 48,
+        "wallets": 48,
+        "impact": 0.1857793129443307,
+        "biggest": 0.05772914962871014,
+        "fresh": 0,
+        "insiders": 0,
+        "snipers": 0.3912649665332065,
+        "concentration": 0.34438439268705395,
+        "dev": 0
+      },
+      "gates": [],
+      "unread": 33,
+      "split": "fresh-holdout"
+    }
+  ],
+  "freshEvidence": {
+    "denominator": "Readable holder rows excluding dev-marked rows; this reproduced all52 newly fetched reports. Unread rows are outside this fraction.",
+    "pairs": [
+      {
+        "input": 0,
+        "points": 20
+      },
+      {
+        "input": 0.06666666666666667,
+        "points": 20
+      },
+      {
+        "input": 0.07142857142857142,
+        "points": 20
+      },
+      {
+        "input": 0.125,
+        "points": 20
+      },
+      {
+        "input": 0.13333333333333333,
+        "points": 20
+      },
+      {
+        "input": 0.14285714285714285,
+        "points": 20
+      },
+      {
+        "input": 0.21428571428571427,
+        "points": 18
+      },
+      {
+        "input": 0.8571428571428571,
+        "points": 0
+      },
+      {
+        "input": 1,
+        "points": 0
+      }
+    ],
+    "interiorCurve": "Unresolved:12 clipped-linear whole-percent endpoint pairs fit captured data.",
+    "zeroRule": "Qualified measured0 returns20; unknown must not become0.",
+    "highEndRule": "Observed0.8571428571428571 and1 return0. The documented>=0.80 hard-danger gate does not independently prove the component zero boundary."
+  }
+}

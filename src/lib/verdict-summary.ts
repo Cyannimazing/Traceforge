@@ -4,6 +4,12 @@ import {trustRating} from './trust-rating';
 /** Presentation precedence keeps observed flags visible when history is incomplete. */
 export function getDisplayAssessment(report: InvestigationReport): Investigation['assessment'] {
  const inv=report.investigation;
+ if(!report.providerAnalysis){
+  const rating=trustRating(report);
+  const status=rating.decision==='AVOID'?'critical':rating.decision==='OK'||rating.decision==='CLEAN'?'clear':!report.holders.length&&!report.checks.length?'insufficient':'caution';
+  return {status,title:status==='critical'?'Avoid':status==='clear'?rating.decision:'Caution',summary:rating.hard?.length?rating.hard.join(' '):rating.soft?.length?rating.soft.join(' '):rating.score===null?'Some scoring inputs are not fully evaluated. The range shows how unresolved evidence can affect the six-factor score.':`Six-factor score: ${rating.score}/100. Inspect the measurements and rules behind this decision.`};
+ }
+
  const critical=inv.findings.some(f=>f.level==='critical')||report.checks.some(c=>c.status==='critical');
  const warning=inv.findings.some(f=>f.level==='warning')||report.checks.some(c=>c.status==='warning');
  // Attribute the findings that actually determine the verdict. An unrelated

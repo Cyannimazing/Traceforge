@@ -17,9 +17,21 @@ Swarm's frontend publishes six maximum component weights:
 
 Publicly described hard DANGER conditions are dump impact at least 50%, fresh prevalence at least 80%, honeypot, owner balance seizure, and freeze authority. Described soft caps of 59 cover groups of at least three wallets, packs, creator exposure at least 10%, thin liquidity, active owner powers, unverified proxies, and cross-token swarm history.
 
-The shipped client **renders server-returned scores and parts**. It does not contain the complete feature-to-points curves, grouping algorithm, gate ordering, missing-data policy, readiness exceptions, or calibrated decision model. Thresholds for some qualitative gates are unspecified. A component maximum plus a few observed examples is not enough to recover its curve. An independently chosen formula must be documented as TraceForge policy, not claimed as Swarm's recovered implementation.
+The shipped client **renders server-returned scores and parts**. It does not contain the complete feature-to-points curves, grouping algorithm, gate ordering, missing-data policy, readiness exceptions, or calibrated decision model. Thresholds for some qualitative gates are unspecified. Subsequent behavioral testing identified five strongly supported candidate curves; this does not recover the entire private backend.
 
 The public token UI checks a stored report before starting a scan, using a ten-minute freshness window. A fast cached result is not proof of an equally fast cold crawl. Source: [Swarm public application](https://swarmengine.tech/assets/app.js) and [API documentation](https://swarmengine.tech/docs).
+
+## Current reconstruction status
+
+TraceForge now uses the independent `six-factor-v1` scoring path. The previous four-family scores below remain **before-state comparison evidence**, not current output claims.
+
+Five clipped-linear candidate component curves reproduce 57 retained source snapshots: swarm 55/55 where impact is available; concentration, snipers, dev and insiders 57/57 each. Their full-score/zero-score input endpoints are respectively `(0.10, 0.60)`, `(0.30, 0.80)`, `(0.03, 0.25)`, `(0.02, 0.15)` and `(0.02, 0.20)`, with their published maxima. The evidence includes interior values and later holdout observations. These are behavioral inferences, not source-confirmed formulas. [Detailed evidence and fixtures](scoring-formula-evidence.md).
+
+Fresh's interior curve remains unresolved. Qualified zero is observed to earn 20 points; captured high-end zero-point values are `6/7` and 1. The implementation returns zero at or above `6/7` through a conservative monotonic extension of that observed endpoint, without claiming this is the private curve's first zero. At 0.80 the component remains unknown; the separate 80% hard gate can still require AVOID. Other unresolved values retain bounds. TraceForge also retains unknown current holders in its fresh denominator, unlike Swarm's observed readable/non-dev denominator.
+
+Independent inputs are bounded by source evidence, holder snapshot and verified timing. The current map scopes nodes to non-infrastructure current holders; historical counterparties remain separate evidence. Supported verified PumpSwap inputs can supply a labeled zero-fee sell-impact scenario. Other unproven factors remain unknown. An exact score is withheld while factors or required core evidence are unresolved. No LLM or imported Swarm verdict is required for this calculation.
+
+Complete scoring parity is **not established**: the fresh curve, some independent feature/group extraction, readiness/gate behavior, and the separate private judge remain incomplete. A hard gate now changes the decision to AVOID while preserving the component score if fully known; it does not invent zero for unresolved factors. The requested 90/75 display thresholds remain explicit policy differences from observed Swarm behavior. See [current rating semantics](trust-rating.md).
 
 ## Matched Grok evidence
 
@@ -40,6 +52,10 @@ Token: Solana `6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump`.
 The old independent four-family policy returned 70/CAUTION: 40 controls + 20 distribution + 10 funding + 0 activity. Swarm returned 87/CLEAN from six components totaling 87.3 before rounding. These are different policies.
 
 All three TraceForge warning groups in that snapshot involved addresses outside the current 19-holder sample. Those historical transactions remain evidence, but they do not establish connected current ownership. Conversely, Swarm's 19 singleton clusters do not prove 19 independent beneficial owners.
+
+### Interpreting 19 holders and six tracer readouts
+
+In the captured Grok report, 19 holder rows minus 13 explicitly unread rows leaves six readable holder histories. A scan display showing 19 selected wallets but six successful tracer readouts is consistent with these different scopes. It does not prove that all 19 histories were read, that there are six worker processes, or that every scan always traces exactly six wallets. An older captured scan reported seven entry-activity events and a different unread count. Transaction counts displayed in individual readouts likewise do not prove that every historical transaction was retrieved. Preserve selected, read, unread and currently held address counts separately.
 
 Swarm separately returned a judge decision of OK with weights 0.3% avoid, 19.6% caution and 80.1% OK, plus escalation at its 90% bar. This separate output is not the quality score and is not evidence of empirical safety probability. [Public token report](https://swarmengine.tech/t/solana/6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump).
 
@@ -88,4 +104,23 @@ TraceForge's later independent scan at 07:18:49 UTC completed in 2.762 seconds a
 7. Present measured six-factor inputs, gates and unavailable factors honestly. Do not invent hidden component curves, copy a provider score, or label a policy score a safety probability.
 8. Use broader independently labeled outcomes before claiming more accurate predictions than another engine. Holder parity and successful retrieval on several tokens do not establish predictive superiority.
 
-These observations describe the recorded snapshots and pre-redesign implementation. They are audit evidence, not a claim that every listed gap has been fixed.
+The token comparisons describe recorded snapshots and the old implementation. The reconstruction section describes the updated code. Neither claims that every gap is fixed, that independent results must match older provider snapshots, or that predictive accuracy is calibrated.
+
+EVM freshness correction: nonce above ten can rule lifetime freshness out. Nonce at or below ten remains unresolved because incoming/internal activity is absent from that counter; it never triggers the 80% fresh-wallet hard stop.
+
+## Live six-factor integration check - 2026-11-03
+
+Two fresh scans against the local production service confirmed the integrated evidence path (no LLM):
+
+| Token | Elapsed | Raw holder rows | Activity addresses / counts resolved | Direct EVM observations |
+| --- | ---: | ---: | ---: | ---: |
+| Grok, Solana | 18.05 s | 20 (19 after observed pool exclusion) | 19 / 6 | Not applicable |
+| CMC comparison, Ethereum | 17.17 s | 40 | 39 / 38 | 7, partial control-probe result |
+
+Earlier runs took 10.51 s and 5.23 s but the Ethereum activity probe then used the preliminary one-holder GoPlus list. The corrected ordering probes the explorer's final holder snapshot. These are observed timings, not a latency guarantee; archive pagination is not on the initial search path. Subsequent code starts Solana snapshots concurrently with market lookup rather than waiting for it; no timing claim is made for that scheduling change without a separate measurement.
+
+Both independent verdicts remain CAUTION with unresolved factors, not fixed percentages. Grok's candidate range was 0-97; CMC's was 0-89. Grok's selected quote token exposes unsupported token extensions, so its reserves are not silently treated as a vanilla executable constant-product pool. The private source's favorable result cannot fill those independent evidence gaps. Counts and balances can change between captures.
+
+Validation: 574 regression tests and TypeScript checking passed. The production build and browser presentation were checked separately. Public fixture matches validate five factor curves only, not end-to-end predictive accuracy or the private judge.
+
+Browser verification: six factor rows rendered on the Grok report; the concentration evidence link opened its ten source records. Desktop1440 and mobile390 viewport checks found no page-width overflow. Browser error log was empty.

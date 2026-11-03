@@ -13,32 +13,32 @@ function fresh(old:InvestigationReport):InvestigationReport {const r=structuredC
 
 test('holder and deep merges recompute metrics and categorical verdict from the resulting evidence',()=>{
  const old=report();old.chain='solana';old.holders=[{address:'holder',share:3,contract:false,locked:null,tag:''}];old.investigation.wallets=[wallet('holder',3)];old.investigation.findings=[];old.investigation.evidence=[];old.investigation.coverage.reasons=[];
- old.checks=['solana_mint_authority','solana_freeze_authority'].map(key=>({key,title:key,status:'clear',value:'Revoked',description:''}));
+ old.checks=['solana_mint_authority','solana_freeze_authority'].map(key=>({key,title:key,status:'clear',value:'Revoked',description:'',source:'Solana RPC authorities',fetchedAt:old.fetchedAt}));
  old.sources=[{name:'Solana RPC authorities',status:'available',fetchedAt:old.fetchedAt,detail:''},{name:'Solana RPC Holders',status:'available',fetchedAt:old.fetchedAt,detail:''}];old.riskMetrics=computeRiskMetrics(old);old.trustRating=trustRating(old);
  const next=structuredClone(old);next.holders[0].share=12;next.investigation.wallets[0].share=12;next.checks[1].status='critical';next.checks[1].value='Active';
  // Deliberately stale derived fields must never survive either merge path.
  for(const merge of [(a:InvestigationReport,b:InvestigationReport)=>mergeReportRefresh(a,b,'holders'),mergeDeepReport]){
   const result=merge(old,next);
   assert.equal(result.holders[0].share,12);assert.equal(result.riskMetrics?.metrics.find(m=>m.id==='largest-holder-supply')?.value,12);
-  assert.equal(result.trustRating?.decision,'AVOID');assert.equal(result.trustRating?.score,0);
+  assert.equal(result.trustRating?.decision,'AVOID');assert.equal(result.trustRating?.score,null);
  }
  assert.equal(old.riskMetrics.metrics.find(m=>m.id==='largest-holder-supply')?.value,3);assert.equal(old.trustRating.decision,'CAUTION');
- assert(old.trustRating.reasons.some(reason=>reason==='Funding relationships is not fully evaluated.'));assert(old.trustRating.reasons.some(reason=>reason==='Wallet activity is not fully evaluated.'));
+ assert(old.trustRating.reasons.some(reason=>reason==='Creator-linked exposure is not fully evaluated.'));assert(old.trustRating.reasons.some(reason=>reason==='Fresh wallets is not fully evaluated.'));
 });
 
 test('holder refresh and deep merge score the newly concentrated snapshot instead of stale cached metrics',()=>{
  const old=report();old.chain='solana';old.holders=[{address:'holder',share:3,contract:false,locked:null,tag:''}];old.investigation.wallets=[wallet('holder',3)];old.investigation.findings=[];old.investigation.evidence=[];old.investigation.coverage.reasons=[];
- old.checks=['solana_mint_authority','solana_freeze_authority'].map(key=>({key,title:key,status:'clear',value:'Revoked',description:''}));
+ old.checks=['solana_mint_authority','solana_freeze_authority'].map(key=>({key,title:key,status:'clear',value:'Revoked',description:'',source:'Solana RPC authorities',fetchedAt:old.fetchedAt}));
  old.sources=[{name:'Solana RPC authorities',status:'available',fetchedAt:old.fetchedAt,detail:''},{name:'Solana RPC Holders',status:'available',fetchedAt:old.fetchedAt,detail:''}];old.riskMetrics=computeRiskMetrics(old);old.trustRating=trustRating(old);
  const next=structuredClone(old);next.holders[0].share=60;next.investigation.wallets[0].share=60;
  for(const merge of [(a:InvestigationReport,b:InvestigationReport)=>mergeReportRefresh(a,b,'holders'),mergeDeepReport]){
   const result=merge(old,next),distribution=result.trustRating!.components.find(c=>c.id==='concentration')!;
   assert.equal(result.riskMetrics!.metrics.find(m=>m.id==='largest-holder-adjusted-float')!.value,60);
-  assert.equal(distribution.state,'flagged');assert.equal(distribution.earned,0);assert.match(distribution.detail,/60\.00%/);
-  assert.equal(result.investigation.assessment.status,'caution');assert.match(result.investigation.assessment.summary,/concentration/);
+  assert.equal(distribution.state,'unknown');assert.equal(distribution.lower,0);assert.ok(Math.abs(distribution.upper!-6)<1e-8);assert.match(distribution.detail,/60\.0000%/);
+  assert.equal(result.investigation.assessment.status,'caution');assert.match(result.investigation.assessment.summary,/six-factor/);
   assert.deepEqual(result.trustRating,trustRating(result));
  }
- assert.equal(old.trustRating.components.find(c=>c.id==='concentration')?.earned,20);
+ assert.equal(old.trustRating.components.find(c=>c.id==='concentration')?.upper,15);
 });
 test('Bitquery refresh updates null shares and balances, adds wallets and marks absent wallets unknown while preserving history',()=>{
  const old=report(),next=fresh(old),address=old.investigation.wallets[0].address;
@@ -80,7 +80,7 @@ test('only an all-holder-source outage preserves last balances with an explicit 
 });
 test('fresh critical security flags are merged into deep history and escalate verdict; cleared flags are removed',()=>{
  const old=report(),next=fresh(old);next.sources.push({name:'GoPlus Security',status:'available',detail:'Current checks',fetchedAt:at});
- next.checks=[{key:'sell',title:'Sell blocked',description:'Provider reports sell restriction.',status:'critical',value:'Yes'}];
+ next.checks=[{key:'sell',title:'Sell blocked',description:'Provider reports sell restriction.',status:'critical',value:'Yes',source:'GoPlus Security',fetchedAt:at}];
  const critical=mergeReportRefresh(old,next,'holders');assert.equal(critical.investigation.assessment.status,'critical');
  assert(critical.investigation.findings.some(f=>f.id==='security:sell'));assert.equal(critical.investigation.evidence.find(e=>e.id==='security:sell')?.timestamp,at);
  assert.equal(critical.investigation.timeline.length,old.investigation.timeline.length);

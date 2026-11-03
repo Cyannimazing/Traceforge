@@ -10,7 +10,7 @@ test('example investigations cannot enter the completed-report feed',()=>{
 test('incomplete evidence remains caution, with original retrieval time',()=>{
  const report=live();report.investigation.findings=[];report.checks=[];report.investigation.coverage.status='partial';
  report.investigation.assessment.status='clear';
- const item=feedItem(report)!;assert.equal(item.title,'Caution');assert.equal(item.status,'insufficient');assert.equal(item.fetchedAt,report.fetchedAt);
+ const item=feedItem(report)!;assert.equal(item.title,'Caution');assert.equal(item.status,'caution');assert.equal(item.fetchedAt,report.fetchedAt);
 });
 test('inferred warning retains its qualification',()=>{
  const report=live();report.checks=[];report.investigation.findings=[{id:'shared',title:'Shared funding',description:'',level:'warning',certainty:'inferred',wallets:[],evidenceIds:[]}];

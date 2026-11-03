@@ -1,6 +1,6 @@
 import type {InvestigationReport} from './investigation-types';
 import type {SolanaPoolReserveSnapshot} from './solana-pool-reserves';
-import {staleVerification} from './trust-rating';
+import {staleVerification} from './verdict-freshness';
 
 type FindingScope={scope:'current-holder'|'mixed'|'outside-current-snapshot'|'non-wallet';currentHolderAddresses:string[];outsideCurrentHolderAddresses:string[];currentHolderCount:number;totalWalletCount:number;note:string};
 type PoolContext={status:'verified'|'unknown';reasons:string[];snapshot?:SolanaPoolReserveSnapshot};
@@ -10,7 +10,8 @@ const clean=(value:string,max=400)=>value.replace(/https?:\/\/\S+/gi,'[source UR
  * history and a model packet's size are never substitutes for observed hazards. */
 export function agentEvidenceContext(report:InvestigationReport){
  const normalize=(a:string)=>report.chain==='solana'?a:a.toLowerCase();
- const captured=Date.parse(report.investigation.coverage.fetchedAt);
+ // Current snapshot checks follow the current report capture, while event history keeps its own timestamp.
+ const captured=Date.parse(report.fetchedAt);
  const dated=(at:string|undefined)=>!!at&&Number.isFinite(Date.parse(at))&&Number.isFinite(captured)&&Date.parse(at)<=captured+120_000;
  const fresh=(at:string|undefined)=>dated(at)&&Date.parse(at!)>=captured-600_000;
  const stale=staleVerification(report);

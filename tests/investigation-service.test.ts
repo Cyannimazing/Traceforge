@@ -8,6 +8,12 @@ import type { PoolLaunchResult } from '../src/lib/pool-launch';
 import type {EvidenceClock} from '../src/lib/evidence-clock';
 const report: Report = { chain:'ethereum',token:'0xabc',name:'Test',symbol:'TEST',fetchedAt:'2026-01-01T00:00:00Z',market:null,holders:[{address:'wallet',share:1,contract:false,locked:false,tag:''}],holderCount:1,checks:[],sources:[] };
 
+test('snapshot enrichment reaches report without substituting contract security flags',async()=>{
+ const activity={source:'EVM RPC wallet activity',observedAt:report.fetchedAt,wallets:[],truncated:false};
+ const service=createInvestigationService({now:()=>Date.parse(report.fetchedAt),publicScan:async()=>report,makeClient:()=>({configured:false,request:async()=>null}),enrichSnapshot:async()=>({walletActivity:activity})});
+ const events:import('../src/lib/investigation-types').ScanEvent[]=[];const result=await service.scan('ethereum',report.token,{onEvent:e=>events.push(e)});assert(events.some(e=>e.type==='stage'&&e.stage==='wallet-activity'&&e.status==='running'));assert(events.some(e=>e.type==='stage'&&e.stage==='wallet-activity'&&e.status==='unavailable'));assert.deepEqual(result.walletActivity,activity);assert.deepEqual(result.checks,report.checks);
+});
+
 test('public data starts while clock verification is still pending',async()=>{
  let publicStarted=false,release!:()=>void;
  const service=createInvestigationService({resolveClock:()=>new Promise(resolve=>{release=()=>resolve(undefined as unknown as EvidenceClock);}),publicScan:async()=>{publicStarted=true;return report;},makeClient:()=>({configured:false,request:async()=>null})});
@@ -101,7 +107,7 @@ test('verified pool transactions replace incompatible feed rows without inflatin
 test('no credentials returns truthful public fallback', async () => {
   const service = createInvestigationService({publicScan:async()=>report, makeClient:()=>({configured:false,request:async()=>{throw Error('must not query');}})});
   const result = await service.scan('ethereum','0xabc');
-  assert.equal(result.investigation.assessment.status,'insufficient');
+  assert.equal(result.investigation.assessment.status,'caution');
   assert(result.investigation.coverage.reasons.some(r=>r.includes('not configured')));
   assert.equal(result.investigation.wallets[0].share,1);
 });
@@ -143,11 +149,11 @@ test('pre-canceled requests do no work', async () => {
 });
 test('security snapshots replace old flags, never duplicate evidence, and warnings produce caution',async()=>{
   let status:'critical'|'warning'|'clear'='critical';
-  const service=createInvestigationService({publicScan:async()=>({...report,sources:[{name:'GoPlus Security',status:'available',detail:'Current checks'}],checks:[{key:'mint',title:'Supply',description:'Supply control',value:'Yes',status}]}),makeClient:()=>({configured:false,request:async()=>null})});
+  const service=createInvestigationService({publicScan:async()=>({...report,sources:[{name:'GoPlus Security',status:'available',detail:'Current checks',fetchedAt:report.fetchedAt}],checks:[{key:'mint',title:'Supply',description:'Supply control',value:'Yes',status,source:'GoPlus Security',fetchedAt:report.fetchedAt}]}),now:()=>Date.parse(report.fetchedAt),makeClient:()=>({configured:false,request:async()=>null})});
   const first=await service.scan('ethereum','0xabc');assert.equal(first.investigation.assessment.status,'critical');
   const repeat=await service.scan('ethereum','0xabc',{mode:'holders'});assert.equal(repeat.investigation.evidence.filter(e=>e.id==='security:mint').length,1);
   status='warning';const warn=await service.scan('ethereum','0xabc',{mode:'holders'});assert.equal(warn.investigation.assessment.status,'caution');
-  status='clear';const clear=await service.scan('ethereum','0xabc',{mode:'holders'});assert.equal(clear.investigation.assessment.status,'insufficient');assert(!clear.investigation.findings.some(f=>f.id==='security:mint'));
+  status='clear';const clear=await service.scan('ethereum','0xabc',{mode:'holders'});assert.equal(clear.investigation.assessment.status,'caution');assert(!clear.investigation.findings.some(f=>f.id==='security:mint'));
 });
 test('matching indexed samples preserve the earliest observation without proving launch coverage',async()=>{
   const row={Block:{Time:'2026-01-01T00:00:00Z'},Transaction:{Hash:'hash',From:'buyer'},Log:{Index:0},Trade:{Amount:12,Side:{Type:'sell'}}};
@@ -202,4 +208,16 @@ test('historical RPC outage retains public evidence and never imports a verdict'
  const result=await service.scan('ethereum',report.token);
  assert.equal(result.providerAnalysis,undefined);assert.equal(result.holders[0].address,'wallet');
  assert.notEqual(result.investigation.assessment.status,'clear');
+});
+
+ test('EVM activity enrichment uses explorer holder snapshot instead of preliminary GoPlus list',async()=>{
+ let received:string[]=[];
+ const service=createInvestigationService({now:()=>Date.parse(report.fetchedAt),publicScan:async()=>report,makeClient:()=>({configured:false,request:async()=>null}),publicHistory:async()=>({holders:[{address:'final-holder',share:5}],trades:[],transfers:[],identities:[],labels:[],reasons:[],truncated:false,sources:[]}),enrichSnapshot:async(snapshot)=>{received=snapshot.holders.map(h=>h.address);return {};}});
+ await service.scan('ethereum',report.token);assert.deepEqual(received,['final-holder']);
+ });
+
+test('Solana holder snapshot starts before public market lookup completes',async()=>{
+ let started=false,release!:(r:Report)=>void;
+ const service=createInvestigationService({publicScan:()=>new Promise(resolve=>{release=resolve}),solanaPublic:async()=>{started=true;return undefined as unknown as SolanaPublicResult},makeClient:()=>({configured:false,request:async()=>null})});
+ const pending=service.scan('solana','token');assert.equal(started,true);release({...report,chain:'solana'});await pending;
 });

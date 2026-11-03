@@ -7,41 +7,23 @@ import {bridgeSwarmReport} from '../src/lib/swarm-bridge';
 
 function report() {
   const value=structuredClone(fixtureReport);
-  value.checks=[]; value.investigation.findings=[];
+  value.checks=[]; value.investigation.findings=[]; value.investigation.relationships=[];
   value.investigation.assessment={status:'insufficient',title:'Incomplete',summary:'History missing'};
   return value;
 }
 
-test('shared-funding-only caution explains its cause without implying contract failure',()=>{
- const value=report();
- value.investigation.findings=[{id:'funder:a',level:'warning',certainty:'inferred',title:'Shared funding observed',description:'',wallets:['a','b'],evidenceIds:['tx1','tx2']}];
- const result=getDisplayAssessment(value);
- assert.equal(result.status,'caution');assert.match(result.summary,/Shared funding/);assert.match(result.summary,/does not establish common ownership/);
- value.checks=[{key:'pause',title:'Pause',status:'warning',description:'',value:'1'}];
- assert.doesNotMatch(getDisplayAssessment(value).summary,/Shared funding links/);
+test('unqualified historical funding findings do not become current stop rules',()=>{
+ const value=report();value.investigation.findings=[{id:'funder:a',level:'warning',certainty:'inferred',title:'Shared funding observed',description:'',wallets:['a','b'],evidenceIds:['tx1','tx2']}];
+ const result=getDisplayAssessment(value);assert.equal(result.status,'caution');assert.match(result.summary,/not fully evaluated/);
 });
-test('critical provider flag stays critical despite unavailable history',()=>{
-  const value=report(); value.checks=[{key:'trap',title:'Transfer restriction',status:'critical',description:'Reported restriction',value:'1'}];
-  assert.equal(getDisplayAssessment(value).status,'critical');
-  assert.equal(getDisplayAssessment(value).title,'Danger');
+test('an unattributed critical flag cannot masquerade as a current verified hard stop',()=>{
+ const value=report();value.checks=[{key:'trap',title:'Transfer restriction',status:'critical',description:'Unattributed',value:'1'}];assert.equal(getDisplayAssessment(value).status,'caution');
 });
-test('warning evidence outranks incomplete history but not a critical finding',()=>{
-  const value=report();value.investigation.findings=[{id:'w',title:'Review',description:'Observed signal',level:'warning',certainty:'observed',wallets:[],evidenceIds:[]}];
-  assert.equal(getDisplayAssessment(value).status,'caution');
-  value.investigation.findings.push({...value.investigation.findings[0],id:'c',level:'critical'});
-  assert.equal(getDisplayAssessment(value).status,'critical');
+test('unverified warning and critical labels retain caution rather than fabricate verified danger',()=>{
+ const value=report();value.investigation.findings=[{id:'c',title:'Flag',description:'Missing evidence',level:'critical',certainty:'observed',wallets:[],evidenceIds:[]}];assert.equal(getDisplayAssessment(value).status,'caution');
 });
-test('an empty incomplete report never becomes a clear verdict',()=>{
-  assert.equal(getDisplayAssessment(report()).status,'insufficient');
-  assert.equal(getDisplayAssessment(report()).title,'Caution');
-  assert.match(getDisplayAssessment(report()).summary,/Not enough completed checks/);
-});
-test('complete coverage alone cannot make an empty report clear',()=>{
-  const value=report();value.investigation.coverage.status='complete';value.investigation.assessment.status='clear';
-  assert.equal(getDisplayAssessment(value).status,'insufficient');
-  assert.equal(getDisplayAssessment(value).title,'Caution');
-  value.investigation.coverage.status='partial';
-  assert.equal(getDisplayAssessment(value).status,'insufficient');
+test('complete coverage alone cannot make an incomplete set of factor measurements clean',()=>{
+ const value=report();for(const status of ['complete','partial'] as const){value.investigation.coverage.status=status;assert.equal(getDisplayAssessment(value).status,'caution');assert.match(getDisplayAssessment(value).summary,/not fully evaluated/);}
 });
 
 test('unrelated independent evidence cannot upgrade provider-only risk attribution',()=>{
@@ -102,5 +84,5 @@ test('passing controls alone do not establish distribution or wallet activity',(
 });
 
 test('a passing subset and no holder snapshot cannot claim no flags',()=>{
- const value=report();value.chain='solana';value.checks=[{key:'solana_mint_authority',title:'Mint',status:'clear',value:'Revoked',description:''}];assert.equal(getDisplayAssessment(value).status,'insufficient');
+ const value=report();value.chain='solana';value.checks=[{key:'solana_mint_authority',title:'Mint',status:'clear',value:'Revoked',description:''}];assert.equal(getDisplayAssessment(value).status,'caution');
 });

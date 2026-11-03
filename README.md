@@ -40,7 +40,7 @@ Public SwarmEngine adapters and comparative research remain in the codebase for 
 
 **LLM review is disabled** in `src/lib/features.ts`, including its API endpoint. Supplying a Gemini key does not enable it.
 
-The current overall percentage is the documented [TraceForge evidence rating](docs/trust-rating.md), calculated from the report's evidence. It is not a measured probability of safety and is not SwarmEngine's private scoring formula. Passed contract checks are separate from the overall verdict. Unknown history and incomplete source coverage remain explicit.
+The primary rating uses six factors weighted 30/20/15/15/10/10, with five inferred curves validated against 57 public report snapshots. Missing measurements remain a score range instead of an invented exact percentage. See the [TraceForge rating specification](docs/trust-rating.md). It is not a measured probability of safety and is not SwarmEngine's private scoring formula. Passed contract checks are separate from the overall verdict. Unknown history and incomplete source coverage remain explicit.
 
 Swarm's published six factor weights and hard/soft rules are documented in [the reconstruction audit](docs/swarm-verdict-reconstruction.md). The public frontend does not expose all factor-to-point curves or the private judge's complete normalization model. Matching a token's displayed score alone does not validate a model. This repository does not claim scoring parity or superior predictive accuracy. See the [matched-token validation](docs/swarm-analysis-validation.md) for verified differences.
 

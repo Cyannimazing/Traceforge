@@ -12,9 +12,10 @@ import {computeRiskMetrics} from './risk-metrics';
 import type {SolanaPoolReserveResult} from './solana-pool-reserves';
 import {clockReferenceTime,type EvidenceClock} from './evidence-clock';
 import type {PersistentReportCache} from './report-cache';
+import type {SnapshotEnrichment} from './snapshot-enrichment';
 
 export type ScanOptions = { mode?: 'deep' | 'market' | 'holders'; expanded?: boolean; fresh?: boolean; signal?: AbortSignal; onEvent?: (event: ScanEvent) => void };
-type Dependencies = { publicScan: (chain: Chain, token: string, options: {mode?: 'deep' | 'market' | 'holders'; signal?: AbortSignal}) => Promise<Report>; makeClient: (signal?: AbortSignal) => BitqueryClient; publicHistory?: (chain: Chain, token: string, options: PublicHistoryOptions) => Promise<PublicHistoryResult>; historicalEvidence?: (chain:Chain,token:string,options:PublicHistoryOptions)=>Promise<PublicHistoryResult|undefined>; solanaPublic?: (token:string,options:{signal?:AbortSignal})=>Promise<SolanaPublicResult>; poolLaunch?:(chain:Chain,token:string,pool:string,options:{signal?:AbortSignal;validationTime?:number})=>Promise<PoolLaunchResult>; poolReserves?:(pool:string,token:string,options:{signal?:AbortSignal})=>Promise<SolanaPoolReserveResult>; resolveClock?:(options:{signal?:AbortSignal})=>Promise<EvidenceClock>; now?: () => number };
+type Dependencies = { enrichSnapshot?:(report:Report,options:{signal?:AbortSignal})=>Promise<SnapshotEnrichment>; publicScan: (chain: Chain, token: string, options: {mode?: 'deep' | 'market' | 'holders'; signal?: AbortSignal}) => Promise<Report>; makeClient: (signal?: AbortSignal) => BitqueryClient; publicHistory?: (chain: Chain, token: string, options: PublicHistoryOptions) => Promise<PublicHistoryResult>; historicalEvidence?: (chain:Chain,token:string,options:PublicHistoryOptions)=>Promise<PublicHistoryResult|undefined>; solanaPublic?: (token:string,options:{signal?:AbortSignal})=>Promise<SolanaPublicResult>; poolLaunch?:(chain:Chain,token:string,pool:string,options:{signal?:AbortSignal;validationTime?:number})=>Promise<PoolLaunchResult>; poolReserves?:(pool:string,token:string,options:{signal?:AbortSignal})=>Promise<SolanaPoolReserveResult>; resolveClock?:(options:{signal?:AbortSignal})=>Promise<EvidenceClock>; now?: () => number };
 type Cached = { expires: number; report: InvestigationReport };
 const batch = <T>(items: T[], size: number) => Array.from({length:Math.ceil(items.length/size)},(_,i)=>items.slice(i*size,(i+1)*size));
 
@@ -70,6 +71,8 @@ export function createInvestigationService(deps: Dependencies & {persistentCache
         const stage = (name: string, status: 'running'|'complete'|'unavailable', detail: string) => options.onEvent?.({type:'stage',stage:name,status,detail});
         if(mode!=='market'&&deps.resolveClock)stage('clock-check','running','Checking response clocks before comparing event timestamps.');
         stage('public-data','running',mode === 'market' ? 'Refreshing market data only.' : 'Loading public market and contract evidence.');
+        // Token account snapshots do not depend on market discovery. Start concurrently.
+        const solanaTask=mode!=='market'&&chain==='solana'&&deps.solanaPublic ? deps.solanaPublic(token,{signal:options.signal}).catch(()=>undefined) : Promise.resolve(undefined);
         let [clock,publicReport]=await Promise.all([
           mode==='market'?undefined:deps.resolveClock?.({signal:options.signal}),
           deps.publicScan(chain,token,{mode,signal:options.signal}),
@@ -96,7 +99,20 @@ export function createInvestigationService(deps: Dependencies & {persistentCache
         }
         // Attach rejection handling immediately while independent providers run.
         // A cancelled sibling must never leave a detached promise rejection.
-        const solanaTask=chain==='solana'&&deps.solanaPublic ? deps.solanaPublic(token,{signal:options.signal}).catch(()=>undefined) : Promise.resolve(undefined);
+        const enrichSnapshot=async()=>{
+          if(!deps.enrichSnapshot)return undefined;
+          const snapshot=chain==='solana'?await solanaTask:undefined;
+          options.signal?.throwIfAborted();
+          const holderReport=snapshot?.holders?{...publicReport,holders:snapshot.holders.flatMap(h=>h.share===null?[]:[{address:h.address,share:h.share,contract:null,locked:null,tag:''}])}:publicReport;
+          stage('wallet-activity','running',`Checking activity for ${holderReport.holders.length} returned holder addresses; no exhaustive history crawl.`);
+          const enriched=await deps.enrichSnapshot!(holderReport,{signal:options.signal});
+          const wallets=enriched.walletActivity?.wallets||[];
+          stage('wallet-activity',wallets.some(w=>w.count!==null)?'complete':'unavailable',`${wallets.filter(w=>w.count!==null).length} of ${wallets.length} selected wallet activity responses verified. Short histories remain unresolved.`);
+          if(enriched.controlProbes)stage('control-probes',enriched.controlProbes.status==='unavailable'?'unavailable':'complete',`${enriched.controlProbes.observations.filter(o=>o.status==='observed').length} direct RPC control observations at one block. Transfer simulation is not a sellability test.`);
+          return enriched;
+        };
+        const startEnrichment=()=>enrichSnapshot().catch(()=>{if(!options.signal?.aborted)stage('wallet-activity','unavailable','Wallet activity could not be verified.');return undefined;});
+        let enrichmentTask=chain==='solana'?startEnrichment():undefined;
         const poolTask=mode==='deep'&&publicReport.market?.pairAddress&&deps.poolLaunch?deps.poolLaunch(chain,token,publicReport.market.pairAddress,{signal:options.signal,validationTime:clockReferenceTime(clock,Date.parse(captured))}).catch(()=>undefined):Promise.resolve(undefined);
         const reserveTask=mode==='deep'&&chain==='solana'&&publicReport.market?.pairAddress&&deps.poolReserves?deps.poolReserves(publicReport.market.pairAddress,token,{signal:options.signal}).catch(()=>undefined):Promise.resolve(undefined);
         const historicalTask=mode==='deep'&&deps.historicalEvidence?(async()=>{
@@ -214,6 +230,8 @@ export function createInvestigationService(deps: Dependencies & {persistentCache
           }
           stage('solana-snapshot',solana.sources.some(s=>s.status==='available')?'complete':'unavailable','Finalized mint/freeze roles and sampled account owners checked. Per-source scope and slots are retained.');
         }
+        // EVM explorer holders may replace the early GoPlus list. Probe the actual final snapshot.
+        enrichmentTask ||= startEnrichment();
         const historical=await historicalTask;
         options.signal?.throwIfAborted();
         if(historical){
@@ -274,6 +292,14 @@ export function createInvestigationService(deps: Dependencies & {persistentCache
         else if(mode==='deep'&&prior)result=mergeDeepReport(prior.report,result);
         const reserves=await reserveTask;
         if(reserves){result.poolReserves=reserves;const snapshot=reserves.snapshot;if(snapshot){result.sources.push({name:snapshot.source,status:'available',fetchedAt:snapshot.observedAt,detail:`Verified PumpSwap pool and vault snapshot at finalized slot ${snapshot.slot}. ${snapshot.limitations.join(' ')}`});result.investigation.evidence.push({id:snapshot.evidenceId,kind:'label',timestamp:snapshot.observedAt,source:snapshot.source,description:`Verified pool reserves at finalized slot ${snapshot.slot}. Base ${snapshot.base.amountRaw} raw units; quote ${snapshot.quote.amountRaw} raw units. Virtual quote ${snapshot.virtualQuoteReservesRaw}. ${snapshot.feeAssumption}`});}}
+        const enrichment=await enrichmentTask;
+        options.signal?.throwIfAborted();
+        if(enrichment){
+          result={...result,...enrichment};
+          const activity=enrichment.walletActivity,probes=enrichment.controlProbes;
+          if(activity)result.sources.push({name:activity.source,status:activity.wallets.some(w=>w.count!==null)?'available':'unavailable',fetchedAt:activity.observedAt,detail:'Bounded wallet activity predicate. See chain-specific count semantics and unknown histories.'});
+          if(probes){result.sources.push({name:probes.source,status:probes.status==='unavailable'?'unavailable':'available',fetchedAt:probes.fetchedAt,detail:probes.limitations.join(' ')});result.investigation.evidence.push(...probes.evidence);}
+        }
         result.riskMetrics=computeRiskMetrics(result);
         result.investigation.assessment=getDisplayAssessment(result);
         result.trustRating=trustRating(result);

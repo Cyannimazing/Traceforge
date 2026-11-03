@@ -13,6 +13,7 @@ import {evmTransferArchive} from './evm-transfer-archive-server';
 import {createSolanaPoolReserves} from './solana-pool-reserves';
 import type {PublicHistoryOptions,PublicHistoryResult} from './public-history';
 import {createSearchCoordinator} from './search-coordinator';
+import {createSnapshotEnrichment} from './snapshot-enrichment';
 import {ReportCache} from './report-cache';
 import {resolve} from 'node:path';
 
@@ -43,6 +44,7 @@ async function extendedSolanaHistory(options:PublicHistoryOptions):Promise<Publi
 export const independentInvestigationService = createInvestigationService({
   persistentCache:{get:(chain,token,limit)=>savedReports().get(chain,token,limit),set:(chain,token,limit,entry)=>savedReports().set(chain,token,limit,entry)},
   publicScan: scanToken,
+  enrichSnapshot:createSnapshotEnrichment({rpcUrls:{...rpcUrls,solana:process.env.SOLANA_RPC_URL,bsc:process.env.BSC_RPC_URL}}),
   poolReserves:createSolanaPoolReserves({rpcUrl:process.env.SOLANA_RPC_URL}),
   resolveClock:createEvidenceClock(),
   publicHistory:(chain,token,options)=>publicHistory(chain,token,{...options,skipFunding:(chain==='ethereum'||chain==='base')&&!!rpcUrls[chain]}),

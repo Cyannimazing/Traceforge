@@ -12,10 +12,10 @@ type NodeKey='market'|'holders'|'funding'|'trades'|'contract'|'assessment';
 type NodeDefinition={key:NodeKey;title:string;description:string;matches:(name:string)=>boolean};
 const NODES:NodeDefinition[]=[
  {key:'market',title:'Market',description:'Price, liquidity and trading activity from the returned market snapshot. One pool does not describe every trading venue.',matches:name=>name==='public-data'||name==='market-context'},
- {key:'holders',title:'Holders',description:'Holder balances, supply shares and wallet roles, with snapshot times and source records.',matches:name=>name==='Holders'||name==='solana-snapshot'||name==='public-history'},
+ {key:'holders',title:'Holders',description:'Holder balances, supply shares and wallet roles, with snapshot times and source records.',matches:name=>name==='Holders'||name==='solana-snapshot'||name==='public-history'||name==='wallet-activity'},
  {key:'funding',title:'Funding',description:'Available funding and transfer relationships. Shared funding does not establish common ownership.',matches:name=>name.startsWith('Funding batch')||name==='public-history'},
  {key:'trades',title:'Trades',description:'Timestamped entries, buys and sells from the available sources. First observed activity is not automatically token launch.',matches:name=>['Earliest buys','Recent trades','Trading start','public-history','pool-first-minute','rpc-history','history'].includes(name)},
- {key:'contract',title:'Contract',description:'Reported contract findings, creator and current authority. Missing checks stay unassessed.',matches:name=>name==='public-data'||name==='solana-snapshot'},
+ {key:'contract',title:'Contract',description:'Reported contract findings, creator and current authority. Missing checks stay unassessed.',matches:name=>name==='public-data'||name==='solana-snapshot'||name==='control-probes'},
  {key:'assessment',title:'Verdict',description:'The findings behind the verdict: contract controls, holder concentration and wallet connections.',matches:name=>name==='assessment'},
 ];
 const PURPOSE:Record<NodeKey,string>={market:'Liquidity and trading activity',holders:'Who holds the supply',funding:'Where wallets got funds',trades:'Early buys and sell patterns',contract:'Creator and control checks',assessment:'What the evidence means'};
@@ -23,6 +23,7 @@ const stageTitle=(stage:string)=>(({
  'provider-report':'Reading provider analysis','clock-check':'Checking source timestamps','public-data':'Reading market and contract data',
  'public-history':'Tracing public wallet history','history':'Loading indexed history','market-context':'Refreshing market data',
  'pool-first-minute':'Verifying first-minute trades','assessment':'Building the verdict','solana-snapshot':'Verifying token accounts',
+ 'wallet-activity':'Checking holder activity','control-probes':'Verifying contract controls','rpc-history':'Reading bounded wallet history',
  'independent-scan':'Independent sources selected','cache':'Loading a previous investigation',
  } as Record<string,string>)[stage]||stage.replaceAll('-',' ').replace(/^./,letter=>letter.toUpperCase()));
 const numeric=(value:number)=>value.toLocaleString('en-US');
