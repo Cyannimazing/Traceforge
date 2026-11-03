@@ -13,6 +13,7 @@ import {buildCurrentHolderGraph} from '@/lib/current-holder-graph';
 import {holderScope} from '@/lib/holder-scope';
 import {computeRiskMetrics} from '@/lib/risk-metrics';
 import RiskMeasurements from './risk-measurements';
+import DecisionOutput from './decision-output';
 import type { InvestigationReport, WalletCategory } from '@/lib/investigation-types';
 import type { Selection } from './investigation-panels';
 import CheckBreakdown from './check-breakdown';
@@ -148,6 +149,7 @@ export default function ReportOverview({ report, selection, onSelect, onInspect,
         </>:<p>{agentReview.overrides.length?'Decision weights withheld because an evidence rule changed or restricted the AI verdict.':'The available evidence does not support decision weights.'}</p>}
       </section>}
       <p className="ro-summary">{agentReview?.summary||assessment.summary}</p>
+      {!LLM_REVIEW_ENABLED&&rating.judge&&<DecisionOutput result={rating.judge}/>}
       <div className="ro-holder-scope">
         <dl aria-label="Holder snapshot and investigation scope">
           <div><dt>Snapshot holders</dt><dd>{snapshot.holders.length.toLocaleString()}</dd></div>

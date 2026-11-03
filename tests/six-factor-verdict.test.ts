@@ -25,7 +25,11 @@ test('verified current mint and fee-update authorities apply the disclosed owner
 });
 test('active freeze authority is a hard gate even when the adapter classifies capability as warning',()=>{
  const r=report();r.checks[1].status='warning';r.checks[1].value='Active';
+ // Clear extension coverage isolates the active-freeze severity branch from
+ // missing control guards: its dangerous-security coefficient is unrecovered.
+ r.checks.push({...r.checks[0],key:'solana_extensions',title:'Decoded extensions',status:'clear'});
  const rating=trustRating(r);assert.equal(rating.decision,'AVOID');assert.equal(rating.score,null);
+ assert.equal(rating.judge!.decision,'AVOID');assert.equal(rating.judge!.p,null);assert.equal(rating.judge!.ranges,null);assert.equal(rating.judge!.confidence,null);
 });
 test('stale, future, unattributed and imported owner-power warnings do not impose a cap',()=>{
  for(const mutation of ['stale','future','source','provider']){
@@ -62,3 +66,11 @@ test('low outgoing nonces across every EVM holder cannot manufacture the fresh-w
 });
 
 
+
+test('unverified EVM security controls do not become zero-risk judge inputs',()=>{
+ const r=report();r.chain='ethereum';r.sources=[{name:'GoPlus Security',status:'available',fetchedAt:r.fetchedAt,detail:''}];
+ r.checks=['is_honeypot','owner_change_balance','is_mintable','transfer_pausable','is_proxy','is_open_source','hidden_owner','selfdestruct'].map(key=>({key,title:key,status:'clear',value:'Checked',description:'',source:'GoPlus Security',fetchedAt:r.fetchedAt}));
+ const baseline=trustRating(r);assert.notEqual(baseline.judge?.ranges,null);
+ r.checks.find(c=>c.key==='hidden_owner')!.status='unknown';
+ assert.equal(trustRating(r).judge?.ranges,null);assert.equal(trustRating(r).judge?.confidence,null);
+});

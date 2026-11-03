@@ -1,0 +1,2958 @@
+{
+  "captured": "2026-11-03",
+  "purpose": "Rounded public-provider decision outputs for offline behavioral reconstruction, not outcome labels or calibrated safety probabilities. Existing split labels predate this judge audit; all rows were visible during this retrospective analysis.",
+  "rows": [
+    {
+      "path": "validation/swarm-2026-11-03/bsc-user-token-stored.json",
+      "sha256": "a5d520556c49da44bbb8411f5db1afe666eacd39b533ce6c896e3a17a7eda3f0",
+      "split": "prior-observation",
+      "chain": "bsc",
+      "token": "0xb00cf84d186ff4c3b36a9685f411e996ea50b3c0",
+      "scannedAt": 1793688530,
+      "input": {
+        "score": null,
+        "band": "TOO_EARLY",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": null
+      },
+      "observed": {
+        "decision": "CAUTION",
+        "p": {
+          "avoid": 0.34,
+          "caution": 0.46,
+          "ok": 0.2
+        },
+        "confidence": 0.46,
+        "bar": 0.6,
+        "escalate": true,
+        "evidence": null
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/ethereum-user-token-stored.json",
+      "sha256": "90e85dff032bdcb3f8e7a9cc3d6194adc68cfeaf7c07ae14099c0395ba35a46a",
+      "split": "prior-observation",
+      "chain": "ethereum",
+      "token": "0x4f4d98b892063d4e811b6c6c7a8c6a0ba2306ce7",
+      "scannedAt": 1793689525,
+      "input": {
+        "score": 75,
+        "band": "OK",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": 0.013
+      },
+      "observed": {
+        "decision": "CAUTION",
+        "p": {
+          "avoid": 0.018,
+          "caution": 0.498,
+          "ok": 0.484
+        },
+        "confidence": 0.498,
+        "bar": 0.6,
+        "escalate": true,
+        "evidence": [
+          {
+            "k": "score 75",
+            "avoid": 0.021,
+            "ok": 0.542,
+            "caution": 0.558
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/formula-sample-0.json",
+      "sha256": "52de1c8433355250214a0b37301d9158a960b4077a677d1096142f2e32cc398a",
+      "split": "discovery",
+      "chain": "solana",
+      "token": "FxQ5GbqCBxNHDpFTpiL9RDVHiP58ar5nMkR3eMwepump",
+      "scannedAt": 1793690374,
+      "input": {
+        "score": 80,
+        "band": "CLEAN",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": 0.4258
+      },
+      "observed": {
+        "decision": "OK",
+        "p": {
+          "avoid": 0.009,
+          "caution": 0.338,
+          "ok": 0.653
+        },
+        "confidence": 0.653,
+        "bar": 0.9,
+        "escalate": true,
+        "evidence": [
+          {
+            "k": "score 80",
+            "avoid": 0.01,
+            "ok": 0.731,
+            "caution": 0.379
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/formula-sample-1.json",
+      "sha256": "6e8e7785b801620aa0ed1d730a2aef50261fff5a54f73cab0ca80fa6797023b1",
+      "split": "discovery",
+      "chain": "ethereum",
+      "token": "0x58d63f81cb1ec28280b23307fe3245c5fcbfa573",
+      "scannedAt": 1793689296,
+      "input": {
+        "score": 90,
+        "band": "CLEAN",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": 0.1999
+      },
+      "observed": {
+        "decision": "OK",
+        "p": {
+          "avoid": 0.002,
+          "caution": 0.163,
+          "ok": 0.835
+        },
+        "confidence": 0.835,
+        "bar": 0.9,
+        "escalate": true,
+        "evidence": [
+          {
+            "k": "score 90",
+            "avoid": 0.002,
+            "ok": 0.935,
+            "caution": 0.182
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/formula-sample-10.json",
+      "sha256": "7a119235aeac018156d36aa448a0f2aecd8a8c0f83a4ecfae4fae3b4a3175ecc",
+      "split": "holdout",
+      "chain": "solana",
+      "token": "3rNMYJTc6EMJzarVatga4dA8yrampk6uyRfrgbas7dGb",
+      "scannedAt": 1793689023,
+      "input": {
+        "score": 59,
+        "band": "RISKY",
+        "security": 0,
+        "memoryHits": 13,
+        "dumpImpact": null
+      },
+      "observed": {
+        "decision": "CAUTION",
+        "p": {
+          "avoid": 0.415,
+          "caution": 0.538,
+          "ok": 0.047
+        },
+        "confidence": 0.538,
+        "bar": 0.6,
+        "escalate": true,
+        "evidence": [
+          {
+            "k": "score 59",
+            "avoid": 0.172,
+            "ok": 0.076,
+            "caution": 0.872
+          },
+          {
+            "k": "swarm seen in 13 other token(s)",
+            "avoid": 0.5
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/formula-sample-11.json",
+      "sha256": "35cc87437a7e1cb4e9ac72889eb298f96f1c7286232d4046fcdaa78bba5e6817",
+      "split": "holdout",
+      "chain": "solana",
+      "token": "21YSrwzVY6U2r14peJjRwJhs3bRbfZ9aE2YV6qa2pump",
+      "scannedAt": 1793689022,
+      "input": {
+        "score": 66,
+        "band": "DANGER",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": 0.7703
+      },
+      "observed": {
+        "decision": "AVOID",
+        "p": {
+          "avoid": 0.505,
+          "caution": 0.396,
+          "ok": 0.098
+        },
+        "confidence": 0.505,
+        "bar": 0.7,
+        "escalate": true,
+        "evidence": [
+          {
+            "k": "score 66",
+            "avoid": 0.071,
+            "ok": 0.209,
+            "caution": 0.84
+          },
+          {
+            "k": "hard rule: DANGER band",
+            "avoid": 0.6
+          },
+          {
+            "k": "one hand can dump 77%",
+            "avoid": 0.4
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/formula-sample-12.json",
+      "sha256": "0b1c77f3384890a1b7b69863f19dc1fd4c05c3ccc4ca108825a6d60e6c8a4989",
+      "split": "additional-validation",
+      "chain": "solana",
+      "token": "z8umsXG8tqkBd9G8u5uXdEFYsytH4MgKvkxnizjpump",
+      "scannedAt": 1793688843,
+      "input": {
+        "score": 45,
+        "band": "DANGER",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": 1
+      },
+      "observed": {
+        "decision": "AVOID",
+        "p": {
+          "avoid": 0.757,
+          "caution": 0.239,
+          "ok": 0.004
+        },
+        "confidence": 0.757,
+        "bar": 0.7,
+        "escalate": false,
+        "evidence": [
+          {
+            "k": "score 45",
+            "avoid": 0.606,
+            "ok": 0.008,
+            "caution": 0.507
+          },
+          {
+            "k": "hard rule: DANGER band",
+            "avoid": 0.6
+          },
+          {
+            "k": "one hand can dump 100%",
+            "avoid": 0.4
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/formula-sample-13.json",
+      "sha256": "d5866d2bbf9880c9fb6e83a65038b97571db02e517193066ddfe06d653bdebbb",
+      "split": "additional-validation",
+      "chain": "bsc",
+      "token": "0xbaeec1af8b60aa992341a4dd5114203b1ee92681",
+      "scannedAt": 1793688586,
+      "input": {
+        "score": 59,
+        "band": "RISKY",
+        "security": 0,
+        "memoryHits": 1,
+        "dumpImpact": 0.2201
+      },
+      "observed": {
+        "decision": "CAUTION",
+        "p": {
+          "avoid": 0.308,
+          "caution": 0.637,
+          "ok": 0.055
+        },
+        "confidence": 0.637,
+        "bar": 0.6,
+        "escalate": false,
+        "evidence": [
+          {
+            "k": "score 59",
+            "avoid": 0.172,
+            "ok": 0.076,
+            "caution": 0.872
+          },
+          {
+            "k": "swarm seen in 1 other token(s)",
+            "avoid": 0.25
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/formula-sample-14.json",
+      "sha256": "dccffdc05550635c85e200a073cf731dc7da04150db83774bba284edf1381964",
+      "split": "additional-validation",
+      "chain": "bsc",
+      "token": "0x7ce10216d981419be0699e267a29230d2cc67777",
+      "scannedAt": 1793688553,
+      "input": {
+        "score": 59,
+        "band": "RISKY",
+        "security": 0,
+        "memoryHits": 1,
+        "dumpImpact": 0.1306
+      },
+      "observed": {
+        "decision": "CAUTION",
+        "p": {
+          "avoid": 0.308,
+          "caution": 0.637,
+          "ok": 0.055
+        },
+        "confidence": 0.637,
+        "bar": 0.6,
+        "escalate": false,
+        "evidence": [
+          {
+            "k": "score 59",
+            "avoid": 0.172,
+            "ok": 0.076,
+            "caution": 0.872
+          },
+          {
+            "k": "swarm seen in 1 other token(s)",
+            "avoid": 0.25
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/formula-sample-15.json",
+      "sha256": "275e8e929d254e06cbf681c74ccdd26d2c02eb6393450eb4ea990ae30cdf0cdf",
+      "split": "additional-validation",
+      "chain": "bsc",
+      "token": "0xed9dad07308b772b923ce41369706b46b4e77777",
+      "scannedAt": 1793688552,
+      "input": {
+        "score": 59,
+        "band": "RISKY",
+        "security": 0,
+        "memoryHits": 1,
+        "dumpImpact": 0.0713
+      },
+      "observed": {
+        "decision": "CAUTION",
+        "p": {
+          "avoid": 0.308,
+          "caution": 0.637,
+          "ok": 0.055
+        },
+        "confidence": 0.637,
+        "bar": 0.6,
+        "escalate": false,
+        "evidence": [
+          {
+            "k": "score 59",
+            "avoid": 0.172,
+            "ok": 0.076,
+            "caution": 0.872
+          },
+          {
+            "k": "swarm seen in 1 other token(s)",
+            "avoid": 0.25
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/formula-sample-16.json",
+      "sha256": "61a1c43075a9fb6bdc1409c085309b74696f443581774a77841a0d47415a60f4",
+      "split": "additional-validation",
+      "chain": "bsc",
+      "token": "0x8dff18972eb87faff92c90988c65c4f506c29709",
+      "scannedAt": 1793688533,
+      "input": {
+        "score": 75,
+        "band": "OK",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": 0.053
+      },
+      "observed": {
+        "decision": "CAUTION",
+        "p": {
+          "avoid": 0.018,
+          "caution": 0.498,
+          "ok": 0.484
+        },
+        "confidence": 0.498,
+        "bar": 0.6,
+        "escalate": true,
+        "evidence": [
+          {
+            "k": "score 75",
+            "avoid": 0.021,
+            "ok": 0.542,
+            "caution": 0.558
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/formula-sample-17.json",
+      "sha256": "e4d7bdaf9470725c429c58a4b23ea98c7e5b4c50a5972017de6f623e7bb6d1df",
+      "split": "additional-validation",
+      "chain": "ethereum",
+      "token": "0x9245684997ada3b1a6a8f76bc1712724ea16de9d",
+      "scannedAt": 1793687850,
+      "input": {
+        "score": 59,
+        "band": "RISKY",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": 0.23
+      },
+      "observed": {
+        "decision": "CAUTION",
+        "p": {
+          "avoid": 0.154,
+          "caution": 0.779,
+          "ok": 0.068
+        },
+        "confidence": 0.779,
+        "bar": 0.6,
+        "escalate": false,
+        "evidence": [
+          {
+            "k": "score 59",
+            "avoid": 0.172,
+            "ok": 0.076,
+            "caution": 0.872
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/formula-sample-18.json",
+      "sha256": "560bf691531c896f83f5b7e435362fd790e6cb0333372b8e1ad540918a276cd3",
+      "split": "additional-validation",
+      "chain": "solana",
+      "token": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+      "scannedAt": 1793687765,
+      "input": {
+        "score": 87,
+        "band": "CLEAN",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": 0.2543
+      },
+      "observed": {
+        "decision": "OK",
+        "p": {
+          "avoid": 0.003,
+          "caution": 0.196,
+          "ok": 0.801
+        },
+        "confidence": 0.801,
+        "bar": 0.9,
+        "escalate": true,
+        "evidence": [
+          {
+            "k": "score 87",
+            "avoid": 0.004,
+            "ok": 0.897,
+            "caution": 0.219
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/formula-sample-19.json",
+      "sha256": "fd3a3cc596a961d0a2471a956c8c2289ebcffa4b526f922f3b1c4fdb89a5cb19",
+      "split": "additional-validation",
+      "chain": "solana",
+      "token": "5cKX3tn119ayha94BD6xEZQekQUG8stwHHNTuNBppump",
+      "scannedAt": 1793687433,
+      "input": {
+        "score": 89,
+        "band": "CLEAN",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": null
+      },
+      "observed": {
+        "decision": "OK",
+        "p": {
+          "avoid": 0.003,
+          "caution": 0.172,
+          "ok": 0.825
+        },
+        "confidence": 0.825,
+        "bar": 0.9,
+        "escalate": true,
+        "evidence": [
+          {
+            "k": "score 89",
+            "avoid": 0.003,
+            "ok": 0.924,
+            "caution": 0.193
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/formula-sample-2.json",
+      "sha256": "88a5366fb1021af1e5e6e02c594973042536501c5d83e1dd4fdebbad1781f94e",
+      "split": "discovery",
+      "chain": "ethereum",
+      "token": "0x16628313b00b46e5ba16037ddbd5339944f84803",
+      "scannedAt": 1793689289,
+      "input": {
+        "score": 75,
+        "band": "OK",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": 0.053
+      },
+      "observed": {
+        "decision": "CAUTION",
+        "p": {
+          "avoid": 0.018,
+          "caution": 0.498,
+          "ok": 0.484
+        },
+        "confidence": 0.498,
+        "bar": 0.6,
+        "escalate": true,
+        "evidence": [
+          {
+            "k": "score 75",
+            "avoid": 0.021,
+            "ok": 0.542,
+            "caution": 0.558
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/formula-sample-20.json",
+      "sha256": "ad23e234584f76d47f9805335e60f586b6aa6daea4a09f82a74d1af0b68f7fa1",
+      "split": "additional-validation",
+      "chain": "ethereum",
+      "token": "0x158c9abd9d104c60cabf9870fbe92f3b30a0c45f",
+      "scannedAt": 1793687427,
+      "input": {
+        "score": 35,
+        "band": "DANGER",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": 0.7962
+      },
+      "observed": {
+        "decision": "AVOID",
+        "p": {
+          "avoid": 0.88,
+          "caution": 0.12,
+          "ok": 0.001
+        },
+        "confidence": 0.88,
+        "bar": 0.7,
+        "escalate": false,
+        "evidence": [
+          {
+            "k": "score 35",
+            "avoid": 0.865,
+            "ok": 0.002,
+            "caution": 0.254
+          },
+          {
+            "k": "hard rule: DANGER band",
+            "avoid": 0.6
+          },
+          {
+            "k": "one hand can dump 80%",
+            "avoid": 0.4
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/formula-sample-21.json",
+      "sha256": "aba26ddb4ebf60e746ededbf01f62dfc8dcc61a420b0fa6ba6850f928c40854f",
+      "split": "additional-validation",
+      "chain": "base",
+      "token": "0xc19be8916d8641a0e6b91b5f815c97e0204a5cbc",
+      "scannedAt": 1793686648,
+      "input": {
+        "score": 77,
+        "band": "OK",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": 0.0218
+      },
+      "observed": {
+        "decision": "OK",
+        "p": {
+          "avoid": 0.014,
+          "caution": 0.43,
+          "ok": 0.556
+        },
+        "confidence": 0.556,
+        "bar": 0.9,
+        "escalate": true,
+        "evidence": [
+          {
+            "k": "score 77",
+            "avoid": 0.016,
+            "ok": 0.622,
+            "caution": 0.482
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/formula-sample-22.json",
+      "sha256": "f085c8bf18652cf48a30ab87357268a41290024218e087e4dca5816a159724f6",
+      "split": "additional-validation",
+      "chain": "ethereum",
+      "token": "0x05170eb93cd715a641f5f854f9dd3dda3f49de2d",
+      "scannedAt": 1793686206,
+      "input": {
+        "score": 78,
+        "band": "OK",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": 0.1877
+      },
+      "observed": {
+        "decision": "OK",
+        "p": {
+          "avoid": 0.012,
+          "caution": 0.398,
+          "ok": 0.59
+        },
+        "confidence": 0.59,
+        "bar": 0.9,
+        "escalate": true,
+        "evidence": [
+          {
+            "k": "score 78",
+            "avoid": 0.014,
+            "ok": 0.661,
+            "caution": 0.446
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/formula-sample-23.json",
+      "sha256": "78fa3e094a8709b92842414d496cc7c4cf6fcb79414f4b7f199d4625b82d0c28",
+      "split": "additional-validation",
+      "chain": "base",
+      "token": "0xb719eaacc60fe796507d0ed1023e569e1d1ba020",
+      "scannedAt": 1793685699,
+      "input": {
+        "score": 80,
+        "band": "CLEAN",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": 0.0238
+      },
+      "observed": {
+        "decision": "OK",
+        "p": {
+          "avoid": 0.009,
+          "caution": 0.338,
+          "ok": 0.653
+        },
+        "confidence": 0.653,
+        "bar": 0.9,
+        "escalate": true,
+        "evidence": [
+          {
+            "k": "score 80",
+            "avoid": 0.01,
+            "ok": 0.731,
+            "caution": 0.379
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/formula-sample-24.json",
+      "sha256": "1a1cc03949c3b4a728290d6a468af4d5768d7f476c7e7f133ba7fedfc3bda318",
+      "split": "additional-validation",
+      "chain": "ethereum",
+      "token": "0x94074860d930aa5d78379419d422bff8bdbab972",
+      "scannedAt": 1793685653,
+      "input": {
+        "score": 88,
+        "band": "CLEAN",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": 0.1026
+      },
+      "observed": {
+        "decision": "OK",
+        "p": {
+          "avoid": 0.003,
+          "caution": 0.183,
+          "ok": 0.814
+        },
+        "confidence": 0.814,
+        "bar": 0.9,
+        "escalate": true,
+        "evidence": [
+          {
+            "k": "score 88",
+            "avoid": 0.003,
+            "ok": 0.912,
+            "caution": 0.205
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/formula-sample-25.json",
+      "sha256": "8385d2fe2b59471aa79613b2db662e333792199d3aaed92fcddac3df5ae6eb49",
+      "split": "additional-validation",
+      "chain": "ethereum",
+      "token": "0xb164e9e453b7d645f7ab087b075589c48904974b",
+      "scannedAt": 1793685647,
+      "input": {
+        "score": 88,
+        "band": "CLEAN",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": 0.0905
+      },
+      "observed": {
+        "decision": "OK",
+        "p": {
+          "avoid": 0.003,
+          "caution": 0.183,
+          "ok": 0.814
+        },
+        "confidence": 0.814,
+        "bar": 0.9,
+        "escalate": true,
+        "evidence": [
+          {
+            "k": "score 88",
+            "avoid": 0.003,
+            "ok": 0.912,
+            "caution": 0.205
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/formula-sample-26.json",
+      "sha256": "ade8e302dd1764164b7a12ebd7ff220f3f1d74a1742cdfd6db118113cd3a1f81",
+      "split": "additional-validation",
+      "chain": "solana",
+      "token": "8DdVSZdXygYkoVdREDgiWVffkP2fAzZBXQU262ujw8F",
+      "scannedAt": 1793685630,
+      "input": {
+        "score": 75,
+        "band": "OK",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": 0.0885
+      },
+      "observed": {
+        "decision": "CAUTION",
+        "p": {
+          "avoid": 0.018,
+          "caution": 0.498,
+          "ok": 0.484
+        },
+        "confidence": 0.498,
+        "bar": 0.6,
+        "escalate": true,
+        "evidence": [
+          {
+            "k": "score 75",
+            "avoid": 0.021,
+            "ok": 0.542,
+            "caution": 0.558
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/formula-sample-27.json",
+      "sha256": "4518fcb37aeaecb5e83789a7deb5f3ab86ba564271302c33f011f4cd2e52ac71",
+      "split": "additional-validation",
+      "chain": "solana",
+      "token": "4veoQYsY7ZZ3iSvC7GTJCMZYcTkpCHksREN2P29pE3MS",
+      "scannedAt": 1793685625,
+      "input": {
+        "score": 44,
+        "band": "DANGER",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": 1
+      },
+      "observed": {
+        "decision": "AVOID",
+        "p": {
+          "avoid": 0.773,
+          "caution": 0.224,
+          "ok": 0.003
+        },
+        "confidence": 0.773,
+        "bar": 0.7,
+        "escalate": false,
+        "evidence": [
+          {
+            "k": "score 44",
+            "avoid": 0.639,
+            "ok": 0.007,
+            "caution": 0.474
+          },
+          {
+            "k": "hard rule: DANGER band",
+            "avoid": 0.6
+          },
+          {
+            "k": "one hand can dump 100%",
+            "avoid": 0.4
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/formula-sample-28.json",
+      "sha256": "fc4837e938239d9399a6b6105fe044ef7ad5c2fa148328720a154b338206770f",
+      "split": "additional-validation",
+      "chain": "robinhood",
+      "token": "0xbd7fad28178084c277f8f0f24b10f7d1f491ec42",
+      "scannedAt": 1793685503,
+      "input": {
+        "score": 44,
+        "band": "DANGER",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": 0.7606
+      },
+      "observed": {
+        "decision": "AVOID",
+        "p": {
+          "avoid": 0.773,
+          "caution": 0.224,
+          "ok": 0.003
+        },
+        "confidence": 0.773,
+        "bar": 0.7,
+        "escalate": false,
+        "evidence": [
+          {
+            "k": "score 44",
+            "avoid": 0.639,
+            "ok": 0.007,
+            "caution": 0.474
+          },
+          {
+            "k": "hard rule: DANGER band",
+            "avoid": 0.6
+          },
+          {
+            "k": "one hand can dump 76%",
+            "avoid": 0.4
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/formula-sample-29.json",
+      "sha256": "c34f946ce67513c3281b066bbc67b4d4d0a0f106944946472870b91c2d3641eb",
+      "split": "additional-validation",
+      "chain": "robinhood",
+      "token": "0x3d8e291c6d218ed6b2451b482700e3bee7b84a92",
+      "scannedAt": 1793685500,
+      "input": {
+        "score": 88,
+        "band": "CLEAN",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": 0.0762
+      },
+      "observed": {
+        "decision": "OK",
+        "p": {
+          "avoid": 0.003,
+          "caution": 0.183,
+          "ok": 0.814
+        },
+        "confidence": 0.814,
+        "bar": 0.9,
+        "escalate": true,
+        "evidence": [
+          {
+            "k": "score 88",
+            "avoid": 0.003,
+            "ok": 0.912,
+            "caution": 0.205
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/formula-sample-3.json",
+      "sha256": "199eff9f987ac2c9b8197e15006f457b9db8d520df813318dcf4f61650a94749",
+      "split": "discovery",
+      "chain": "ethereum",
+      "token": "0x1723cb47047559cdac20a53907ff9057612deef7",
+      "scannedAt": 1793689286,
+      "input": {
+        "score": 78,
+        "band": "OK",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": 0.1453
+      },
+      "observed": {
+        "decision": "OK",
+        "p": {
+          "avoid": 0.012,
+          "caution": 0.398,
+          "ok": 0.59
+        },
+        "confidence": 0.59,
+        "bar": 0.9,
+        "escalate": true,
+        "evidence": [
+          {
+            "k": "score 78",
+            "avoid": 0.014,
+            "ok": 0.661,
+            "caution": 0.446
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/formula-sample-30.json",
+      "sha256": "339f499a7215b7298cd31de5e70e5bd11e622800bec0815162b3ccb7d83b4ee1",
+      "split": "additional-validation",
+      "chain": "robinhood",
+      "token": "0xa8ba01d704b8e73be1352d6821e461ee402e7777",
+      "scannedAt": 1793685481,
+      "input": {
+        "score": 45,
+        "band": "DANGER",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": 0.7472
+      },
+      "observed": {
+        "decision": "AVOID",
+        "p": {
+          "avoid": 0.757,
+          "caution": 0.239,
+          "ok": 0.004
+        },
+        "confidence": 0.757,
+        "bar": 0.7,
+        "escalate": false,
+        "evidence": [
+          {
+            "k": "score 45",
+            "avoid": 0.606,
+            "ok": 0.008,
+            "caution": 0.507
+          },
+          {
+            "k": "hard rule: DANGER band",
+            "avoid": 0.6
+          },
+          {
+            "k": "one hand can dump 75%",
+            "avoid": 0.4
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/formula-sample-31.json",
+      "sha256": "02cc1a63f58a7a1603b540d179f07d7d2a03b658a7c06bdefa63f6a7745761a3",
+      "split": "additional-validation",
+      "chain": "robinhood",
+      "token": "0x068c1a8a8c4c5484768e6818c2dcf568f45ff902",
+      "scannedAt": 1793685480,
+      "input": {
+        "score": 77,
+        "band": "OK",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": 0.2383
+      },
+      "observed": {
+        "decision": "OK",
+        "p": {
+          "avoid": 0.014,
+          "caution": 0.43,
+          "ok": 0.556
+        },
+        "confidence": 0.556,
+        "bar": 0.9,
+        "escalate": true,
+        "evidence": [
+          {
+            "k": "score 77",
+            "avoid": 0.016,
+            "ok": 0.622,
+            "caution": 0.482
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/formula-sample-32.json",
+      "sha256": "dfc261773419ce4b4c897ae5b03d20af1b3028ae4a7b894088260714b87e2dca",
+      "split": "additional-validation",
+      "chain": "solana",
+      "token": "6iaCioryV4NiPLdWMmjjQr4GTCq7zkE4p6XoQyoFxeqS",
+      "scannedAt": 1793685408,
+      "input": {
+        "score": 59,
+        "band": "RISKY",
+        "security": 0,
+        "memoryHits": 29,
+        "dumpImpact": 0.2684
+      },
+      "observed": {
+        "decision": "CAUTION",
+        "p": {
+          "avoid": 0.415,
+          "caution": 0.538,
+          "ok": 0.047
+        },
+        "confidence": 0.538,
+        "bar": 0.6,
+        "escalate": true,
+        "evidence": [
+          {
+            "k": "score 59",
+            "avoid": 0.172,
+            "ok": 0.076,
+            "caution": 0.872
+          },
+          {
+            "k": "swarm seen in 29 other token(s)",
+            "avoid": 0.5
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/formula-sample-33.json",
+      "sha256": "e8821818707502d4b74400d66cab143d3f05ccac6b978640b5348b8add46ce06",
+      "split": "fresh-discovery",
+      "chain": "base",
+      "token": "0x2d89251c64418265888d69e0d9b6d10650affa7d",
+      "scannedAt": 1793685314,
+      "input": {
+        "score": 59,
+        "band": "RISKY",
+        "security": 1,
+        "memoryHits": 19,
+        "dumpImpact": 0.0176
+      },
+      "observed": {
+        "decision": "AVOID",
+        "p": {
+          "avoid": 0.519,
+          "caution": 0.443,
+          "ok": 0.039
+        },
+        "confidence": 0.519,
+        "bar": 0.7,
+        "escalate": true,
+        "evidence": [
+          {
+            "k": "score 59",
+            "avoid": 0.172,
+            "ok": 0.076,
+            "caution": 0.872
+          },
+          {
+            "k": "contract risk (warn)",
+            "avoid": 0.35
+          },
+          {
+            "k": "swarm seen in 19 other token(s)",
+            "avoid": 0.5
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/formula-sample-34.json",
+      "sha256": "a66749668324409fdb40af56e8d0c049e3ce896695f4184ec2381ad39b9769a4",
+      "split": "fresh-discovery",
+      "chain": "bsc",
+      "token": "0x5ce1a8d19c8665024cc9540f8c772b88a9d91638",
+      "scannedAt": 1793684916,
+      "input": {
+        "score": 59,
+        "band": "RISKY",
+        "security": 1,
+        "memoryHits": 0,
+        "dumpImpact": 0.1146
+      },
+      "observed": {
+        "decision": "CAUTION",
+        "p": {
+          "avoid": 0.355,
+          "caution": 0.593,
+          "ok": 0.052
+        },
+        "confidence": 0.593,
+        "bar": 0.6,
+        "escalate": true,
+        "evidence": [
+          {
+            "k": "score 59",
+            "avoid": 0.172,
+            "ok": 0.076,
+            "caution": 0.872
+          },
+          {
+            "k": "contract risk (warn)",
+            "avoid": 0.35
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/formula-sample-35.json",
+      "sha256": "db405a9843ed74eb9ec5d5fdd6b2e3d9e39c11cacc2e7e5a12bc8fbec454a192",
+      "split": "fresh-discovery",
+      "chain": "bsc",
+      "token": "0xfce50d55c2c3c00a6f5c4779ae4484b5cc3162ea",
+      "scannedAt": 1793684943,
+      "input": {
+        "score": 59,
+        "band": "RISKY",
+        "security": 1,
+        "memoryHits": 0,
+        "dumpImpact": 0.1028
+      },
+      "observed": {
+        "decision": "CAUTION",
+        "p": {
+          "avoid": 0.355,
+          "caution": 0.593,
+          "ok": 0.052
+        },
+        "confidence": 0.593,
+        "bar": 0.6,
+        "escalate": true,
+        "evidence": [
+          {
+            "k": "score 59",
+            "avoid": 0.172,
+            "ok": 0.076,
+            "caution": 0.872
+          },
+          {
+            "k": "contract risk (warn)",
+            "avoid": 0.35
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/formula-sample-36.json",
+      "sha256": "2619d9a4d782417ca866b4594d060ce2cbb6ed768d4508b8857b6c5c3d500adc",
+      "split": "fresh-discovery",
+      "chain": "bsc",
+      "token": "0xb3a7fa8fc56f4ea83426cfb2ee60f2af516baf05",
+      "scannedAt": 1793684944,
+      "input": {
+        "score": 59,
+        "band": "RISKY",
+        "security": 1,
+        "memoryHits": 0,
+        "dumpImpact": 0.1475
+      },
+      "observed": {
+        "decision": "CAUTION",
+        "p": {
+          "avoid": 0.355,
+          "caution": 0.593,
+          "ok": 0.052
+        },
+        "confidence": 0.593,
+        "bar": 0.6,
+        "escalate": true,
+        "evidence": [
+          {
+            "k": "score 59",
+            "avoid": 0.172,
+            "ok": 0.076,
+            "caution": 0.872
+          },
+          {
+            "k": "contract risk (warn)",
+            "avoid": 0.35
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/formula-sample-37.json",
+      "sha256": "fcc3af222cdfb18f9843833191fee334b935d64cd67a6fc62ae3757b6e05c35d",
+      "split": "fresh-discovery",
+      "chain": "ethereum",
+      "token": "0x116d5540de4c3463143ce7f2daed7de0bf8488c7",
+      "scannedAt": 1793684473,
+      "input": {
+        "score": 46,
+        "band": "DANGER",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": 0.5718
+      },
+      "observed": {
+        "decision": "AVOID",
+        "p": {
+          "avoid": 0.741,
+          "caution": 0.255,
+          "ok": 0.004
+        },
+        "confidence": 0.741,
+        "bar": 0.7,
+        "escalate": false,
+        "evidence": [
+          {
+            "k": "score 46",
+            "avoid": 0.571,
+            "ok": 0.009,
+            "caution": 0.54
+          },
+          {
+            "k": "hard rule: DANGER band",
+            "avoid": 0.6
+          },
+          {
+            "k": "one hand can dump 57%",
+            "avoid": 0.4
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/formula-sample-38.json",
+      "sha256": "f33c17e360b803e3b46068116da531a9ef3597b7d943046d8c4cb13a6f6e1869",
+      "split": "fresh-discovery",
+      "chain": "ethereum",
+      "token": "0x2aeb78b6a79b338a30396cd16aac2646f74a5877",
+      "scannedAt": 1793683661,
+      "input": {
+        "score": 59,
+        "band": "RISKY",
+        "security": 0,
+        "memoryHits": 2,
+        "dumpImpact": 0.3296
+      },
+      "observed": {
+        "decision": "CAUTION",
+        "p": {
+          "avoid": 0.415,
+          "caution": 0.538,
+          "ok": 0.047
+        },
+        "confidence": 0.538,
+        "bar": 0.6,
+        "escalate": true,
+        "evidence": [
+          {
+            "k": "score 59",
+            "avoid": 0.172,
+            "ok": 0.076,
+            "caution": 0.872
+          },
+          {
+            "k": "swarm seen in 2 other token(s)",
+            "avoid": 0.5
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/formula-sample-39.json",
+      "sha256": "0ab41e1bb202874abacc2512b942f74b6bc0400b08ebde56576f7ba1159175b1",
+      "split": "fresh-discovery",
+      "chain": "base",
+      "token": "0x23a10a5479891a05b6e4958a8871a1618f9b1522",
+      "scannedAt": 1793683037,
+      "input": {
+        "score": 35,
+        "band": "DANGER",
+        "security": 1,
+        "memoryHits": 1,
+        "dumpImpact": 1
+      },
+      "observed": {
+        "decision": "AVOID",
+        "p": {
+          "avoid": 0.906,
+          "caution": 0.093,
+          "ok": 0.001
+        },
+        "confidence": 0.906,
+        "bar": 0.7,
+        "escalate": false,
+        "evidence": [
+          {
+            "k": "score 35",
+            "avoid": 0.865,
+            "ok": 0.002,
+            "caution": 0.254
+          },
+          {
+            "k": "hard rule: DANGER band",
+            "avoid": 0.6
+          },
+          {
+            "k": "contract risk (warn)",
+            "avoid": 0.35
+          },
+          {
+            "k": "swarm seen in 1 other token(s)",
+            "avoid": 0.25
+          },
+          {
+            "k": "one hand can dump 100%",
+            "avoid": 0.4
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/formula-sample-4.json",
+      "sha256": "d1be94b83fdb6f3cdd8aeb4d9c18f898954decf785461ef618459e42cec6e15c",
+      "split": "discovery",
+      "chain": "solana",
+      "token": "TFWbVHQmW3Y8kHRPBoc8wttiZ7RufzZMPbgqdquSBQR",
+      "scannedAt": 1793689264,
+      "input": {
+        "score": 93,
+        "band": "CLEAN",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": 0.0157
+      },
+      "observed": {
+        "decision": "OK",
+        "p": {
+          "avoid": 0.001,
+          "caution": 0.142,
+          "ok": 0.857
+        },
+        "confidence": 0.857,
+        "bar": 0.9,
+        "escalate": true,
+        "evidence": [
+          {
+            "k": "score 93",
+            "avoid": 0.002,
+            "ok": 0.96,
+            "caution": 0.159
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/formula-sample-40.json",
+      "sha256": "a9f1c25d8b29ae5c382414582d2d014ba1dfbe2a704872ca9b43606713c32a4a",
+      "split": "fresh-discovery",
+      "chain": "ethereum",
+      "token": "0xb0cbda12088c9a00c50c0bfcd55df8a6a8170b75",
+      "scannedAt": 1793682168,
+      "input": {
+        "score": 43,
+        "band": "DANGER",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": 1
+      },
+      "observed": {
+        "decision": "AVOID",
+        "p": {
+          "avoid": 0.788,
+          "caution": 0.209,
+          "ok": 0.003
+        },
+        "confidence": 0.788,
+        "bar": 0.7,
+        "escalate": false,
+        "evidence": [
+          {
+            "k": "score 43",
+            "avoid": 0.671,
+            "ok": 0.006,
+            "caution": 0.443
+          },
+          {
+            "k": "hard rule: DANGER band",
+            "avoid": 0.6
+          },
+          {
+            "k": "one hand can dump 100%",
+            "avoid": 0.4
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/formula-sample-41.json",
+      "sha256": "c9f4b5ddbe0f2ff6d75e43e56bbaf60d806b958db5ccccb741c413875cd7e175",
+      "split": "fresh-discovery",
+      "chain": "ethereum",
+      "token": "0xb10e423ac4a6fefeff5fc9e33ad71c1a2d4b3bbd",
+      "scannedAt": 1793681987,
+      "input": {
+        "score": 69,
+        "band": "OK",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": 0.1
+      },
+      "observed": {
+        "decision": "CAUTION",
+        "p": {
+          "avoid": 0.042,
+          "caution": 0.687,
+          "ok": 0.27
+        },
+        "confidence": 0.687,
+        "bar": 0.6,
+        "escalate": false,
+        "evidence": [
+          {
+            "k": "score 69",
+            "avoid": 0.047,
+            "ok": 0.303,
+            "caution": 0.77
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/formula-sample-42.json",
+      "sha256": "f3fb38377ad13796b4c5d05bc2254c94af71058f8dc94e07e9e5ff4b67aba91c",
+      "split": "fresh-discovery",
+      "chain": "base",
+      "token": "0x53e3d1904e0aca75d13f91b664dfd0005b0bcb61",
+      "scannedAt": 1793681953,
+      "input": {
+        "score": 15,
+        "band": "DANGER",
+        "security": 1,
+        "memoryHits": 0,
+        "dumpImpact": 1
+      },
+      "observed": {
+        "decision": "AVOID",
+        "p": {
+          "avoid": 0.948,
+          "caution": 0.052,
+          "ok": 0
+        },
+        "confidence": 0.948,
+        "bar": 0.7,
+        "escalate": false,
+        "evidence": [
+          {
+            "k": "score 15",
+            "avoid": 0.991,
+            "ok": 0,
+            "caution": 0.129
+          },
+          {
+            "k": "hard rule: DANGER band",
+            "avoid": 0.6
+          },
+          {
+            "k": "contract risk (warn)",
+            "avoid": 0.35
+          },
+          {
+            "k": "one hand can dump 100%",
+            "avoid": 0.4
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/formula-sample-43.json",
+      "sha256": "d992b026de9a9c8a05c6e822fe96952ed458987001e8392ed1642511f0aae1b9",
+      "split": "fresh-discovery",
+      "chain": "solana",
+      "token": "H6GLNkkFjarESXbXyZpMqXDy5yNiLgbLGxoxduntFHCa",
+      "scannedAt": 1793681956,
+      "input": {
+        "score": 48,
+        "band": "DANGER",
+        "security": 0,
+        "memoryHits": 1,
+        "dumpImpact": 0.9975
+      },
+      "observed": {
+        "decision": "AVOID",
+        "p": {
+          "avoid": 0.738,
+          "caution": 0.256,
+          "ok": 0.005
+        },
+        "confidence": 0.738,
+        "bar": 0.7,
+        "escalate": false,
+        "evidence": [
+          {
+            "k": "score 48",
+            "avoid": 0.5,
+            "ok": 0.013,
+            "caution": 0.607
+          },
+          {
+            "k": "hard rule: DANGER band",
+            "avoid": 0.6
+          },
+          {
+            "k": "swarm seen in 1 other token(s)",
+            "avoid": 0.25
+          },
+          {
+            "k": "one hand can dump 100%",
+            "avoid": 0.4
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/formula-sample-44.json",
+      "sha256": "49f486dde05499b7ba63dce92cf0370f746e38e9734bb8f737aa74787f3accf7",
+      "split": "fresh-discovery",
+      "chain": "robinhood",
+      "token": "0x8e79c41cb486f55e08df206e77fa54963aa37777",
+      "scannedAt": 1793681821,
+      "input": {
+        "score": 48,
+        "band": "DANGER",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": 0.7582
+      },
+      "observed": {
+        "decision": "AVOID",
+        "p": {
+          "avoid": 0.708,
+          "caution": 0.286,
+          "ok": 0.006
+        },
+        "confidence": 0.708,
+        "bar": 0.7,
+        "escalate": false,
+        "evidence": [
+          {
+            "k": "score 48",
+            "avoid": 0.5,
+            "ok": 0.013,
+            "caution": 0.607
+          },
+          {
+            "k": "hard rule: DANGER band",
+            "avoid": 0.6
+          },
+          {
+            "k": "one hand can dump 76%",
+            "avoid": 0.4
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/formula-sample-45.json",
+      "sha256": "669d56492f4b9d34dfef300cdcc9ab22206ce0396c36314207f5096b13c22ce0",
+      "split": "fresh-holdout",
+      "chain": "solana",
+      "token": "Eckr1z9aVzZsCfFzUQYWNck6unVWUhGKX3WrXYDF5s5p",
+      "scannedAt": 1793685195,
+      "input": {
+        "score": 89,
+        "band": "CLEAN",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": 0.0246
+      },
+      "observed": {
+        "decision": "OK",
+        "p": {
+          "avoid": 0.003,
+          "caution": 0.172,
+          "ok": 0.825
+        },
+        "confidence": 0.825,
+        "bar": 0.9,
+        "escalate": true,
+        "evidence": [
+          {
+            "k": "score 89",
+            "avoid": 0.003,
+            "ok": 0.924,
+            "caution": 0.193
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/formula-sample-46.json",
+      "sha256": "e4a48ec8eeaabb01e7e708f9f9ae7f9d6a79f9dd5932c528eb701a5ed9c7d9f9",
+      "split": "fresh-holdout",
+      "chain": "bsc",
+      "token": "0xd951dec41c15aeb320c5288f9f6aba8594887777",
+      "scannedAt": 1793684882,
+      "input": {
+        "score": 95,
+        "band": "CLEAN",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": 0.1027
+      },
+      "observed": {
+        "decision": "OK",
+        "p": {
+          "avoid": 0.001,
+          "caution": 0.132,
+          "ok": 0.867
+        },
+        "confidence": 0.867,
+        "bar": 0.9,
+        "escalate": true,
+        "evidence": [
+          {
+            "k": "score 95",
+            "avoid": 0.001,
+            "ok": 0.971,
+            "caution": 0.148
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/formula-sample-47.json",
+      "sha256": "cec557acb08db85b5d15223d087a6c98a5e3dbc3145aa75c3c4ecbe98a09aef4",
+      "split": "fresh-holdout",
+      "chain": "bsc",
+      "token": "0xec5c12cfe80dd21e003afa232a21b5fb2d7b7777",
+      "scannedAt": 1793684884,
+      "input": {
+        "score": 59,
+        "band": "RISKY",
+        "security": 0,
+        "memoryHits": 1,
+        "dumpImpact": 0.0461
+      },
+      "observed": {
+        "decision": "CAUTION",
+        "p": {
+          "avoid": 0.308,
+          "caution": 0.637,
+          "ok": 0.055
+        },
+        "confidence": 0.637,
+        "bar": 0.6,
+        "escalate": false,
+        "evidence": [
+          {
+            "k": "score 59",
+            "avoid": 0.172,
+            "ok": 0.076,
+            "caution": 0.872
+          },
+          {
+            "k": "swarm seen in 1 other token(s)",
+            "avoid": 0.25
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/formula-sample-48.json",
+      "sha256": "f4bbf51656539296831daabae2b77b4acc523e247f92b6433bd1b9533eb986e2",
+      "split": "fresh-holdout",
+      "chain": "ethereum",
+      "token": "0x4585e09ea485d21e4e42cd97353eb800e71df524",
+      "scannedAt": 1793682521,
+      "input": {
+        "score": 75,
+        "band": "OK",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": 0.0372
+      },
+      "observed": {
+        "decision": "CAUTION",
+        "p": {
+          "avoid": 0.018,
+          "caution": 0.498,
+          "ok": 0.484
+        },
+        "confidence": 0.498,
+        "bar": 0.6,
+        "escalate": true,
+        "evidence": [
+          {
+            "k": "score 75",
+            "avoid": 0.021,
+            "ok": 0.542,
+            "caution": 0.558
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/formula-sample-49.json",
+      "sha256": "30ee388a84e8779a5858968b88a006be7f7c33c403edaaa6b1c928c15cb6ba1b",
+      "split": "fresh-holdout",
+      "chain": "ethereum",
+      "token": "0x2f65d60c4c9636fd59643228b72f216b83179d3c",
+      "scannedAt": 1793682528,
+      "input": {
+        "score": 75,
+        "band": "OK",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": 0.0141
+      },
+      "observed": {
+        "decision": "CAUTION",
+        "p": {
+          "avoid": 0.018,
+          "caution": 0.498,
+          "ok": 0.484
+        },
+        "confidence": 0.498,
+        "bar": 0.6,
+        "escalate": true,
+        "evidence": [
+          {
+            "k": "score 75",
+            "avoid": 0.021,
+            "ok": 0.542,
+            "caution": 0.558
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/formula-sample-5.json",
+      "sha256": "7b987f7b445f7db24fd2bf6c851aaa0003549d0523df6d16269828004c5a3f89",
+      "split": "discovery",
+      "chain": "solana",
+      "token": "G5iLk9Nbbua6F2w8AeKfvGAWFJvVjjwZozgNipmvMCtL",
+      "scannedAt": 1793689261,
+      "input": {
+        "score": 50,
+        "band": "RISKY",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": 0.0665
+      },
+      "observed": {
+        "decision": "CAUTION",
+        "p": {
+          "avoid": 0.383,
+          "caution": 0.601,
+          "ok": 0.016
+        },
+        "confidence": 0.601,
+        "bar": 0.6,
+        "escalate": false,
+        "evidence": [
+          {
+            "k": "score 50",
+            "avoid": 0.429,
+            "ok": 0.018,
+            "caution": 0.673
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/formula-sample-50.json",
+      "sha256": "4e48bf3965f67731f3e6dc354bce785935c0baf2a587cd7c08b0994380046bf1",
+      "split": "fresh-holdout",
+      "chain": "ethereum",
+      "token": "0x87dbab859e1a39b0ca11a5e6a3e7298ab319683b",
+      "scannedAt": 1793682227,
+      "input": {
+        "score": 76,
+        "band": "OK",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": 0.1439
+      },
+      "observed": {
+        "decision": "OK",
+        "p": {
+          "avoid": 0.016,
+          "caution": 0.464,
+          "ok": 0.52
+        },
+        "confidence": 0.52,
+        "bar": 0.9,
+        "escalate": true,
+        "evidence": [
+          {
+            "k": "score 76",
+            "avoid": 0.018,
+            "ok": 0.583,
+            "caution": 0.519
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/formula-sample-51.json",
+      "sha256": "0b74589f6a932ab08afd78e8cb67cd99f145f58a30e826d450011943d3cc2360",
+      "split": "fresh-holdout",
+      "chain": "robinhood",
+      "token": "0xece719f8724bcf7e0e1149b912c7dee0e08cbfa2",
+      "scannedAt": 1793681855,
+      "input": {
+        "score": 84,
+        "band": "CLEAN",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": 0.1858
+      },
+      "observed": {
+        "decision": "OK",
+        "p": {
+          "avoid": 0.005,
+          "caution": 0.244,
+          "ok": 0.751
+        },
+        "confidence": 0.751,
+        "bar": 0.9,
+        "escalate": true,
+        "evidence": [
+          {
+            "k": "score 84",
+            "avoid": 0.006,
+            "ok": 0.841,
+            "caution": 0.273
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/formula-sample-6.json",
+      "sha256": "2f22af8b5bd170fb7dca10a0d3755d69dde5da36f89d95bddd89e2879898be25",
+      "split": "discovery",
+      "chain": "solana",
+      "token": "7haSMtw4vgsWCDmzSDvw85gcc3JH4v8Q2ngGWifHkdZ3",
+      "scannedAt": 1793689157,
+      "input": {
+        "score": 50,
+        "band": "DANGER",
+        "security": 0,
+        "memoryHits": 6,
+        "dumpImpact": 0.6854
+      },
+      "observed": {
+        "decision": "AVOID",
+        "p": {
+          "avoid": 0.736,
+          "caution": 0.257,
+          "ok": 0.007
+        },
+        "confidence": 0.736,
+        "bar": 0.7,
+        "escalate": false,
+        "evidence": [
+          {
+            "k": "score 50",
+            "avoid": 0.429,
+            "ok": 0.018,
+            "caution": 0.673
+          },
+          {
+            "k": "hard rule: DANGER band",
+            "avoid": 0.6
+          },
+          {
+            "k": "swarm seen in 6 other token(s)",
+            "avoid": 0.5
+          },
+          {
+            "k": "one hand can dump 69%",
+            "avoid": 0.4
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/formula-sample-7.json",
+      "sha256": "819d400e2ad12568fc1eb33eb035d1e8fede749f9f6f91f9221e68c701b207c3",
+      "split": "discovery",
+      "chain": "robinhood",
+      "token": "0x819927120effe37e2fbad0e8a72ce018d3cec341",
+      "scannedAt": 1793689117,
+      "input": {
+        "score": 43,
+        "band": "DANGER",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": 0.7586
+      },
+      "observed": {
+        "decision": "AVOID",
+        "p": {
+          "avoid": 0.788,
+          "caution": 0.209,
+          "ok": 0.003
+        },
+        "confidence": 0.788,
+        "bar": 0.7,
+        "escalate": false,
+        "evidence": [
+          {
+            "k": "score 43",
+            "avoid": 0.671,
+            "ok": 0.006,
+            "caution": 0.443
+          },
+          {
+            "k": "hard rule: DANGER band",
+            "avoid": 0.6
+          },
+          {
+            "k": "one hand can dump 76%",
+            "avoid": 0.4
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/formula-sample-8.json",
+      "sha256": "43bfc656de690c0a70e5d0f55f6d509b6d66b50a8450908447f6186ee71234f6",
+      "split": "holdout",
+      "chain": "robinhood",
+      "token": "0x29fc977a47649a32fadb867d1fa6d07907727777",
+      "scannedAt": 1793689117,
+      "input": {
+        "score": 43,
+        "band": "DANGER",
+        "security": 0,
+        "memoryHits": 1,
+        "dumpImpact": 0.752
+      },
+      "observed": {
+        "decision": "AVOID",
+        "p": {
+          "avoid": 0.811,
+          "caution": 0.187,
+          "ok": 0.002
+        },
+        "confidence": 0.811,
+        "bar": 0.7,
+        "escalate": false,
+        "evidence": [
+          {
+            "k": "score 43",
+            "avoid": 0.671,
+            "ok": 0.006,
+            "caution": 0.443
+          },
+          {
+            "k": "hard rule: DANGER band",
+            "avoid": 0.6
+          },
+          {
+            "k": "swarm seen in 1 other token(s)",
+            "avoid": 0.25
+          },
+          {
+            "k": "one hand can dump 75%",
+            "avoid": 0.4
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/formula-sample-9.json",
+      "sha256": "10d5987cac207f66742485b0ee4fb63ab2a5cfc33b8a271231a088334446959f",
+      "split": "holdout",
+      "chain": "robinhood",
+      "token": "0x49bfee3ef05608509d05ef24f539fa0b54c943c5",
+      "scannedAt": 1793689098,
+      "input": {
+        "score": 32,
+        "band": "DANGER",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": 0.4816
+      },
+      "observed": {
+        "decision": "AVOID",
+        "p": {
+          "avoid": 0.877,
+          "caution": 0.123,
+          "ok": 0.001
+        },
+        "confidence": 0.877,
+        "bar": 0.7,
+        "escalate": false,
+        "evidence": [
+          {
+            "k": "score 32",
+            "avoid": 0.908,
+            "ok": 0.001,
+            "caution": 0.211
+          },
+          {
+            "k": "hard rule: DANGER band",
+            "avoid": 0.6
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/fresh-followup-sample-0.json",
+      "sha256": "d6078c00a63509957b8c6fe177d932bc5e7fc8b314aad06a361175cdb1a642f6",
+      "split": "fresh-followup-discovery",
+      "chain": "solana",
+      "token": "XN1H9ooLAWamRjSRxZmiLcTj7zT9dmBB6VbccqrTASs",
+      "scannedAt": 1793692984,
+      "input": {
+        "score": 59,
+        "band": "RISKY",
+        "security": 0,
+        "memoryHits": 52,
+        "dumpImpact": 0.0032
+      },
+      "observed": {
+        "decision": "CAUTION",
+        "p": {
+          "avoid": 0.415,
+          "caution": 0.538,
+          "ok": 0.047
+        },
+        "confidence": 0.538,
+        "bar": 0.6,
+        "escalate": true,
+        "evidence": [
+          {
+            "k": "score 59",
+            "avoid": 0.172,
+            "ok": 0.076,
+            "caution": 0.872
+          },
+          {
+            "k": "swarm seen in 52 other token(s)",
+            "avoid": 0.5
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/fresh-followup-sample-1.json",
+      "sha256": "14530405fd061cd73cd90cfc5f01c218dcf4e916380297457cf7beef4a631074",
+      "split": "fresh-followup-discovery",
+      "chain": "solana",
+      "token": "Eqeb638KfkpoiWerwFqGtNirZQoJzZoadMdwK7DkaYf2",
+      "scannedAt": 1793692816,
+      "input": {
+        "score": 71,
+        "band": "OK",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": 0.1601
+      },
+      "observed": {
+        "decision": "CAUTION",
+        "p": {
+          "avoid": 0.032,
+          "caution": 0.631,
+          "ok": 0.337
+        },
+        "confidence": 0.631,
+        "bar": 0.6,
+        "escalate": false,
+        "evidence": [
+          {
+            "k": "score 71",
+            "avoid": 0.036,
+            "ok": 0.378,
+            "caution": 0.706
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/fresh-followup-sample-10.json",
+      "sha256": "0e48529cc88e3336f466b2456c23379eaa9f44a5e2b24509cfc3fb396a382157",
+      "split": "fresh-followup-discovery",
+      "chain": "bsc",
+      "token": "0xbac9ef045c2428a81579bf5914464f83bfc67777",
+      "scannedAt": 1793692251,
+      "input": {
+        "score": 59,
+        "band": "RISKY",
+        "security": 0,
+        "memoryHits": 1,
+        "dumpImpact": 0.1245
+      },
+      "observed": {
+        "decision": "CAUTION",
+        "p": {
+          "avoid": 0.308,
+          "caution": 0.637,
+          "ok": 0.055
+        },
+        "confidence": 0.637,
+        "bar": 0.6,
+        "escalate": false,
+        "evidence": [
+          {
+            "k": "score 59",
+            "avoid": 0.172,
+            "ok": 0.076,
+            "caution": 0.872
+          },
+          {
+            "k": "swarm seen in 1 other token(s)",
+            "avoid": 0.25
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/fresh-followup-sample-11.json",
+      "sha256": "8b44b88c1c0b8ad23498320e8b6d3240f49c3fdee0b74ef35f71bcd70acb0090",
+      "split": "fresh-followup-holdout",
+      "chain": "ethereum",
+      "token": "0xa3fd09e53b90d3779829f7d26fbd60c24c3e9b85",
+      "scannedAt": 1793603300,
+      "input": {
+        "score": 41,
+        "band": "DANGER",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": null
+      },
+      "observed": {
+        "decision": "AVOID",
+        "p": {
+          "avoid": 0.774,
+          "caution": 0.224,
+          "ok": 0.002
+        },
+        "confidence": 0.774,
+        "bar": 0.7,
+        "escalate": false,
+        "evidence": [
+          {
+            "k": "score 41",
+            "avoid": 0.731,
+            "ok": 0.004,
+            "caution": 0.385
+          },
+          {
+            "k": "hard rule: DANGER band",
+            "avoid": 0.6
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/fresh-followup-sample-12.json",
+      "sha256": "1d30fc98ab4cb2d1d9ec6b5706bdb2cc8594e1322f25614d257455ebbc107237",
+      "split": "fresh-followup-holdout",
+      "chain": "robinhood",
+      "token": "0x200115162bfbd3c4f089b0476c3f2989b7e03e50",
+      "scannedAt": 1792511990,
+      "input": {
+        "score": 59,
+        "band": "DANGER",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": 0.5639
+      },
+      "observed": {
+        "decision": "AVOID",
+        "p": {
+          "avoid": 0.553,
+          "caution": 0.411,
+          "ok": 0.036
+        },
+        "confidence": 0.553,
+        "bar": 0.7,
+        "escalate": true,
+        "evidence": [
+          {
+            "k": "score 59",
+            "avoid": 0.172,
+            "ok": 0.076,
+            "caution": 0.872
+          },
+          {
+            "k": "hard rule: DANGER band",
+            "avoid": 0.6
+          },
+          {
+            "k": "one hand can dump 56%",
+            "avoid": 0.4
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/fresh-followup-sample-13.json",
+      "sha256": "deeb7775be094e51e285c9a19c6d568a2917043098f2eaae60b7a4cd89541241",
+      "split": "fresh-followup-holdout",
+      "chain": "robinhood",
+      "token": "0xa51362dbdd3c064d40feb3c539a04eb211d93904",
+      "scannedAt": 1792478719,
+      "input": {
+        "score": 48,
+        "band": "RISKY",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": null
+      },
+      "observed": {
+        "decision": "CAUTION",
+        "p": {
+          "avoid": 0.446,
+          "caution": 0.542,
+          "ok": 0.012
+        },
+        "confidence": 0.542,
+        "bar": 0.6,
+        "escalate": true,
+        "evidence": [
+          {
+            "k": "score 48",
+            "avoid": 0.5,
+            "ok": 0.013,
+            "caution": 0.607
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/fresh-followup-sample-14.json",
+      "sha256": "1580201a3acbe92e4078e77a90fc03ddf6480f1b7b778699150d6b973508f66a",
+      "split": "fresh-followup-holdout",
+      "chain": "robinhood",
+      "token": "0x44082d239727b12a5a3b3edf147b3c7bea80332c",
+      "scannedAt": 1792514662,
+      "input": {
+        "score": 84,
+        "band": "CLEAN",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": 0.1827
+      },
+      "observed": {
+        "decision": "OK",
+        "p": {
+          "avoid": 0.005,
+          "caution": 0.244,
+          "ok": 0.751
+        },
+        "confidence": 0.751,
+        "bar": 0.9,
+        "escalate": true,
+        "evidence": [
+          {
+            "k": "score 84",
+            "avoid": 0.006,
+            "ok": 0.841,
+            "caution": 0.273
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/fresh-followup-sample-15.json",
+      "sha256": "7fec85a283460d0ca864c987d9494d88228cfc566db733b54b2ff13921124960",
+      "split": "fresh-followup-holdout",
+      "chain": "ethereum",
+      "token": "0x45550d259a0299870ca5531b159c63e49b30a057",
+      "scannedAt": 1792510684,
+      "input": {
+        "score": null,
+        "band": "TOO_EARLY",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": null
+      },
+      "observed": {
+        "decision": "CAUTION",
+        "p": {
+          "avoid": 0.34,
+          "caution": 0.46,
+          "ok": 0.2
+        },
+        "confidence": 0.46,
+        "bar": 0.6,
+        "escalate": true,
+        "evidence": null
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/fresh-followup-sample-16.json",
+      "sha256": "4fc544afa0751d8365c43e8f090e9f891d9f69bdc29b1998b699fff9111f153b",
+      "split": "fresh-followup-holdout",
+      "chain": "robinhood",
+      "token": "0x8a00c53cb98b066d93145a9902e8224ff463c0ce",
+      "scannedAt": 1792548867,
+      "input": {
+        "score": 59,
+        "band": "RISKY",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": 0.2301
+      },
+      "observed": {
+        "decision": "CAUTION",
+        "p": {
+          "avoid": 0.154,
+          "caution": 0.779,
+          "ok": 0.068
+        },
+        "confidence": 0.779,
+        "bar": 0.6,
+        "escalate": false,
+        "evidence": [
+          {
+            "k": "score 59",
+            "avoid": 0.172,
+            "ok": 0.076,
+            "caution": 0.872
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/fresh-followup-sample-17.json",
+      "sha256": "d1dbd03e895821ad1db6cee3302d9747865e33b7645b440c641c489a9700b7ce",
+      "split": "fresh-followup-holdout",
+      "chain": "bsc",
+      "token": "0x75cfd4b60b21f1679d8f89840c85bf15066fffff",
+      "scannedAt": 1792379938,
+      "input": {
+        "score": 55,
+        "band": "DANGER",
+        "security": 0,
+        "memoryHits": 7,
+        "dumpImpact": 0.9838
+      },
+      "observed": {
+        "decision": "AVOID",
+        "p": {
+          "avoid": 0.675,
+          "caution": 0.309,
+          "ok": 0.015
+        },
+        "confidence": 0.675,
+        "bar": 0.7,
+        "escalate": true,
+        "evidence": [
+          {
+            "k": "score 55",
+            "avoid": 0.269,
+            "ok": 0.04,
+            "caution": 0.811
+          },
+          {
+            "k": "hard rule: DANGER band",
+            "avoid": 0.6
+          },
+          {
+            "k": "swarm seen in 7 other token(s)",
+            "avoid": 0.5
+          },
+          {
+            "k": "one hand can dump 98%",
+            "avoid": 0.4
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/fresh-followup-sample-18.json",
+      "sha256": "a6294561fb18e16e39ff2e8f27b63255b3edb560c8826b80be5dd7213d96dfac",
+      "split": "fresh-followup-holdout",
+      "chain": "bsc",
+      "token": "0x5bfeb47bec2b613c7b47224359ab17903690ffff",
+      "scannedAt": 1792477092,
+      "input": {
+        "score": 55,
+        "band": "DANGER",
+        "security": 0,
+        "memoryHits": 10,
+        "dumpImpact": null
+      },
+      "observed": {
+        "decision": "AVOID",
+        "p": {
+          "avoid": 0.617,
+          "caution": 0.365,
+          "ok": 0.018
+        },
+        "confidence": 0.617,
+        "bar": 0.7,
+        "escalate": true,
+        "evidence": [
+          {
+            "k": "score 55",
+            "avoid": 0.269,
+            "ok": 0.04,
+            "caution": 0.811
+          },
+          {
+            "k": "hard rule: DANGER band",
+            "avoid": 0.6
+          },
+          {
+            "k": "swarm seen in 10 other token(s)",
+            "avoid": 0.5
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/fresh-followup-sample-19.json",
+      "sha256": "43d64913541b726262aa6845e6c17b0e1dfec5d000a64947d6d0b307d5b54ce0",
+      "split": "fresh-followup-holdout",
+      "chain": "base",
+      "token": "0x1cc79e483eba1f02e31c1d6b28b262506bf80ad4",
+      "scannedAt": 1793428029,
+      "input": {
+        "score": 22,
+        "band": "DANGER",
+        "security": 1,
+        "memoryHits": 2,
+        "dumpImpact": null
+      },
+      "observed": {
+        "decision": "AVOID",
+        "p": {
+          "avoid": 0.944,
+          "caution": 0.056,
+          "ok": 0
+        },
+        "confidence": 0.944,
+        "bar": 0.7,
+        "escalate": false,
+        "evidence": [
+          {
+            "k": "score 22",
+            "avoid": 0.976,
+            "ok": 0,
+            "caution": 0.144
+          },
+          {
+            "k": "hard rule: DANGER band",
+            "avoid": 0.6
+          },
+          {
+            "k": "contract risk (warn)",
+            "avoid": 0.35
+          },
+          {
+            "k": "swarm seen in 2 other token(s)",
+            "avoid": 0.5
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/fresh-followup-sample-2.json",
+      "sha256": "588c073332ed1e76bd6c7ff0d8bf1bdb0036eefaaca9bce9dcdc02385bdf6f72",
+      "split": "fresh-followup-discovery",
+      "chain": "solana",
+      "token": "G9UD6Y4XJSvoLZrThjpo5TU53eGfac1QsVTGnaHQpump",
+      "scannedAt": 1793692744,
+      "input": {
+        "score": 45,
+        "band": "DANGER",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": 0.9481
+      },
+      "observed": {
+        "decision": "AVOID",
+        "p": {
+          "avoid": 0.757,
+          "caution": 0.239,
+          "ok": 0.004
+        },
+        "confidence": 0.757,
+        "bar": 0.7,
+        "escalate": false,
+        "evidence": [
+          {
+            "k": "score 45",
+            "avoid": 0.606,
+            "ok": 0.008,
+            "caution": 0.507
+          },
+          {
+            "k": "hard rule: DANGER band",
+            "avoid": 0.6
+          },
+          {
+            "k": "one hand can dump 95%",
+            "avoid": 0.4
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/fresh-followup-sample-20.json",
+      "sha256": "3c2d8cb5b63cabca92948624b00b5e98c4d9905168c785abea94ded13e2b4eef",
+      "split": "fresh-followup-holdout",
+      "chain": "base",
+      "token": "0x8b996930fcde8260145fb0c0445db5a9e8293b07",
+      "scannedAt": 1792477026,
+      "input": {
+        "score": 35,
+        "band": "DANGER",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": null
+      },
+      "observed": {
+        "decision": "AVOID",
+        "p": {
+          "avoid": 0.852,
+          "caution": 0.147,
+          "ok": 0.001
+        },
+        "confidence": 0.852,
+        "bar": 0.7,
+        "escalate": false,
+        "evidence": [
+          {
+            "k": "score 35",
+            "avoid": 0.865,
+            "ok": 0.002,
+            "caution": 0.254
+          },
+          {
+            "k": "hard rule: DANGER band",
+            "avoid": 0.6
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/fresh-followup-sample-3.json",
+      "sha256": "7c6c4b6ab08b6add28d23abc2c65c37cdb3a8b03cec7f48bbdfee286654010e9",
+      "split": "fresh-followup-discovery",
+      "chain": "solana",
+      "token": "4Zu6sdhjtorqSabGLSsebM9WPwdBVBMZSSGr9yzYn1Sr",
+      "scannedAt": 1793692742,
+      "input": {
+        "score": 76,
+        "band": "OK",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": 0.0325
+      },
+      "observed": {
+        "decision": "OK",
+        "p": {
+          "avoid": 0.016,
+          "caution": 0.464,
+          "ok": 0.52
+        },
+        "confidence": 0.52,
+        "bar": 0.9,
+        "escalate": true,
+        "evidence": [
+          {
+            "k": "score 76",
+            "avoid": 0.018,
+            "ok": 0.583,
+            "caution": 0.519
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/fresh-followup-sample-4.json",
+      "sha256": "20b25212afee16b29943c8207e6ab9ea84c7a623d60b5eba702c8b7ae433c78d",
+      "split": "fresh-followup-discovery",
+      "chain": "base",
+      "token": "0xf98f6c049bf73b65b5e14ceda0ac74971198dc0f",
+      "scannedAt": 1793692392,
+      "input": {
+        "score": 59,
+        "band": "RISKY",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": 0.0199
+      },
+      "observed": {
+        "decision": "CAUTION",
+        "p": {
+          "avoid": 0.154,
+          "caution": 0.779,
+          "ok": 0.068
+        },
+        "confidence": 0.779,
+        "bar": 0.6,
+        "escalate": false,
+        "evidence": [
+          {
+            "k": "score 59",
+            "avoid": 0.172,
+            "ok": 0.076,
+            "caution": 0.872
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/fresh-followup-sample-5.json",
+      "sha256": "a6443acce56b79c158f6d1541225d34a8e5c0380a19fa056e789fc4323866396",
+      "split": "fresh-followup-discovery",
+      "chain": "base",
+      "token": "0xfe0c6dc4046aac7a694c720d5c796df7eb54e47e",
+      "scannedAt": 1793692386,
+      "input": {
+        "score": 77,
+        "band": "OK",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": 0.0327
+      },
+      "observed": {
+        "decision": "OK",
+        "p": {
+          "avoid": 0.014,
+          "caution": 0.43,
+          "ok": 0.556
+        },
+        "confidence": 0.556,
+        "bar": 0.9,
+        "escalate": true,
+        "evidence": [
+          {
+            "k": "score 77",
+            "avoid": 0.016,
+            "ok": 0.622,
+            "caution": 0.482
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/fresh-followup-sample-6.json",
+      "sha256": "e17d26332e479b1b6c960d1ae9223963cef571fe0eaa8d2d12ba64145d37affe",
+      "split": "fresh-followup-discovery",
+      "chain": "base",
+      "token": "0xae065782b72d0a9da73d13371829ad98ce31bb5d",
+      "scannedAt": 1793692381,
+      "input": {
+        "score": 75,
+        "band": "OK",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": 0.0258
+      },
+      "observed": {
+        "decision": "CAUTION",
+        "p": {
+          "avoid": 0.018,
+          "caution": 0.498,
+          "ok": 0.484
+        },
+        "confidence": 0.498,
+        "bar": 0.6,
+        "escalate": true,
+        "evidence": [
+          {
+            "k": "score 75",
+            "avoid": 0.021,
+            "ok": 0.542,
+            "caution": 0.558
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/fresh-followup-sample-7.json",
+      "sha256": "ef0874006991a5b5eb99ab0b2d98f0586690052a357bee38d4715d51278193ad",
+      "split": "fresh-followup-discovery",
+      "chain": "bsc",
+      "token": "0xc58f76a1e86d32887803bfb0f254e29871517f9f",
+      "scannedAt": 1793692301,
+      "input": {
+        "score": 59,
+        "band": "RISKY",
+        "security": 1,
+        "memoryHits": 0,
+        "dumpImpact": 0.1039
+      },
+      "observed": {
+        "decision": "CAUTION",
+        "p": {
+          "avoid": 0.355,
+          "caution": 0.593,
+          "ok": 0.052
+        },
+        "confidence": 0.593,
+        "bar": 0.6,
+        "escalate": true,
+        "evidence": [
+          {
+            "k": "score 59",
+            "avoid": 0.172,
+            "ok": 0.076,
+            "caution": 0.872
+          },
+          {
+            "k": "contract risk (warn)",
+            "avoid": 0.35
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/fresh-followup-sample-8.json",
+      "sha256": "b770236a4329417d495d12a8b932dd701573030f3e3bfd14ded07e9a889fcb3c",
+      "split": "fresh-followup-discovery",
+      "chain": "bsc",
+      "token": "0x1507013b418ee30995273a4d7fdd1588555e1112",
+      "scannedAt": 1793692279,
+      "input": {
+        "score": 45,
+        "band": "DANGER",
+        "security": 1,
+        "memoryHits": 0,
+        "dumpImpact": 0.9123
+      },
+      "observed": {
+        "decision": "AVOID",
+        "p": {
+          "avoid": 0.792,
+          "caution": 0.205,
+          "ok": 0.003
+        },
+        "confidence": 0.792,
+        "bar": 0.7,
+        "escalate": false,
+        "evidence": [
+          {
+            "k": "score 45",
+            "avoid": 0.606,
+            "ok": 0.008,
+            "caution": 0.507
+          },
+          {
+            "k": "hard rule: DANGER band",
+            "avoid": 0.6
+          },
+          {
+            "k": "contract risk (warn)",
+            "avoid": 0.35
+          },
+          {
+            "k": "one hand can dump 91%",
+            "avoid": 0.4
+          }
+        ]
+      }
+    },
+    {
+      "path": "validation/swarm-2026-11-03/fresh-followup-sample-9.json",
+      "sha256": "4ca002bff39b2d2bc45e55cd1749dced813795429d8e1e41f6db19fb31b10379",
+      "split": "fresh-followup-discovery",
+      "chain": "bsc",
+      "token": "0x51bdf5ba91b48efad48f31b601fbcfd758307777",
+      "scannedAt": 1793692277,
+      "input": {
+        "score": 59,
+        "band": "RISKY",
+        "security": 0,
+        "memoryHits": 2,
+        "dumpImpact": 0.0571
+      },
+      "observed": {
+        "decision": "CAUTION",
+        "p": {
+          "avoid": 0.415,
+          "caution": 0.538,
+          "ok": 0.047
+        },
+        "confidence": 0.538,
+        "bar": 0.6,
+        "escalate": true,
+        "evidence": [
+          {
+            "k": "score 59",
+            "avoid": 0.172,
+            "ok": 0.076,
+            "caution": 0.872
+          },
+          {
+            "k": "swarm seen in 2 other token(s)",
+            "avoid": 0.5
+          }
+        ]
+      }
+    },
+    {
+      "path": "verification-comparison-swarm.json",
+      "sha256": "58fa60b0fa4d67a22381dbfa42753ad73074e45796ac710d30ee949892610625",
+      "split": "prior-observation",
+      "chain": "solana",
+      "token": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+      "scannedAt": 1793566184,
+      "input": {
+        "score": 91,
+        "band": "CLEAN",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": 0.2256
+      },
+      "observed": {
+        "decision": "OK",
+        "p": {
+          "avoid": 0.002,
+          "caution": 0.155,
+          "ok": 0.843
+        },
+        "confidence": 0.843,
+        "bar": 0.9,
+        "escalate": true,
+        "evidence": [
+          {
+            "k": "score 91",
+            "avoid": 0.002,
+            "ok": 0.944,
+            "caution": 0.173
+          }
+        ]
+      }
+    },
+    {
+      "path": "verification-swarm-search.json",
+      "sha256": "25b59317424759a0e2e8b1759318fe11a597b1b605cd5cf31d27679c804356b3",
+      "split": "prior-observation",
+      "chain": "solana",
+      "token": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+      "scannedAt": 1793579659,
+      "input": {
+        "score": 89,
+        "band": "CLEAN",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": 0.267
+      },
+      "observed": {
+        "decision": "OK",
+        "p": {
+          "avoid": 0.003,
+          "caution": 0.172,
+          "ok": 0.825
+        },
+        "confidence": 0.825,
+        "bar": 0.9,
+        "escalate": true,
+        "evidence": [
+          {
+            "k": "score 89",
+            "avoid": 0.003,
+            "ok": 0.924,
+            "caution": 0.193
+          }
+        ]
+      }
+    },
+    {
+      "path": "verification-verdict-swarm-current.json",
+      "sha256": "3679f0c8b59073100f472bc637fbc91411efcd9a52836f6e37dccbed9797c4ce",
+      "split": "prior-observation",
+      "chain": "solana",
+      "token": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+      "scannedAt": 1793597691,
+      "input": {
+        "score": 87,
+        "band": "CLEAN",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": 0.2786
+      },
+      "observed": {
+        "decision": "OK",
+        "p": {
+          "avoid": 0.003,
+          "caution": 0.196,
+          "ok": 0.801
+        },
+        "confidence": 0.801,
+        "bar": 0.9,
+        "escalate": true,
+        "evidence": [
+          {
+            "k": "score 87",
+            "avoid": 0.004,
+            "ok": 0.897,
+            "caution": 0.219
+          }
+        ]
+      }
+    },
+    {
+      "path": "verification-verdict-swarm.json",
+      "sha256": "a9a33e8911eeaaaa2dacbbb887c29e497c7b2b78b42d798948b9f8dc8fd65249",
+      "split": "prior-observation",
+      "chain": "solana",
+      "token": "6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump",
+      "scannedAt": 1793580362,
+      "input": {
+        "score": 89,
+        "band": "CLEAN",
+        "security": 0,
+        "memoryHits": 0,
+        "dumpImpact": 0.2605
+      },
+      "observed": {
+        "decision": "OK",
+        "p": {
+          "avoid": 0.003,
+          "caution": 0.172,
+          "ok": 0.825
+        },
+        "confidence": 0.825,
+        "bar": 0.9,
+        "escalate": true,
+        "evidence": [
+          {
+            "k": "score 89",
+            "avoid": 0.003,
+            "ok": 0.924,
+            "caution": 0.193
+          }
+        ]
+      }
+    }
+  ]
+}

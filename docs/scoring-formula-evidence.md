@@ -53,7 +53,7 @@ Within the restricted family of clipped straight-line curves with endpoints on a
 
 The fixture is authoritative for the exact token identifiers and source timestamps; sample names are not identity keys.
 
-## Fresh measurement recovered, curve unresolved
+## Fresh measurement and curve follow-up
 
 For all 52 newly fetched raw reports, the following reconstruction exactly reproduces `metrics.fresh`:
 
@@ -64,7 +64,7 @@ fresh = count(eligible rows marked fresh) / count(eligible)
 
 This is **not** fresh wallets divided by every holder row. For example, one BNB Chain report has 48 holders, 33 unread and one readable creator, leaving 14 eligible rows. Three are fresh, yielding 3/14 = 0.21428571428571427 and a returned fresh component of 18. Reports of the same pattern with one and two fresh rows return 20 points. Another report with 12/14 fresh returns zero points.
 
-The candidate `points(fresh, 20, 0.15, 0.80)` fits every observation, but it is **not uniquely identified**. Even limiting endpoints to whole percentages leaves twelve fitting pairs:
+Before the bounded follow-up, the candidate `points(fresh, 20, 0.15, 0.80)` was not uniquely identified. The first 57 snapshots left twelve fitting whole-percentage endpoint pairs:
 
 ```text
 (0.15,0.78), (0.15,0.79), (0.15,0.80),
@@ -73,9 +73,24 @@ The candidate `points(fresh, 20, 0.15, 0.80)` fits every observation, but it is 
 (0.18,0.53), (0.19,0.43), (0.20,0.34)
 ```
 
-Only one distinct interior point is available. Do not select the most aesthetically plausible curve and call it recovered. Additional existing reports with distinct intermediate fresh fractions are needed, ideally between 0.3 and 0.7, followed by fresh holdout validation. The documented 80% hard-danger threshold does not prove that the component becomes zero at the same threshold.
+The follow-up made 21 additional existing-report reads, without starting scans. Eleven discovery reports were selected from public recent/radar listings. Base token `0xf98f6c049bf73b65b5e14ceda0ac74971198dc0f`, source timestamp 1793692392, supplies fresh 1/3 and component 14.4. Combined with earlier observations, this leaves **only (0.15, 0.80)** on the tested whole-percentage clipped-linear grid.
 
-Minimal supported implementation: a fully qualified fresh fraction of exactly zero maps to 20 points; an unknown fraction stays unknown. The captured high-end observations are 0.8571428571428571 and 1.0, both returning zero. A rule assigning zero throughout `fresh >= 0.80` would be a conservative policy aligned with the documented hard gate, not proof of the hidden component boundary. Do not assume a full-score plateau through 0.15; report other unvalidated interior points as unavailable until the curve is established.
+The candidate was then locked before reading ten preselected reports from the public alarm/replay indexes. Nine had usable components; one was TOO_EARLY with no points. All nine matched, including six interior observations:
+
+| Split | Chain/token | Source timestamp | Fresh fraction | Component |
+| --- | --- | ---: | ---: | ---: |
+| Discovery | Base `0xf98f6c049bf73b65b5e14ceda0ac74971198dc0f` | 1793692392 | 1/3 | 14.4 |
+| Holdout | Ethereum `0xa3fd09e53b90d3779829f7d26fbd60c24c3e9b85` | 1793603300 | 2/7 | 15.8 |
+| Holdout | Robinhood `0x200115162bfbd3c4f089b0476c3f2989b7e03e50` | 1792511990 | 1/5 | 18.5 |
+| Holdout | Robinhood `0xa51362dbdd3c064d40feb3c539a04eb211d93904` | 1792478719 | 4/7 | 7.0 |
+| Holdout | Robinhood `0x44082d239727b12a5a3b3edf147b3c7bea80332c` | 1792514662 | 2/5 | 12.3 |
+| Holdout | Robinhood `0x8a00c53cb98b066d93145a9902e8224ff463c0ce` | 1792548867 | 8/15 | 8.2 |
+| Holdout | Base `0x1cc79e483eba1f02e31c1d6b28b262506bf80ad4` | 1793428029 | 4/7 | 7.0 |
+| Holdout | Base `0x8b996930fcde8260145fb0c0445db5a9e8293b07` | 1792477026 | 4/5 | 0.0 |
+
+Fresh matches **77/77 numerical snapshots**: 57 original and 20 additional. The readable/non-dev denominator also matches all 20 additional numerical reports. The sanitized follow-up fixture is `tests/fixtures/swarm-fresh-curve-observations.json`; reproduction script `validation/validate-fresh-followup.mjs` records endpoint-grid uniqueness, holdout matches and denominator checks. Historical source dates are intentionally retained; retrieval does not make these current token assessments.
+
+This provides strong behavioral support for `20 * clamp((0.80 - fresh) / 0.65, 0, 1)`, including independent interior holdouts. It does not establish uniqueness among every nonlinear function or hidden branch. Unknown underlying freshness remains unknown; do not drop unread holders and call the resulting fraction a complete census. The component formula and the 80% hard gate remain separate rules even though their thresholds align in these observations.
 
 ## Missing inputs and coverage
 
@@ -108,4 +123,4 @@ Public listings reference a candidate repository at `https://github.com/moltcage
 
 ## Recommended implementation boundary
 
-Implement the five supported curves under a versioned reconstructed-policy identifier with the public fixtures as regression evidence. Preserve factor-level input provenance, observed scope, unknown values and interval bounds. Keep the fresh curve unavailable or explicitly experimental until separately validated. Generate hard/soft gates only from independently qualified evidence; never copy the provider's returned gates into an independent report. A policy score remains a rule-based assessment, not a safety probability or measured confidence percentage.
+Implement the six supported curves under a versioned reconstructed-policy identifier with the public fixtures as regression evidence. Preserve factor-level input provenance, observed scope, unknown values and interval bounds. Generate hard/soft gates only from independently qualified evidence; never copy the provider's returned gates into an independent report. A policy score remains a rule-based assessment, not a safety probability or measured confidence percentage.

@@ -1,6 +1,10 @@
 import {CHAINS,validateToken,type Chain} from './analysis';
-export type WalletActivity={address:string;count:number|null;exact:boolean;fresh:boolean|null;basis:'evm-outgoing-count'|'solana-address-signatures';reason:string};
+export type WalletActivity={address:string;count:number|null;exact:boolean;fresh:boolean|null;basis:'evm-outgoing-count'|'solana-address-signatures';reason:string;observedAt?:string};
 export type WalletActivitySnapshot={source:string;observedAt:string;blockRef?:string;wallets:WalletActivity[];truncated:boolean};
+/** Fixed diagnostic codes only. Never expose a provider error message or URL. */
+export class WalletActivityRpcError extends Error {
+ constructor(readonly code:'rate-limit'|'deadline'|'unavailable'){super(code);this.name='WalletActivityRpcError';}
+}
 type Rpc=(method:string,params:unknown[],signal?:AbortSignal)=>Promise<unknown>;
 const obj=(v:unknown):Record<string,unknown>=>v&&typeof v==='object'&&!Array.isArray(v)?v as Record<string,unknown>:{};
 const hex=(v:unknown)=>typeof v==='string'&&/^0x[0-9a-f]+$/i.test(v);
@@ -38,7 +42,7 @@ export async function readWalletActivity(chain:Chain,addresses:string[],rpc:Rpc,
      if(code!=='0x'||!hex(nonce)||BigInt(nonce as string)>BigInt(Number.MAX_SAFE_INTEGER))continue;
      const count=Number(BigInt(nonce as string));result.wallets[index]={address,count,exact:true,fresh:count>10?false:null,basis,reason:count>10?'More than ten outgoing transactions at the fixed finalized block rules out the <=10 lifetime-transaction predicate. Incoming and internal transactions are not counted.':'The exact outgoing count is at most ten, but incoming and internal history is not covered. Lifetime freshness remains unknown.'};
     }
-   }catch{options.signal?.throwIfAborted();}
+   }catch(error){options.signal?.throwIfAborted();if(error instanceof WalletActivityRpcError)result.wallets[index]=unknown(address,error.code==='rate-limit'?'Provider rate limit prevented verification within the bounded scan.':error.code==='deadline'?'The bounded RPC deadline expired before wallet activity could be verified.':'The provider response was unavailable; wallet activity remains unknown.');}
   }
  }));
  if(block){try{const end=obj(await call('eth_getBlockByNumber',[block,false]));if(end.hash!==hash)result.wallets=selected.map(a=>unknown(a,'The anchor changed during verification.'));}catch{options.signal?.throwIfAborted();result.wallets=selected.map(a=>unknown(a,'The anchor could not be rechecked.'));}}

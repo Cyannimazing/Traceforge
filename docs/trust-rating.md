@@ -4,13 +4,14 @@ The primary independent rating is `six-factor-v1`, replacing the four-family `ev
 
 ## Component curves
 
-For five factors, inputs are qualified risk fractions between zero and one:
+For all six factors, inputs are qualified risk fractions between zero and one:
 
     points = maximum * clamp((zeroAt - risk) / (zeroAt - clearAt), 0, 1)
 
 | Factor | Maximum | Full points at/below | Zero at/above |
 | --- | ---: | ---: | ---: |
 | Largest-hand sell impact | 30 | 0.10 | 0.60 |
+| Fresh wallets | 20 | 0.15 | 0.80 |
 | Early / creator-origin exposure | 15 | 0.02 | 0.20 |
 | Top-ten hands concentration | 15 | 0.30 | 0.80 |
 | First-minute buyer exposure | 10 | 0.03 | 0.25 |
@@ -18,11 +19,11 @@ For five factors, inputs are qualified risk fractions between zero and one:
 
 These candidate curves reproduce displayed component values across 57 retained public snapshots: 55/55 for available impact and 57/57 for each other factor, including interior observations and later holdout checks. They remain behavioral inference, not source-confirmed backend formulas. See [scoring-formula-evidence.md](scoring-formula-evidence.md) and `tests/fixtures/swarm-score-observations.json`.
 
-### Fresh-wallet curve is partly unresolved
+### Fresh-wallet curve follow-up
 
-Fresh has a maximum of 20. Current code assigns 20 when the qualified fraction is exactly zero, returns unavailable for other positive fractions below `6/7`, and assigns zero at or above `6/7` (approximately 85.7143%). A fraction of 0.80 remains unresolved for component points.
+Fresh now uses the inferred clipped-linear curve with 20 maximum points, a full-points endpoint of 0.15 and a zero-points endpoint of 0.80. Twenty additional numerical stored reports matched it, including nine usable preselected holdouts with six interior values. Together with the earlier 57 snapshots, fresh matches 77/77 displayed components. One additional holdout was TOO_EARLY and had no component to test.
 
-The high-end branch follows a conservative monotonic extension from the observed zero-point endpoint `6/7`; a bounded non-increasing curve cannot regain points beyond a known zero. It does not identify where the private curve first reaches zero. Captured high-end zero-point observations are `6/7` and 1. The separate 80% hard-danger rule does not establish the component's zero boundary. Twelve clipped-linear endpoint pairs still fit the observations. No full-score plateau through 0.15 is established.
+The new 1/3 ->14.4 discovery point eliminated the other eleven whole-percentage endpoint candidates. Independent holdouts include 0.4 ->12.3, 4/7 ->7.0, 8/15 ->8.2 and 0.8 ->0. This supports the formula separately from the 80% hard gate. It remains behavioral reconstruction within a tested function family, not recovered private code. See `tests/fixtures/swarm-fresh-curve-observations.json`.
 
 Swarm's observed fresh fraction divides fresh rows by readable, non-dev holder rows. TraceForge currently evaluates all qualified non-infrastructure current holders and bounds unknown activity instead of dropping it from the denominator. This preserves uncertainty but is not denominator parity.
 
@@ -37,7 +38,7 @@ Swarm's observed fresh fraction divides fresh rows by readable, non-dev holder r
 
 ## Bounds and final score
 
-Unknown input retains a risk interval. Monotonically decreasing curves map input endpoints to reversed point endpoints. Unresolved fresh interior values retain point bounds. A score range is a mathematical policy bound, not a confidence interval or safety probability.
+Unknown input retains a risk interval. Monotonically decreasing curves map input endpoints to reversed point endpoints, including uncertain fresh prevalence. A score range is a mathematical policy bound, not a confidence interval or safety probability.
 
 An exact score requires all six component point values and adequate core evidence. Otherwise `score` is null with a range, including when a hard gate produces AVOID. Missing-core results display CAUTION without an exact percentage unless a qualified hard gate requires AVOID; imported provider-only reports display UNRATED.
 
@@ -71,6 +72,6 @@ Contract pass counts remain a separate diagnostic. Four passed controls do not i
 
 Regression evidence covers component arithmetic, raw-sum rounding, conditional soft caps, unknown inputs, current-holder graph scope and source-qualified guards. The 57/57 final-score comparison uses observed fresh components and observed gate decisions, so it is conditional curve validation, not end-to-end independent parity.
 
-Complete parity still requires the unresolved fresh curve, full independent feature extraction/grouping and gate/readiness behavior. Agreement does not establish predictive accuracy. Calibrated confidence or superiority claims require independently labeled outcomes and time-separated evaluation.
+Complete parity still requires full independent feature extraction/grouping and gate/readiness behavior. Agreement does not establish predictive accuracy. Calibrated confidence or superiority claims require independently labeled outcomes and time-separated evaluation.
 
 EVM activity correction: an outgoing nonce above ten can rule out the <=10 lifetime-transaction predicate. A nonce at or below ten cannot establish it because incoming/internal activity is absent from that count; these wallets remain unresolved. Low nonce alone never triggers the fresh-wallet hard rule.

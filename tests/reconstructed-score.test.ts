@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import observations from './fixtures/swarm-score-observations.json';
+import freshObservations from './fixtures/swarm-fresh-curve-observations.json';
 import {factorPoints,scoreFactors} from '../src/lib/reconstructed-score';
 type Id='swarm'|'fresh'|'insiders'|'concentration'|'snipers'|'dev';
 test('inferred curves reproduce independently held-out public component values',()=>{
@@ -31,7 +32,24 @@ test('repeated gates never multiply deductions and malformed inputs cannot raise
 });
 
 test('hard decisions preserve measured component points instead of forcing a zero score',()=>{const r=scoreFactors((['swarm','fresh','insiders','concentration','snipers','dev'] as const).map(id=>({id,value:0,lower:0,upper:0,evidenceIds:[],detail:'Observed'})),{hard:['Freeze authority']});assert.equal(r.score,100);assert.equal(r.decision,'AVOID');});
-test('fresh hard-stop threshold is not treated as a recovered component curve',()=>{assert.equal(factorPoints('fresh',.8),null);assert.equal(factorPoints('fresh',6/7),0);});
+test('fresh inferred curve matches discovery and independent interior holdouts',()=>{
+ let interiorHoldouts=0;
+ for(const row of [...observations.rows.map(row=>({input:row.metrics.fresh,component:row.parts.fresh,split:row.split})),...freshObservations.rows]){
+  const points=factorPoints('fresh',row.input);assert.notEqual(points,null);
+  assert.equal(Number(points!.toFixed(1)),row.component,`fresh=${row.input}, split=${row.split}`);
+  if(row.split==='fresh-followup-holdout'&&row.component>0&&row.component<20)interiorHoldouts++;
+ }
+ assert.equal(interiorHoldouts,6);
+ assert.equal(factorPoints('fresh',.15),20);assert.equal(factorPoints('fresh',.8),0);
+});
+
+test('fresh unknown measurements retain bounds after curve reconstruction',()=>{
+ const r=scoreFactors([{id:'fresh',value:null,lower:.2,upper:.6,evidenceIds:['history'],detail:'Partial current-holder history'}]);
+ const c=r.components.find(c=>c.id==='fresh')!;
+ assert.equal(c.earned,null);assert.equal(r.score,null);
+ assert.ok(Math.abs(c.lower-20*(.8-.6)/.65)<1e-10);
+ assert.ok(Math.abs(c.upper-20*(.8-.2)/.65)<1e-10);
+});
 
 test('a measurement interval entirely inside a score plateau has known component points',()=>{
  const r=scoreFactors([{id:'snipers',value:null,lower:.8,upper:1,evidenceIds:['tx'],detail:'At least80% first minute exposure'}]);const c=r.components.find(c=>c.id==='snipers')!;assert.equal(c.earned,0);assert.equal(c.state,'flagged');assert.equal(c.lower,0);assert.equal(c.upper,0);
