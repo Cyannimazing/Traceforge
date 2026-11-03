@@ -1,6 +1,13 @@
 import {validateToken,type Chain} from './analysis';
 
 export type TokenRouteTarget={chain:Chain;token:string};
+export type WorkspaceView='scanner'|'discover'|'watchlist'|'methodology';
+const workspacePaths:Record<WorkspaceView,string>={scanner:'/',discover:'/discover',watchlist:'/watchlist',methodology:'/methodology'};
+export function workspacePath(view:WorkspaceView):string{return workspacePaths[view];}
+export function parseWorkspacePath(pathname:string):WorkspaceView|null{
+ const path=pathname==='/'?pathname:pathname.replace(/\/$/,'');
+ return (Object.keys(workspacePaths) as WorkspaceView[]).find(view=>workspacePaths[view]===path)??null;
+}
 
 export function tokenRouteTarget(chain:string,token:string):TokenRouteTarget|null{
  const address=token.trim();

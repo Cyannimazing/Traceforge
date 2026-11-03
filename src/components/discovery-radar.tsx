@@ -79,6 +79,8 @@ export default function DiscoveryRadar({profiles,loading,error,meta,paused,onRef
 
  return <section ref={root} className={`discovery-radar ${compact?'dr-compact':''}`} data-animate={animate} aria-label="Token discovery radar">
 
+  <div className="dr-console">
+
   <header className="dr-heading"><div><h2>Discovery<span className="dr-pulse"/></h2><p>Latest token profiles and pool listings. Select a token to investigate.</p></div>{compact?<button className="dr-open" onClick={onOpen}>Open radar<ArrowUpRight size={17}/></button>:<button className="dr-refresh" disabled={loading} onClick={onRefresh}><RefreshCw size={16} className={loading?'spin':''}/>{loading?'Fetching':'Refresh feed'}</button>}</header>
 
   <div className="dr-status"><span role="status"><i className={stale?'is-stale':''}/>{loading?'Fetching public profiles':stale?'Last available snapshot':'Auto-refresh every 30s'}</span><span>{profiles.length} profiles</span><span>Fetched {time(meta.fetchedAt)}{seconds!=null&&`  -  ${seconds}s ago`}</span></div>
@@ -91,6 +93,10 @@ export default function DiscoveryRadar({profiles,loading,error,meta,paused,onRef
 
   </div>
 
+  </div>
+
+  <div className="dr-latest">
+
   <div className="dr-list-heading"><span>Latest pairs</span><span>Newest first - {visible.length} listings</span></div>
 
   <div ref={list} className="dr-token-grid">{visible.map((profile,i)=>{const id=`${profile.chain}:${profile.address}`,isSelected=active?.address===profile.address&&active?.chain===profile.chain,assessment=latestDiscoveryAssessment(savedReports.find(item=>item.chain===profile.chain&&sameToken(item.chain,item.token,profile.address)),assessments[id]);return <article data-contact data-contact-id={id} key={id} className={`dr-token-card ${!compact&&isSelected?'is-selected':''}`}>
@@ -98,13 +104,15 @@ export default function DiscoveryRadar({profiles,loading,error,meta,paused,onRef
    <div className="dr-card-select"><span className="dr-card-index">{String(i+1).padStart(2,'0')}</span><span className="dr-card-identity"><strong>{profile.symbol||short(profile.address)}</strong><span>{profile.name||'Token listing'}</span></span><span className="dr-card-network">{CHAINS[profile.chain].name}</span></div>
    {assessment&&<div className="dr-verdict-row"><span className="dr-verdict-badge" data-tone={assessment.status} title={`${assessment.reason}. Retrieved ${new Date(assessment.fetchedAt).toLocaleString()}.`}>{assessment.title}{assessment.score!=null&&<strong>{assessment.score}</strong>}</span><small>{assessment.score!=null?'Scan score':'Saved assessment'}</small><time dateTime={assessment.providerTimestamp||assessment.fetchedAt}>{assessment.providerTimestamp?'Source scan':'Retrieved'} {new Date(assessment.providerTimestamp||assessment.fetchedAt).toLocaleDateString(undefined,{month:'short',day:'numeric'})}</time></div>}
    <dl><div><dt>24h volume</dt><dd>{formatMoney(profile.volume24hUsd)==='-'?'Not supplied':formatMoney(profile.volume24hUsd)}</dd></div><div><dt>Pair age</dt><dd>{profile.pairCreatedAt?<time dateTime={profile.pairCreatedAt}>{age(profile.pairCreatedAt,now)}</time>:'Not supplied'}</dd></div></dl>
-   <div className="dr-card-foot"><span title={profile.address}>{short(profile.address)}</span><span className="dr-card-action">Scan<ArrowUpRight size={15}/></span></div>
    {profile.marketStatus==='stale'&&<small className="dr-market-stale">Older market snapshot - {time(profile.marketFetchedAt||undefined)}</small>}
+   <div className="dr-card-foot"><span title={profile.address}>{short(profile.address)}</span><span className="dr-card-action">Scan<ArrowUpRight size={15}/></span></div>
   </article>;})}{!visible.length&&<div className="dr-empty"><Radio size={30}/><strong>{loading?'Fetching public profiles':'No profiles in view'}</strong><p>{error||(chain==='all'?'Try another network or search.':meta.warnings?.find(warning=>warning.toLowerCase().includes(chain))||`No ${CHAINS[chain].name} listings were returned by the available sources. Refresh the feed or scan an address.`)}</p></div>}</div>
 
   {error&&<p className="dr-error" role="alert">{error} {profiles.length>0&&'Last successful profiles are preserved.'}</p>}
 
   <footer className="dr-footer"><span>Source: {meta.source||'Public token and pool listings'}{meta.partial?'  -  Some market data unavailable':''}</span><span>Listings are not verdicts. Pair age is not token age.</span></footer>
+
+  </div>
 
  </section>;
 
