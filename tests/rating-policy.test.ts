@@ -1,0 +1,28 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {fixtureReport} from '../src/lib/investigation-fixture';
+import {trustRating} from '../src/lib/trust-rating';
+import {verdictBand} from '../src/lib/verdict-band';
+function report(){const r=structuredClone(fixtureReport);delete r.providerAnalysis;r.chain='solana';r.checks=['solana_mint_authority','solana_freeze_authority'].map(key=>({key,title:key,status:'clear' as const,value:'Revoked',description:''}));r.sources=[{name:'Solana RPC authorities',status:'available',fetchedAt:r.fetchedAt,detail:''}];r.investigation.findings=[];r.investigation.coverage.reasons=[];r.holders=[{address:'holder',share:2,contract:false,locked:false,tag:''}];r.riskMetrics={version:'evidence-metrics-v1',gaps:[],metrics:['largest-holder-adjusted-float','top10-holder-adjusted-float'].map(id=>({id,label:id,status:'observed',value:id.startsWith('largest')?5:30,unit:'percent',basis:'snapshot',scope:'sample',evidenceIds:['holding'],sourceRefs:['Solana RPC Holders'],wallets:['holder'],limitations:[]}))};r.investigation.evidence=[{id:'funding',kind:'transfer',transaction:'fundingTx',timestamp:r.fetchedAt,source:'RPC',description:'Funding'},{id:'trade',kind:'trade',transaction:'tradeTx',timestamp:r.fetchedAt,source:'RPC',description:'Trade'}];r.investigation.relationships=[{id:'funding',from:'source',to:'holder',kind:'funding',evidenceIds:['funding'],description:''}];r.investigation.timeline=[{id:'funding',kind:'funding',wallet:'holder',timestamp:r.fetchedAt,evidenceId:'funding'}];return r;}
+test('all four evaluated categories yield CLEAN; percentage is a policy rating, not a probability',()=>{const result=trustRating(report());assert.equal(result.score,100);assert.equal(result.decision,'CLEAN');assert.equal(result.components.reduce((n,c)=>n+c.earned,0),100);assert.match(result.basis,/not a probability/i);});
+test('contract passes cannot hide shared funding and connected selling in the overall percentage',()=>{const r=report();r.investigation.findings=[{id:'funder:a',title:'Shared funding',description:'',level:'warning',certainty:'inferred',wallets:['a','b'],evidenceIds:['funding']},{id:'selling:1',title:'Connected selling',description:'',level:'warning',certainty:'inferred',wallets:['a','b'],evidenceIds:['trade','funding']}];const result=trustRating(r);assert.equal(result.score,70);assert.equal(result.decision,'CAUTION');r.investigation.findings.push({...r.investigation.findings[0],id:'funder:b'});assert.equal(trustRating(r).score,70);});
+test('critical findings force AVOID and zero regardless of other favorable categories',()=>{const r=report();r.checks.push({key:'honeypot',title:'Honeypot',status:'critical',value:'Yes',description:''});const result=trustRating(r);assert.equal(result.score,0);assert.equal(result.decision,'AVOID');assert.equal(verdictBand(result.score,true),'AVOID');});
+test('missing activity earns no activity points, never a fabricated all-clear',()=>{const r=report();r.investigation.evidence=r.investigation.evidence.filter(e=>e.kind!=='trade');const result=trustRating(r);assert.equal(result.score,80);assert.equal(result.decision,'OK');assert.equal(result.components.find(c=>c.id==='activity')?.state,'unknown');});
+test('missing baseline or provider-only verdict cannot acquire an independent percentage',()=>{const r=report();r.checks=[];assert.equal(trustRating(r).score,null);r.providerAnalysis={} as never;assert.equal(trustRating(r).score,null);});
+test('stale controls and concentration warnings cannot be outweighed into OK',()=>{const r=report();r.investigation.coverage.reasons=['Contract check refresh is incomplete: mint'];assert.equal(trustRating(r).decision,'CAUTION');r.investigation.coverage.reasons=[];r.riskMetrics!.metrics[0].value=40;assert.equal(trustRating(r).decision,'CAUTION');});
+
+test('ordinary token transfers and observation-only receipts cannot earn funding points',()=>{const r=report();r.investigation.relationships[0].kind='transfer';const result=trustRating(r);assert.equal(result.components.find(c=>c.id==='funding')?.state,'unknown');assert.equal(result.score,80);});
+test('security findings do not get counted again as wallet behavior',()=>{const r=report();r.investigation.findings=[{id:'security:control',level:'warning',title:'Control warning',description:'',certainty:'observed',wallets:[],evidenceIds:[]}];const result=trustRating(r);assert.equal(result.components.find(c=>c.id==='controls')?.earned,0);assert.equal(result.components.find(c=>c.id==='activity')?.earned,20);assert.equal(result.score,60);});
+
+test('the same token changes rating when its evidence changes; token name or address does not select a score',()=>{
+ const r=report();r.token='6NaM98xdfCkTTjqTvjq4t8TdSQ2374VGkGEXCzCPpump';r.name='Grokbot';
+ assert.equal(trustRating(r).score,100);
+ r.investigation.evidence=r.investigation.evidence.filter(e=>e.kind!=='trade');assert.equal(trustRating(r).score,80);
+ r.investigation.relationships=[];assert.equal(trustRating(r).score,60);
+ r.riskMetrics!.metrics=[];assert.equal(trustRating(r).score,40);
+ r.checks.push({key:'critical',title:'Critical control',status:'critical',value:'Yes',description:''});assert.equal(trustRating(r).score,0);
+ const other=report();other.token='different-token';other.name='Unseen token';assert.equal(trustRating(other).score,100);
+});
+test('duplicates and reordered records cannot increase rating confidence or create extra penalties',()=>{
+ const r=report();const original=trustRating(r);r.investigation.evidence=[...r.investigation.evidence,...r.investigation.evidence].reverse();r.investigation.relationships=[...r.investigation.relationships,...r.investigation.relationships];assert.deepEqual(trustRating(r),original);
+});

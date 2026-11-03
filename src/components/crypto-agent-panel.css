@@ -1,0 +1,17 @@
+.crypto-agent{border-top:1px solid #303030;padding:18px 0;margin-top:20px;color:#ededed;font-size:13px;line-height:1.6;min-width:0}
+.crypto-agent header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.crypto-agent header>span{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600}
+.crypto-agent header small{font:10px var(--font-mono,monospace);letter-spacing:.08em;color:#999}
+.crypto-agent p{margin:8px 0;overflow-wrap:anywhere}
+.crypto-agent .agent-state{color:#b8b8b8}
+.crypto-agent details{border-top:1px solid #262626;margin-top:14px;padding-top:12px;color:#aaa;font-size:12px}
+.crypto-agent summary{cursor:pointer;color:#e1e1e1}
+.crypto-agent a{display:inline-flex;align-items:center;gap:5px;color:#eee;text-underline-offset:4px}
+.crypto-agent code{font-size:11px;color:#ddd}
+.agent-decision{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;align-items:center;border:1px solid #333;padding:10px 12px}
+.agent-decision strong{font:600 14px var(--font-mono,monospace)}
+.agent-decision span{font-size:11px;color:#aaa;text-transform:capitalize}
+.agent-points{margin-top:18px}.agent-points h3{font-size:12px;font-weight:600;margin:0;color:#ddd}.agent-points ul{list-style:none;margin:0;padding:0}.agent-points li{border-bottom:1px solid #202020;padding:5px 0 10px}
+.agent-citations{display:flex;flex-wrap:wrap;gap:5px}.agent-citations button{display:inline-flex;align-items:center;gap:4px;padding:4px 7px;border:1px solid #353535;border-radius:0;background:#111;color:#bbb;font:10px var(--font-mono,monospace);max-width:100%;text-align:left;cursor:pointer;overflow-wrap:anywhere}
+.agent-citations button:hover{color:#fff;border-color:#777}.crypto-agent :is(button,summary,a):focus-visible{outline:2px solid #ddd;outline-offset:3px}
+.ro-confidence-meaning{font-size:12px;line-height:1.6;color:#b5b5b5;margin:0 0 16px}

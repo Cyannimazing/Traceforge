@@ -1,0 +1,2 @@
+import type {HistoryDiscovery} from './history-discovery';
+export type HistoryView={id:string;chain:string;token:string;status:'queued'|'running'|'paused'|'complete'|'blocked';revision:number;updatedAt:string;message:string;poolLimit:number;verifiedPools:number;totalPools:number;completeRegistry:false;discoveryNote:string;registry?:HistoryDiscovery['registry'];retryAt?:number;pools:{pool:string;status:string;message:string;phase:string;completedRanges:number;verifiedTransactions:number;discoveredTransactions:number;nextBlock?:number}[]};

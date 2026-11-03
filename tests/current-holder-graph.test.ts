@@ -1,0 +1,66 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import type {InvestigationReport,Evidence,Relationship} from '../src/lib/investigation-types';
+import {buildCurrentHolderGraph} from '../src/lib/current-holder-graph';
+
+const at='2026-11-03T06:00:00Z';
+function report(chain:InvestigationReport['chain']='solana'):InvestigationReport{
+ return {chain,token:'mint',name:'Token',symbol:'T',fetchedAt:at,market:null,holderCount:null,checks:[],sources:[],holders:['a','b','c'].map((address,i)=>({address,share:5-i,contract:false,locked:false,tag:''})),investigation:{wallets:['a','b','c','historical'].map(address=>({address,share:999,categories:['unclassified'],evidenceIds:[]})),relationships:[],evidence:[],timeline:[],findings:[],assessment:{status:'clear',title:'',summary:''},coverage:{status:'partial',launchVerified:false,holderLimit:100,buyerLimit:100,fundingHops:1,truncated:true,reasons:[],source:'RPC',fetchedAt:at}}};
+}
+function transfer(r:InvestigationReport,id:string,from:string,to:string,kind:Relationship['kind']='transfer',token='SOL'){
+ const e:Evidence={id,kind:'transfer',transaction:`tx:${id}`,timestamp:at,source:'RPC',from,to,amount:1,token,description:'Observed transfer'};
+ r.investigation.evidence.push(e);r.investigation.relationships.push({id,kind,from,to,evidenceIds:[id],description:'Observed transfer'});return e;
+}
+function shared(r:InvestigationReport){
+ transfer(r,'fa','funder','a','funding');transfer(r,'fb','funder','b','funding');
+ r.investigation.relationships.push({id:'shared',kind:'shared-funder',from:'a',to:'b',evidenceIds:['fa','fb'],description:'Possible shared funding'});
+}
+
+test('graph uses only current holder rows and their balances, never historical graph shares',()=>{
+ const r=report(),before=JSON.stringify(r);transfer(r,'old','historical','a');const graph=buildCurrentHolderGraph(r);
+ assert.deepEqual(graph.nodes.map(n=>[n.address,n.share]),[['a',5],['b',4],['c',3]]);assert.equal(graph.total,3);assert.equal(graph.shown,3);assert.equal(graph.edges.length,0);assert.equal(graph.truncated,false);assert.equal(graph.documentedGroups,0);
+ assert.equal(JSON.parse(before).investigation.wallets[0].share,r.investigation.wallets[0].share);
+});
+
+test('direct edges require actual positive tx proofs matching both endpoints and are deduplicated',()=>{
+ const r=report();transfer(r,'ab','a','b');r.investigation.relationships.push({...r.investigation.relationships[0],id:'duplicate',kind:'deployer-linked'});transfer(r,'self','a','a');
+ const graph=buildCurrentHolderGraph(r);assert.equal(graph.edges.length,1);assert.equal(graph.documentedGroups,1);assert.match(graph.edges[0].description,/not.*ownership/i);
+ r.investigation.evidence[0].to='c';assert.equal(buildCurrentHolderGraph(r).edges.length,0);
+});
+
+test('shared-funder edges require two eligible native funding receipts, not arbitrary token payouts',()=>{
+ const r=report();shared(r);assert.equal(buildCurrentHolderGraph(r).edges.length,1);
+ r.investigation.evidence[1].token='SPL_MINT';assert.equal(buildCurrentHolderGraph(r).edges.length,0);
+ r.investigation.evidence[1].token='SOL';r.investigation.relationships[1].kind='transfer';assert.equal(buildCurrentHolderGraph(r).edges.length,0);
+});
+
+test('known infrastructure funders are excluded even when absent from the holder snapshot',()=>{
+ const r=report();shared(r);r.investigation.wallets.push({address:'funder',share:null,categories:['exchange'],evidenceIds:['label:funder:exchange']});r.investigation.evidence.push({id:'label:funder:exchange',kind:'label',source:'Explorer',timestamp:at,description:'Exchange'});
+ assert.equal(buildCurrentHolderGraph(r).edges.length,0);
+ r.investigation.evidence.at(-1)!.attribution='provider-reported';assert.equal(buildCurrentHolderGraph(r).edges.length,1);
+});
+
+test('provider-reported, missing-source, invalid-date, future and zero-value proofs cannot create links',()=>{
+ for(const mutate of [(e:Evidence)=>{e.attribution='provider-reported';},(e:Evidence)=>{e.source='';},(e:Evidence)=>{e.timestamp='invalid';},(e:Evidence)=>{e.timestamp='2026-11-03T08:00:00Z';},(e:Evidence)=>{e.amount=0;}]){
+  const r=report();mutate(transfer(r,'ab','a','b'));assert.equal(buildCurrentHolderGraph(r).edges.length,0);
+ }
+ const r=report();transfer(r,'ab','a','b');r.investigation.relationships[0].attribution='provider-reported';assert.equal(buildCurrentHolderGraph(r).edges.length,0);
+});
+
+test('bounded display is deterministic and reports omitted current holders',()=>{
+ const r=report();transfer(r,'ab','a','b');transfer(r,'bc','b','c');const g=buildCurrentHolderGraph(r,{limit:2});
+ assert.equal(g.total,3);assert.equal(g.shown,2);assert.equal(g.truncated,true);assert.equal(g.edges.length,1);assert.equal(g.documentedGroups,1);assert.deepEqual(g.nodes.map(n=>n.address),['a','b']);
+});
+
+test('normalization is chain-specific and uses the same evidence-backed infrastructure partition as the table',()=>{
+ for(const chain of ['ethereum','base','bsc'] as const){
+  const r=report(chain);r.holders[0].address='0xAbC';r.holders[1].address='0xDEF';r.investigation.wallets[0].address='0xabc';r.investigation.wallets[1].address='0xdef';transfer(r,'ab','0xABC','0xdef','transfer','native');
+  const g=buildCurrentHolderGraph(r);assert.equal(g.edges.length,1);assert.equal(g.nodes[0].address,'0xabc');
+ }
+ const r=report();r.investigation.wallets[0].categories=['pool'];r.investigation.wallets[0].evidenceIds=['label:a:pool'];r.investigation.evidence.push({id:'label:a:pool',kind:'label',source:'DEX Screener',timestamp:at,description:'Verified pool'});
+ const g=buildCurrentHolderGraph(r);assert.equal(g.total,2);assert.equal(g.excludedInfrastructure,1);assert(!g.nodes.some(n=>n.address==='a'));
+});
+
+test('a transfer only connecting an unrelated endpoint cannot act as shared funding proof',()=>{
+ const r=report();shared(r);r.investigation.evidence[1].from='another-funder';assert.equal(buildCurrentHolderGraph(r).edges.length,0);
+});

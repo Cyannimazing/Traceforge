@@ -1,0 +1,29 @@
+{
+  "purpose": "Provider identification only; no endorsement implied.",
+  "assets": [
+    {
+      "file": "dexscreener.jpg",
+      "source": "https://docs.dexscreener.com/~gitbook/image?url=https%3A%2F%2F198140802-files.gitbook.io%2F%7E%2Ffiles%2Fv0%2Fb%2Fgitbook-x-prod.appspot.com%2Fo%2Fspaces%252F7OmRM9NOmlC1POtFwsnX%252Ficon%252F6BJXvNUMQSXAtDTzDyBK%252Ficon-512x512.png%3Falt%3Dmedia%26token%3Da7ce263e-0b40-4afb-ae25-eae378aef0ab&width=48&height=48&sign=3ff7b168cc92f96b96980e6ae29c3d1c&sv=3"
+    },
+    {
+      "file": "goplus.png",
+      "source": "https://gopluslabs.io/favicon.png"
+    },
+    {
+      "file": "geckoterminal.png",
+      "source": "https://www.geckoterminal.com/images/logo_icon.png"
+    },
+    {
+      "file": "blockscout.png",
+      "source": "https://www.blockscout.com/favicon/favicon-48x48.png"
+    },
+    {
+      "file": "swarm.svg",
+      "source": "https://swarmengine.tech/favicon.svg?v=2"
+    },
+    {
+      "file": "alchemy.svg",
+      "source": "https://media.alchemy.com/1699253173-alchemy-logo.svg"
+    }
+  ]
+}
