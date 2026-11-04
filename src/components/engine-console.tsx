@@ -6,6 +6,7 @@ import type {InvestigationReport,ScanEvent} from '../lib/investigation-types';
 import './engine-console.css';
 import {assessmentLabel} from '@/lib/assessment-presentation';
 import SourceStrip from './source-strip';
+import OfficialTokenAddress from './official-token-address';
 
 type StageEvent=Extract<ScanEvent,{type:'stage'}>;
 export type EngineConsoleProps={report:InvestigationReport|null;stages:StageEvent[];loading:boolean;paused:boolean;onExample:()=>void;onInspect:()=>void;compact?:boolean;entry?:ReactNode;onCancel?:()=>void;runId?:number};
@@ -97,6 +98,7 @@ export default function EngineConsole({report,stages,loading,paused,onExample,on
  const pulseKey=lastReceipt?`${lastReceipt.time}:${lastReceipt.event.stage}:${lastReceipt.event.status}:${received.length}`:'';
  return <section ref={root} className={`engine-console source-console${compact?' source-compact':''}`} data-moving={moving} data-scanning={loading} aria-labelledby={`${id}-title`}>
   <header className="source-console-header">{compact?<h2 id={`${id}-title`}>Investigation activity</h2>:<h1 id={`${id}-title`}>Investigate a token.</h1>}<p>Crypto token analysis, from holders to contract risks.</p></header>
+  {!compact&&<OfficialTokenAddress/>}
   <div className="source-engine-grid">
    <TracePaths highlight={highlight} running={running} geometry={flow}/>
    <div className={`source-entry ${loading?'is-scanning':''}`}>
