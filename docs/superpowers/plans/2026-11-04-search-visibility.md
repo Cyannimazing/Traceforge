@@ -13,6 +13,8 @@
 - [x] Generate a neutral black-studio social card from the existing TF mark using Next's ImageResponse; no invented score or endorsement.
 - [x] Keep client history navigation metadata in sync without fetching or rerunning investigations.
 - [x] Run focused/full tests, TypeScript, production build and HTTP/browser checks, including social image output and noindex routes.
-- [ ] Push the verified release, check the public deployment and document Search Console submission steps. Google indexing is separate from technical eligibility.
+- [x] Push the verified release, check the public deployment and document Search Console submission steps. Google indexing is separate from technical eligibility.
 
 Validation: 895 tests passed; TypeScript and production build passed. Actual HTTP checks verified page titles/canonicals/index directives, sitemap XML, robots text, API indexing header, 404 behavior and valid JSON-LD. Generated social image rendered at 1200x630 and was visually inspected. Browser navigation across Scan, Discovery, Methodology and Watchlist plus browser Back kept metadata in sync, with no console warnings or errors. Independent read-only review found no concrete issues. Apex redirects 308 to the canonical www hostname.
+
+Release: code commit bdbb952dcc10234be40a358b7590d8e0adea2195 was pushed to main, and Vercel reported success. Direct public HTTPS checks confirmed the new titles, indexable home/discovery/methodology, noindex watchlist, canonical www origin, robots.txt 200, sitemap.xml 200 with three URLs, and social PNG 200. Desktop build and final port 3100 HTTP checks passed. Search Console account ownership verification and Google indexing remain separate user/account actions.
