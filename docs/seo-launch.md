@@ -11,6 +11,8 @@ Canonical production site: **https://www.traceengine.tech/**. The www hostname i
 5. Inspect `https://www.traceengine.tech/` with **URL Inspection**, run the live test and request indexing. Repeat for `/methodology` and `/discover` if needed.
 6. Monitor **Page indexing** and **Performance** for actual indexing, impressions, queries and clicks. Submission does not guarantee inclusion or ranking, and crawling is not immediate.
 
+For the user-selected HTML-file verification method on the URL-prefix property, the downloaded `google177c31db954070a2.html` is preserved unchanged in `public/`. Its public URL is `https://www.traceengine.tech/google177c31db954070a2.html`. Keep this file published after verification; Google periodically rechecks ownership. Click Verify in Search Console after the public file responds successfully with its original content.
+
 Primary guidance: [Google's technical requirements](https://developers.google.com/search/docs/essentials/technical), [Search Console verification](https://support.google.com/webmasters/answer/9008080), and [sitemap submission](https://developers.google.com/search/docs/crawling-indexing/sitemaps/build-sitemap).
 
 ## What this release indexes
