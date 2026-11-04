@@ -1,6 +1,8 @@
 import {createRootMetadata,jsonLd,seoSettings,structuredSiteData} from '@/lib/seo';
 import "./globals.css";
 import './legal.css';
+import '@/components/brand.css';
+import '@/components/official-x-link.css';
 export const metadata=createRootMetadata();
 export default function RootLayout({
   children,

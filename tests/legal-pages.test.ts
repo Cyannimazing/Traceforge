@@ -10,7 +10,7 @@ test('each legal route renders an accessible notice with working scanner, contac
  for(const [Component,path,metadata] of [[PrivacyPage,'/privacy',privacyMetadata],[CookiesPage,'/cookies',cookiesMetadata],[TermsPage,'/terms',termsMetadata]] as const){
   const html=renderToStaticMarkup(React.createElement(Component));
   assert.equal((html.match(/<main\b/g)||[]).length,1);assert.equal((html.match(/<h1\b/g)||[]).length,1);
-  assert.match(html,/aria-label="Main navigation"/);assert.match(html,/href="\/"/);assert.match(html,/aria-label="Legal and contact"/);
+  assert.match(html,/aria-label="Main navigation"/);assert.match(html,/href="\/"/);assert.match(html,/aria-label="Official links, legal and contact"/);
   for(const href of ['/privacy','/cookies','/terms','mailto:cyril@izee.ai'])assert(html.includes(`href="${href}"`),`${path} is missing ${href}`);
   assert.equal(metadata.alternates?.canonical,`https://www.traceengine.tech${path}`);
  }

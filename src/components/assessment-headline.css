@@ -3,6 +3,7 @@
 .ro-assessment.ro-status-critical{--verdict-accent:#ff9b91}
 .ro-assessment .ro-verdict-headline{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:24px;row-gap:20px;align-items:center;margin:24px 0 16px}
 .ro-overall-score>span{font-size:12px;color:#bbb}
+.ro-assessed-scope{display:block;margin-top:10px;max-width:32ch;color:#bbb;font-size:11px;line-height:1.6}
 .ro-overall-value{display:flex;align-items:baseline;gap:8px;margin-top:6px;color:var(--verdict-accent)}
 .ro-overall-value>strong{font:500 clamp(56px,6vw,76px)/1.05 var(--font-mono,monospace);letter-spacing:-.035em;font-variant-numeric:tabular-nums}
 .ro-overall-value>span{font:400 15px/1.4 var(--font-mono,monospace);color:#aaa}

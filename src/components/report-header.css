@@ -64,3 +64,4 @@
 
 /* Keep the phone action rows intentional at both narrow and wide widths. */
 @media(max-width:760px){.rh-identity{align-items:flex-start}.rh-actions{display:grid;grid-template-columns:minmax(0,1fr) repeat(3,44px);gap:6px}.rh-actions .rh-change{min-width:0;padding:0 4px;font-size:10px;gap:4px;white-space:nowrap}.rh-actions>button:not(.rh-change):not(.rh-refresh){width:44px}.rh-actions .rh-refresh{grid-column:1/-1;min-width:0;width:100%;margin:0}}
+.rh-metrics dd[data-empty=true]{font:400 13px/1.8 var(--font-sans);letter-spacing:0;overflow-wrap:normal;color:#bbb}

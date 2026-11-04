@@ -85,6 +85,22 @@ function coldCurveMock(options:{zero?:boolean;fail?:boolean;reorg?:boolean;old?:
 test('cold scan rereads canonical buyers discovered after the initial candidate balance snapshot',async()=>{
  const m=coldCurveMock(),r=await createBscHolderFallback(m)(m.report);assert(r.curveTiming);assert.equal(r.holders?.find(h=>h.address===m.buyer)?.share,1);assert(!r.holders?.some(h=>h.address===m.sold));assert(r.snapshot?.balances.some(b=>b.address===m.buyer&&b.amountRaw==='10000000000000000000'));assert.equal(r.snapshot?.blockTimestamp,new Date(m.now()).toISOString());assert(m.calls.filter(c=>c.method==='eth_call').every(c=>c.params[1]===m.anchor));assert.match(r.sources.find(s=>s.name==='BSC RPC finalized holder balances')!.detail,/2 positive balances verified/);
 });
+
+test('archive receipt access failures retain verified balances and expose a safe actionable history reason',async()=>{
+ const m=coldCurveMock();let denied=0;
+ const fetcher:typeof fetch=async(url,init)=>{
+  const raw=JSON.parse(String(init?.body)),rows=Array.isArray(raw)?raw:[raw];
+  if(!rows.some((r:any)=>r.method==='eth_getTransactionReceipt'))return m.fetcher(url,init);
+  const response=await m.fetcher(url,init),data=await response.json(),values=Array.isArray(data)?data:[data];
+  for(let i=0;i<rows.length;i++)if(rows[i].method==='eth_getTransactionReceipt'){denied++;values[i]={id:rows[i].id,jsonrpc:'2.0',error:{code:-32602,message:'Archive requests require a personal token. Secret endpoint https://rpc.invalid/private?token=do-not-expose'}};}
+  return Response.json(Array.isArray(raw)?values:values[0]);
+ };
+ const r=await createBscHolderFallback({...m,fetcher})(m.report);
+ assert(denied>0);assert(r.snapshot);assert(r.holders!.length>0);assert.equal(r.curveTiming,undefined);
+ assert.match(r.reasons.join(' '),/authorized archive.*BSC_RPC_URL/i);
+ assert.match(r.sources.find(s=>s.name==='BSC RPC Four.Meme curve receipts')!.detail,/authorized archive/i);
+ assert.doesNotMatch(JSON.stringify(r),/do-not-expose|rpc\.invalid|Secret endpoint/);
+});
 test('post-history zero balances stay absent, failed reads stay unknown, and changed anchors invalidate holders',async()=>{
  for(const mode of ['zero','fail','reorg'] as const){const m=coldCurveMock({[mode]:true}),r=await createBscHolderFallback(m)(m.report);assert(!r.holders?.some(h=>h.address===m.buyer));if(mode==='reorg'){assert.equal(r.snapshot,undefined);assert.equal(r.holders?.length,0);}else if(mode==='fail')assert.match(r.reasons.join(' '),/unavailable|unknown/i);}
 });

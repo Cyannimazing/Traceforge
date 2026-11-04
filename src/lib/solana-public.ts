@@ -244,6 +244,10 @@ export function createSolanaPublic(deps:{rpcUrl?:string;fetcher?:typeof fetch;no
   if(currentMint?.program===SOLANA_TOKEN_2022_PROGRAM){
    result.reasons.push('Token-2022 recognized mint extension capabilities are decoded from the finalized RPC snapshot; unsupported or malformed extensions remain explicit. Hook program behavior, historical changes and hidden balances are not audited. Displayed balances are raw base amounts divided by decimals.');
    result.checks.push(...extensionChecks(currentMint));
+  }else if(currentMint?.program===SOLANA_TOKEN_PROGRAM){
+   // The classic program has no Token-2022 extension surface. Only a parsed,
+   // initialized mint with verified program ownership qualifies for this pass.
+   result.checks.push({key:'solana_extensions',title:'Token extension controls',status:'clear',value:'Not applicable - classic SPL Token',description:`The mint is owned by the classic SPL Token program at finalized mint slot ${currentMint.slot}. Token-2022 extensions do not apply. Mint and freeze controls are checked separately.`,source:'Solana RPC authorities',fetchedAt:currentMint.timestamp});
   }
   result.reasons.push(selection?.source==='goplus-token-accounts'?'Solana account candidates came from GoPlus holder listings; ranking is not verified and the candidate list has no proven slot. At most 20 token accounts are re-read with the mint at one finalized bank, then balances are grouped by their verified parsed owner. Other accounts held by those owners remain outside this sample; these are sampled balances, not complete wallet holdings.':'Solana snapshot covers at most 20 token accounts selected at one finalized slot, then aggregates their verified balances by parsed owner at a later finalized slot. An owner may have more accounts outside this sample; these are sampled balances and shares, not complete wallet holdings or a distinct-holder census.');
   result.reasons.push('RPC snapshot slots are preserved; retrieval timestamps are not block timestamps. Current mint/freeze authority does not identify the historical creator. No launch, first-buyer, funding or historical-balance completeness is established.');

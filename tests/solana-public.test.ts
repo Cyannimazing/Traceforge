@@ -1,6 +1,8 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {createSolanaPublic, SOLANA_TOKEN_PROGRAM, SOLANA_TOKEN_2022_PROGRAM} from '../src/lib/solana-public';
+import {trustRating} from '../src/lib/trust-rating';
+import type {InvestigationReport} from '../src/lib/investigation-types';
 
 const mint='EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
 const authority='BJE5MMbqXjVwjAF7oxwPYXnTXDyspzZyt4vwenNw5ruG';
@@ -45,6 +47,31 @@ test('Solana snapshot aggregates distinct token accounts by owner using same-slo
  assert.deepEqual(joined.params[0],[mint,accountA,accountB]);
  assert.equal((joined.params[1] as {minContextSlot:number}).minContextSlot,102);
  assert(result.reasons.some(r=>r.includes('20 token accounts')));
+});
+
+test('a verified classic SPL mint explicitly completes the non-applicable extension check',async()=>{
+ const f=fixture(),result=await createSolanaPublic({fetcher:f.fetcher,now:()=>Date.parse(at)})(mint);
+ const check=result.checks.find(c=>c.key==='solana_extensions');
+ assert.equal(check?.status,'clear');
+ assert.equal(check?.value,'Not applicable - classic SPL Token');
+ assert.equal(check?.fetchedAt,at);
+ assert.match(check!.description,/finalized.*103/i);
+ assert.equal(result.snapshot.tokenProgram,SOLANA_TOKEN_PROGRAM);
+ const report:InvestigationReport={chain:'solana',token:mint,name:'Classic SPL',symbol:'SPL',fetchedAt:at,market:null,holderCount:null,checks:result.checks,sources:result.sources,holders:result.holders!.map(h=>({...h,share:h.share!,contract:false,locked:null,tag:''})),investigation:{wallets:[],relationships:[],evidence:[],timeline:[],findings:[],assessment:{status:'insufficient',title:'',summary:''},coverage:{status:'partial',launchVerified:false,truncated:true,holderLimit:100,buyerLimit:100,fundingHops:1,source:'Solana RPC',fetchedAt:at,reasons:[]}}};
+ assert.equal(trustRating(report).coreVerified,true);
+ assert.equal(trustRating(report).score,null,'A valid classic mint does not manufacture missing historical measurements');
+ report.checks.find(c=>c.key==='solana_freeze_authority')!.status='warning';
+ assert.equal(trustRating(report).decision,'AVOID','Freeze stop rule must survive the extension-coverage fix');
+});
+
+test('unsupported mint program ownership cannot receive a non-applicable extension pass',async()=>{
+ const invalid=mintAccount({},owner),f=fixture({
+  getAccountInfo:r=>({jsonrpc:'2.0',id:r.id,result:{context:{slot:101},value:invalid}}),
+  getMultipleAccounts:r=>({jsonrpc:'2.0',id:r.id,result:{context:{slot:103},value:[invalid,tokenAccount('2'),tokenAccount('3')]}}),
+ });
+ const result=await createSolanaPublic({fetcher:f.fetcher,now:()=>Date.parse(at)})(mint);
+ assert.notEqual(result.checks.find(c=>c.key==='solana_extensions')?.status,'clear');
+ assert.equal(result.snapshot.tokenProgram,undefined);
 });
 
 test('authority kinds remain separate for one address and absent fields remain unknown',async()=>{

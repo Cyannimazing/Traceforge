@@ -9,6 +9,7 @@ import { getDisplayAssessment } from '@/lib/verdict-summary';
 import { findingBreakdown } from '@/lib/finding-breakdown';
 import {observedDecision} from '@/lib/observed-decision';
 import {trustRating} from '@/lib/trust-rating';
+import {assessmentProgress} from '@/lib/assessment-progress';
 import {buildVerdictOutput} from '@/lib/verdict-output';
 import {decisionDisplayPercentages} from '@/lib/decision-display';
 import {decisionLabels,decisionLabel,presentationText,earlyBuyingExplanation} from '@/lib/assessment-presentation';
@@ -157,11 +158,12 @@ export default function ReportOverview({ report, selection, onSelect, onInspect,
   const reasons = breakdown.risks.filter(finding=>!finding.id.startsWith('funder:'));
   const fundingPatterns = breakdown.risks.filter(finding=>finding.id.startsWith('funder:'));
   const rating=useMemo(()=>trustRating(report),[report]);
+  const progress=useMemo(()=>assessmentProgress(report,rating),[report,rating]);
   const observedResult=useMemo(()=>observedDecision(report,rating),[report,rating]);
   const verdictOutput=useMemo(()=>buildVerdictOutput({rating,observed:observedResult}),[rating,observedResult]);
   const decision = assessment.status==='critical'?'AVOID':agentReview?.decision||verdictOutput.decision;
   const observed=observedResult?.judge.decision===decision?observedResult:null;
-  const simpleReason=rating.hard?.[0]||(assessment.status==='critical'?assessment.summary:agentReview?.summary)||rating.soft?.[0]||(observed?.judge.p?decision==='OK'?'No stop rule was triggered in the observed activity.':'The observed activity raised warning signs.':rating.score===null?'Some wallet checks are incomplete.':rating.decision==='CLEAN'||rating.decision==='OK'?'No major warning found in the completed checks.':'The completed checks found warning signs.');
+  const simpleReason=rating.hard?.[0]||(assessment.status==='critical'?assessment.summary:agentReview?.summary)||rating.soft?.[0]||(observed?.judge.p?decision==='OK'?'No stop rule was triggered in the observed activity.':'The observed activity raised warning signs.':rating.score===null?`${progress.currentCompleted} current checks completed. ${progress.resolvedFactors} of six scoring factors resolved; see the specific findings below.`:rating.decision==='CLEAN'||rating.decision==='OK'?'No major warning found in the completed checks.':'The completed checks found warning signs.');
   const scoreText=rating.score!==null?String(rating.score):'Unavailable';
   const points=(n:number)=>Number(n.toFixed(1)).toLocaleString();
   const confidencePercent=decisionDisplayPercentages(verdictOutput.p)[verdictOutput.decision.toLowerCase() as 'avoid'|'caution'|'ok'];
@@ -191,10 +193,10 @@ export default function ReportOverview({ report, selection, onSelect, onInspect,
 
   return <section ref={root} className="report-overview" aria-label="Wallet network and assessment" data-paused={!animate} data-floating={floating}>
     <div className={`ro-assessment ro-status-${decision==='AVOID'?'critical':decision==='OK'?'clear':'caution'}`}>
-      <header className="ro-verdict-heading"><h2>Verdict</h2><span className="ro-coverage">{rating.hard?.length?'Stop rule triggered':observed?.judge.p?'Observed activity':inv.coverage.status === 'complete' ? 'Checks complete' : inv.coverage.status === 'partial' ? 'Incomplete checks' : 'Evidence unavailable'}</span></header>
-      <AssessmentHeadline score={observed?.score??rating.score} decision={decision==='INSUFFICIENT'?'CAUTION':decision} confidence={confidencePercent} basis={verdictOutput.basis}/>
+      <header className="ro-verdict-heading"><h2>Verdict</h2><span className="ro-coverage">{rating.hard?.length?'Stop rule triggered':`${progress.currentCompleted}/${progress.currentTotal} current checks`}</span></header>
+      <AssessmentHeadline score={observed?.score??rating.score} decision={decision==='INSUFFICIENT'?'CAUTION':decision} confidence={confidencePercent} basis={verdictOutput.basis} progress={progress}/>
       <p className="ro-simple-reason">{presentationText(simpleReason)}</p>
-      {!LLM_REVIEW_ENABLED&&<DecisionOutput output={verdictOutput}/>}
+      {!LLM_REVIEW_ENABLED&&(verdictOutput.basis==='uncertainty-allocation'?<details className="ro-analysis-details"><summary>Decision allocation and unresolved inputs</summary><p>{(observed?.score??rating.score)===null?'Model assessed shows resolved scoring weight, not safety confidence. Assessed points are not rescaled to a score out of 100. ':''}The allocation below reserves unresolved model support for Watch. It is not a measured probability.</p><DecisionOutput output={verdictOutput}/></details>:<DecisionOutput output={verdictOutput}/>)}
       {observed&&<ObservedScoreBreakdown factors={observed.factors}/>}
       {why.length>0&&<section className="ro-plain-reasons" aria-label={`Why ${decisionLabel(decision).toLowerCase()}?`}><h3>Why {decisionLabel(decision).toLowerCase()}?</h3><ul>{why.map((reason,index)=><li key={`${reason.title}:${index}`}><strong>{reason.title}</strong><p>{reason.detail}</p></li>)}</ul></section>}
       <details className="ro-analysis-details"><summary>Analysis details</summary><div className="ro-analysis-body">

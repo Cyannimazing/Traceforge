@@ -25,7 +25,7 @@ export function createBscHolderFallback(deps:{rpcUrl?:string;fetcher?:typeof fet
   const result:BscHolderFallbackResult={holders:[],holderCount:null,trades:[],transfers:[],identities:[],labels:[],reasons:[],sources:[],truncated:true};
   if(report.chain!=='bsc'||validateToken('bsc',report.token))return result;
   const signal=AbortSignal.any([AbortSignal.timeout(deps.timeoutMs??10000),...(options.signal?[options.signal]:[])]);
-  const source='BSC RPC finalized holder balances',token=report.token.toLowerCase();let id=0,requests=0;
+  const source='BSC RPC finalized holder balances',token=report.token.toLowerCase();let id=0,requests=0,archiveAccessRequired=false;
   const batch=async(calls:{method:string;params:unknown[]}[])=>{
    if(!calls.length)return [];
    signal.throwIfAborted();if(++requests>28)throw Error('Request budget reached.');
@@ -34,6 +34,9 @@ export function createBscHolderFallback(deps:{rpcUrl?:string;fetcher?:typeof fet
    const response=await fetcher(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload.length===1?payload[0]:payload),signal:requestSignal,cache:'no-store',redirect:'error'});
    if(!response.ok)throw new RpcReadError(response.status===429||response.status>=500?'transient':'unavailable');if(Number(response.headers.get('Content-Length'))>4000000){await response.body?.cancel();throw Error('Response bound exceeded.');}
    const text=await response.text();if(text.length>4000000)throw Error('Response bound exceeded.');const data=JSON.parse(text),rows=Array.isArray(data)?data:[data];
+   // Classify access denial without retaining raw provider messages or URLs.
+   // A denied historical receipt is unknown, never an absent transaction.
+   if(rows.some((row:any)=>row?.error&&/archive.*(?:require|unauthor|forbidden|access denied)|personal token/i.test(String(row.error.message||''))))archiveAccessRequired=true;
    if(calls.length===1&&calls[0].method==='eth_getLogs'&&rows.length===1&&rows[0]?.error){const error=rows[0].error,message=String(error.message||'');throw new RpcReadError(/archive|personal token|unauthor|forbidden/i.test(message)?'unavailable':/rate|busy|timeout|temporary|capacity/i.test(message)?'transient':/range|too many|exceed/i.test(message)||error.code===-32005?'range':'unavailable');}
    return payload.map(request=>{const matches=rows.filter((r:any)=>r?.id===request.id);return matches.length===1&&!matches[0].error?matches[0].result:undefined;});
   };
@@ -110,6 +113,7 @@ export function createBscHolderFallback(deps:{rpcUrl?:string;fetcher?:typeof fet
     if(!launchTimeHint&&market?.chainId==='bsc'&&market.dexId==='fourmeme'&&market.baseToken?.address.toLowerCase()===token&&market.pairAddress?.toLowerCase()===token+':4meme'&&typeof market.pairCreatedAt==='number'&&Number.isSafeInteger(market.pairCreatedAt)&&market.pairCreatedAt>0&&market.pairCreatedAt<=timestamp)launchTimeHint=Math.floor(market.pairCreatedAt/1000);
     let savedProof:CurveTimingProof|null=null;try{savedProof=deps.proofStore?.get('bsc',token)??null;}catch{}
     const history=await readFourMemeHistory({token,decimals,candidateLogs,savedProof,launchTimeHint,anchor:{number:block,hash:head.hash,timestamp:timestamp/1000},observedAt:new Date(now()).toISOString(),batch,signal:options.signal});
+    if(archiveAccessRequired&&!history.proof)history.reasons.push('Historical receipt verification requires authorized archive access. Configure server-only BSC_RPC_URL with an endpoint authorized for historical receipts and logs. Current verified balances remain available; first-minute flags are withheld until the launch proof can be reverified.');
     try{if(history.savedProofInvalid)deps.proofStore?.delete('bsc',token);if(history.proof)deps.proofStore?.set(history.proof);}catch{}
     result.trades=history.trades;result.identities=history.identities;result.curveTiming=history.proof;result.reasons.push(...history.reasons);
     result.sources.push({name:FOUR_MEME_HISTORY_SOURCE,status:history.trades.length||history.identities.length?'available':'unavailable',fetchedAt:new Date(now()).toISOString(),detail:history.reasons.join(' ')});

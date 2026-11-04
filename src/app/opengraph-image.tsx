@@ -9,7 +9,7 @@ export const contentType='image/png';
 export default async function Image(){
  const [regular,logo]=await Promise.all([
   readFile(join(process.cwd(),'public','fonts','space-grotesk-regular.ttf')),
-  readFile(join(process.cwd(),'public','brand','traceforge-creative-logo.png')),
+  readFile(join(process.cwd(),'public','brand','traceforge-logo-transparent.png')),
  ]);
 
  return new ImageResponse(
