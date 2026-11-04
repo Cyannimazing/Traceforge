@@ -4,9 +4,9 @@ export const SITE_NAME='TraceForge Engine';
 export const DEFAULT_SITE_ORIGIN='https://www.traceengine.tech';
 export type PageSeo={path:string;title:string;description:string;indexable:boolean};
 const pages:Record<string,PageSeo>={
- '/':{path:'/',title:'TraceForge Engine | Crypto Token Analysis & Wallet Tracing',description:'Investigate crypto tokens with holder maps, wallet connections, contract checks and public blockchain evidence across five networks.',indexable:true},
- '/discover':{path:'/discover',title:'Discover Crypto Tokens | TraceForge Engine',description:'Explore recent token profiles and pool listings across Ethereum, Base, BNB Chain, Solana and Robinhood Chain. Select a token to investigate its public evidence.',indexable:true},
- '/methodology':{path:'/methodology',title:'Token Analysis Methodology | TraceForge Engine',description:'Learn how TraceForge checks holders, creator and sniper flags, wallet connections and contract controls, and how its evidence-based token assessments are calculated.',indexable:true},
+ '/':{path:'/',title:'TraceForge Engine | Crypto Token & Holder Analysis',description:'Analyze crypto token holders, wallet connections, creator and sniper flags, and contract risks on Solana, Ethereum, Base, BNB Chain and Robinhood Chain.',indexable:true},
+ '/discover':{path:'/discover',title:'Latest Crypto Tokens & Pool Listings | TraceForge Engine',description:'Discover recent token profiles and DEX pool listings on Solana, Ethereum, Base, BNB Chain and Robinhood Chain. Open a token holder and contract investigation.',indexable:true},
+ '/methodology':{path:'/methodology',title:'Token Analysis, Wallet Flags & Risk Checks | TraceForge Engine',description:'Understand token holder analysis, wallet tracing, Creator, Owner, Dev and Sniper flags, contract checks, and how TraceForge calculates its token assessments.',indexable:true},
  '/watchlist':{path:'/watchlist',title:'Your Token Watchlist | TraceForge Engine',description:'Keep track of token investigations saved on this device and reopen their public evidence reports.',indexable:false},
 };
 export const INDEXABLE_PATHS=['/','/discover','/methodology'] as const;

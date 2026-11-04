@@ -78,3 +78,19 @@
 @media(max-width:760px){.mp-channels{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}.mp-channel{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:84px;padding:10px 4px;text-align:center;gap:7px}.mp-channel strong{font-size:12px;overflow-wrap:anywhere}.mp-channel small{display:none}.mp-channel>svg:first-child{display:block}}
 @media(max-width:380px){.mp-heading h1{font-size:29px}.mp-tabs button{font-size:12px;gap:7px;padding:12px 8px}.mp-chapter-copy{padding:21px 16px}.mp-chapter-navigation button{font-size:12px;gap:6px;padding:8px 4px}}
 @media(prefers-reduced-motion:reduce){.methodology-page *{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+.mp-token-guide{margin-top:48px;border-top:1px solid var(--mp-border);padding-top:32px;min-width:0}
+.mp-guide-intro{max-width:70ch;margin-bottom:22px}
+.mp-guide-intro h2{font-size:clamp(24px,3vw,30px);font-weight:550;line-height:1.2;letter-spacing:-.025em;text-wrap:balance;scroll-margin-top:90px}
+.mp-guide-intro p{color:var(--mp-muted);font-size:15px;line-height:1.7;margin-top:12px}
+.mp-guide-questions details{border-top:1px solid var(--mp-border);scroll-margin-top:90px}
+.mp-guide-questions details:last-child{border-bottom:1px solid var(--mp-border)}
+.mp-guide-questions summary{min-height:64px;display:flex;align-items:center;justify-content:space-between;gap:20px;padding:18px 0;list-style:none;cursor:pointer;font-size:16px;font-weight:550;line-height:1.5}
+.mp-guide-questions summary::-webkit-details-marker{display:none}
+.mp-guide-questions summary svg{color:var(--mp-muted);transition:transform .18s ease-out}
+.mp-guide-questions details[open] summary svg{transform:rotate(180deg)}
+.mp-guide-questions details>p{max-width:72ch;color:var(--mp-muted);font-size:15px;line-height:1.8;padding:0 32px 24px 0;overflow-wrap:anywhere}
+.mp-guide-actions{display:flex;align-items:center;flex-wrap:wrap;gap:12px 32px;margin-top:22px}
+.mp-guide-actions a{min-height:44px;display:inline-flex;align-items:center;gap:12px;font-size:14px;text-decoration:underline;text-underline-offset:5px}
+.mp-guide-actions a:hover{color:#fff}
+@media(max-width:760px){.mp-token-guide{margin-top:32px;padding-top:24px}.mp-guide-questions summary{font-size:15px;gap:14px}.mp-guide-questions details>p{padding-right:0}.mp-guide-actions{align-items:flex-start;flex-direction:column;gap:4px}}

@@ -24,7 +24,7 @@ export function structuredSiteData(env:SeoEnvironment=process.env):Record<string
  const {origin}=seoSettings(env),description=pageSeoForPath('/').description;
  return {'@context':'https://schema.org','@graph':[
   {'@type':'WebSite','@id':`${origin}/#website`,url:`${origin}/`,name:SITE_NAME,alternateName:'TraceForge',description,inLanguage:'en'},
-  {'@type':'WebApplication','@id':`${origin}/#application`,url:`${origin}/`,name:SITE_NAME,description,applicationCategory:'FinanceApplication',operatingSystem:'Web browser',isPartOf:{'@id':`${origin}/#website`}},
+  {'@type':'WebApplication','@id':`${origin}/#application`,url:`${origin}/`,name:SITE_NAME,description,applicationCategory:'FinanceApplication',operatingSystem:'Web browser',featureList:['Token holder analysis and supply-share maps','Wallet funding and transaction connections','Creator, Owner, Dev and Sniper evidence flags','Token contract and authority checks','Source-linked token assessments','Recent token and DEX pool discovery'],isPartOf:{'@id':`${origin}/#website`}},
  ]};
 }
 export function jsonLd(value:unknown):string{return JSON.stringify(value).replace(/</g,'\\u003c');}

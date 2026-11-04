@@ -27,6 +27,10 @@ Primary guidance: [Google's technical requirements](https://developers.google.co
 
 ## Ongoing work that helps users and search
 
+The search-content pass targets real user tasks: crypto token analysis, token holder analysis, wallet tracing, contract checks, and Creator/Owner/Dev/Sniper flags. Home, Discovery and Methodology each have a distinct descriptive title and summary. The Methodology page includes six native expandable answers with all answer text in the initial HTML and normal links back to scanning and discovery. Its content names the five supported networks and explains evidence scope. The WebApplication schema lists actual app features; it does not invent reviews, FAQ rich-result eligibility or a site-search API.
+
+There is no meta-keywords tag: [Google does not use it for web ranking](https://developers.google.com/search/blog/2009/09/google-does-not-use-keywords-meta-tag). Search phrases belong in accurate, useful content, descriptive headings, links and summaries. The product remains TraceForge Engine at traceengine.tech; the domain does not establish a separate invented brand. A request to index is not a promise of immediate inclusion or ranking for a competitive name such as "traceengine". [Crawling can take days to weeks](https://developers.google.com/search/docs/crawling-indexing/ask-google-to-recrawl); use URL Inspection to see the actual indexing status.
+
 - Keep methodology accurate and publish useful explanations of holder concentration, Creator/Owner/Dev/Sniper flags, evidence timestamps and coverage. Write for users instead of repeating keywords.
 - Add real About/contact/policy information when available. Do not invent a team, audit, endorsement, performance result or safety guarantee.
 - Keep headings, navigation, URLs and page-specific titles consistent. Use the canonical hostname when sharing public links.

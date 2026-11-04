@@ -19,7 +19,7 @@ const NODES:NodeDefinition[]=[
  {key:'contract',title:'Contract',description:'Reported contract findings, creator and current authority. Missing checks stay unassessed.',matches:name=>name==='public-data'||name==='solana-snapshot'||name==='control-probes'},
  {key:'assessment',title:'Assessment',description:'The findings behind the assessment: contract controls, holder concentration and wallet connections.',matches:name=>name==='assessment'},
 ];
-const PURPOSE:Record<NodeKey,string>={market:'Liquidity and trading activity',holders:'Who holds the supply',funding:'Where wallets got funds',trades:'Early buys and sell patterns',contract:'Creator and control checks',assessment:'What the evidence means'};
+const PURPOSE:Record<NodeKey,string>={market:'Liquidity and trading activity',holders:'Token holders and supply shares',funding:'Wallet funding and connections',trades:'Early buys and sell patterns',contract:'Creator, owner and contract checks',assessment:'Clear, Watch or High risk'};
 const stageTitle=(stage:string)=>(({
  'resolve':'Identifying token network','provider-report':'Reading provider analysis','clock-check':'Checking source timestamps','public-data':'Reading market and contract data',
  'public-history':'Tracing public wallet history','history':'Loading indexed history','market-context':'Refreshing market data',
@@ -96,7 +96,7 @@ export default function EngineConsole({report,stages,loading,paused,onExample,on
  const recent=received.slice(-2),lastReceipt=received.at(-1);
  const pulseKey=lastReceipt?`${lastReceipt.time}:${lastReceipt.event.stage}:${lastReceipt.event.status}:${received.length}`:'';
  return <section ref={root} className={`engine-console source-console${compact?' source-compact':''}`} data-moving={moving} data-scanning={loading} aria-labelledby={`${id}-title`}>
-  <header className="source-console-header">{compact?<h2 id={`${id}-title`}>Investigation activity</h2>:<h1 id={`${id}-title`}>Investigate a token.</h1>}<p>Understand the wallets, the connections and the risks.</p></header>
+  <header className="source-console-header">{compact?<h2 id={`${id}-title`}>Investigation activity</h2>:<h1 id={`${id}-title`}>Investigate a token.</h1>}<p>Crypto token analysis, from holders to contract risks.</p></header>
   <div className="source-engine-grid">
    <TracePaths highlight={highlight} running={running} geometry={flow}/>
    <div className={`source-entry ${loading?'is-scanning':''}`}>

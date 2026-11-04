@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUpRight, Check, ChevronDown, Database, Fingerprint, GitBranch, ListFilter, LockKeyhole, Network, Search, ShieldCheck, Timer, Users } from 'lucide-react';
 import './methodology-page.css';
 import {decisionLabels} from '@/lib/assessment-presentation';
+import TokenAnalysisGuide from './token-analysis-guide';
 
 const chapters = [
   { id: 'sources', name: 'Sources & search', icon: Database, title: 'Where the report comes from', lead: 'A focused investigation, with a source behind every finding.', paragraphs: [
@@ -103,7 +104,7 @@ export function MethodologyPage({ paused }: { paused: boolean }) {
   return <section className="methodology-page" aria-labelledby={`${uid}-title`} data-moving={moving}>
     <header className="mp-heading">
       <h1 id={`${uid}-title`}>Evidence before certainty.</h1>
-      <p>Follow the inputs. Inspect the reasoning. Know what remains unverified.</p>
+      <p>How TraceForge Engine analyzes token holders, wallet connections and contract risks.</p>
     </header>
 
     <div className="mp-flow" ref={diagram}>
@@ -146,6 +147,7 @@ export function MethodologyPage({ paused }: { paused: boolean }) {
       </div>
     </div>
 
+    <TokenAnalysisGuide/>
     <section className="mp-provider-links" aria-labelledby={`${uid}-providers`}><div><h2 id={`${uid}-providers`}>Read the original documentation.</h2><p>These links describe the services. The report lists the providers used for a particular scan.</p></div><div>{providers.map(([name, href]) => <a key={href} href={href} target="_blank" rel="noreferrer">{name}<ArrowUpRight size={16}/><span className="sr-only"> (opens in a new tab)</span></a>)}</div></section>
   </section>;
 }

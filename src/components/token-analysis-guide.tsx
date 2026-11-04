@@ -1,0 +1,18 @@
+import {ArrowUpRight,ChevronDown} from 'lucide-react';
+
+const questions=[
+ {id:'crypto-token-analysis',question:'What is crypto token analysis?',answer:'Crypto token analysis brings together market liquidity, token holders, contract controls and observed wallet activity. TraceForge Engine connects these public records in one investigation, with the source and capture time behind each finding. It helps you inspect the evidence rather than relying on a token name or a single number.'},
+ {id:'token-holder-analysis',question:'How do token holder analysis and wallet tracing work?',answer:'The holder table shows recorded balances and supply shares. The bubble map uses the same percentage basis as the table; the report identifies whether that basis is total supply or snapshot float after measured infrastructure is excluded. Wallet tracing looks for funding and transfers that connect addresses. A connection is evidence of activity between wallets, not proof that one person owns them.'},
+ {id:'creator-dev-sniper-flags',question:'What do Creator, Owner, Dev and Sniper flags mean?',answer:'Creator identifies the supported token creation or deployment actor. Owner identifies a wallet with current contract controls. Dev marks supported creator-linked activity; it is not a verified personal identity. Sniper marks a buyer within 60 seconds of a verified trading start in the stated scope. A first-minute purchase does not prove automated trading, and a selected-pool interval does not establish a token-wide launch.'},
+ {id:'supported-token-networks',question:'Which networks can I check?',answer:'TraceForge supports token investigations on Solana, Ethereum, Base, BNB Chain and Robinhood Chain. Paste a token address into the scanner and use Auto detection or select its network. EVM addresses can exist on several chains, so select the intended chain when detection is ambiguous. Available records and checks differ by chain and provider.'},
+ {id:'token-risk-assessment',question:'What do Clear, Watch and High risk mean?',answer:'Clear means no stop rule was triggered by the evaluated evidence. Watch means the report needs attention because of observed warnings, unresolved checks or the calculated decision. High risk means the evaluated findings support the strongest warning. Open the assessment explanation and evidence to see why. The displayed percentages are calculated decision weights, not measured probabilities that a token is safe.'},
+ {id:'read-only-token-checker',question:'Does the token checker need my wallet or private key?',answer:'No. TraceForge uses public blockchain, market and security records without connecting your wallet, requesting a signature or moving funds. The scanned token address is sent to the providers identified in the report. Your watchlist stays in your browser, and you can export a report to preserve its evidence and timestamps.'},
+] as const;
+
+export default function TokenAnalysisGuide(){
+ return <section className="mp-token-guide" aria-labelledby="token-analysis-guide">
+  <div className="mp-guide-intro"><h2 id="token-analysis-guide">Token analysis, explained.</h2><p>Understand token holders, wallet connections and contract checks before reading an assessment.</p></div>
+  <div className="mp-guide-questions">{questions.map((item,index)=><details id={item.id} key={item.id} open={index===0}><summary>{item.question}<ChevronDown size={18} aria-hidden="true"/></summary><p>{item.answer}</p></details>)}</div>
+  <nav className="mp-guide-actions" aria-label="Continue token research"><a href="/">Start a token investigation<ArrowUpRight size={16}/></a><a href="/discover">Discover recent tokens<ArrowUpRight size={16}/></a></nav>
+ </section>;
+}
