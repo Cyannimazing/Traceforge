@@ -13,6 +13,8 @@ import { gsap } from 'gsap';
 import {createPortal} from 'react-dom';
 import HolderWorkspace from './holder-workspace';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import {usePathname} from 'next/navigation';
+import {pageSeoForPath,robotsContent} from '@/lib/site-content';
 import { ArrowLeft, ArrowRight, ArrowUpRight, Bookmark, BookOpen, Check, Copy, Download, ExternalLink, Globe2, Link2, LoaderCircle, RefreshCw, ScanLine, Search, ShieldCheck, TriangleAlert, X } from 'lucide-react';
 import { CHAINS, short, validateToken, sameToken, formatMoney, type Chain } from '@/lib/analysis';
 import { mergeReportRefresh } from '@/lib/report-refresh';
@@ -33,6 +35,7 @@ type Profile=DiscoveryProfile;
 type Stage=Extract<ScanEvent,{type:'stage'}>;
 const WETH='0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
 export default function Workbench({initialTarget,initialView='scanner'}:{initialTarget?:TokenRouteTarget;initialView?:WorkspaceView}){
+ const pathname=usePathname();
  const [shareBasis,setShareBasis]=useState<MapShareBasis>('float');
  const [autoChain,setAutoChain]=useState(!initialTarget);
  const [discoveryMeta,setDiscoveryMeta]=useState<DiscoveryMeta>({});
@@ -130,9 +133,13 @@ export default function Workbench({initialTarget,initialView='scanner'}:{initial
  function download(){if(!report)return;const url=URL.createObjectURL(new Blob([JSON.stringify(report,null,2)],{type:'application/json'}));const link=document.createElement('a');link.href=url;link.download=`traceforge-${report.fixture?'example-':''}${report.chain}-${report.token}.json`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
  const select=useCallback((value:Selection)=>{if(!evidenceOpen)evidenceReturnFocus.current=document.activeElement as HTMLElement|SVGElement;setSelection(value);setEvidenceOpen(true);},[evidenceOpen]);
  useEffect(()=>{
-  const titles:Record<WorkspaceView,string>={scanner:'TraceForge Engine - Token investigation',discover:'Discovery - TraceForge Engine',watchlist:'Watchlist - TraceForge Engine',methodology:'Methodology - TraceForge Engine'};
-  document.title=view==='scanner'&&report?`${report.symbol.slice(0,40)} - TraceForge report`:titles[view];
- },[view,report?.symbol,report?.token]);
+  const page=pageSeoForPath(pathname,report??undefined);document.title=page.title;
+  const setMeta=(selector:string,value:string)=>document.querySelector<HTMLMetaElement>(selector)?.setAttribute('content',value);
+  setMeta('meta[name="description"]',page.description);setMeta('meta[property="og:title"]',page.title);setMeta('meta[property="og:description"]',page.description);setMeta('meta[name="twitter:title"]',page.title);setMeta('meta[name="twitter:description"]',page.description);
+  setMeta('meta[name="robots"]',robotsContent(document.documentElement.dataset.searchIndexable==='true'&&page.indexable));
+  const canonical=document.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+  if(canonical){const url=new URL(page.path,new URL(canonical.href).origin).href;canonical.href=url;setMeta('meta[property="og:url"]',url);}
+ },[pathname,report?.chain,report?.symbol,report?.token]);
  const paused=reduced||!visible;
  const assessment=report?getDisplayAssessment(report):null;
  useEffect(()=>{if(!reportVisible||!reportFocus.current)return;const target=reportFocus.current==='refresh'?'.rh-refresh':'.rh-name h1';reportFocus.current=null;requestAnimationFrame(()=>document.querySelector<HTMLElement>(target)?.focus({preventScroll:true}));},[reportVisible,scanRun]);

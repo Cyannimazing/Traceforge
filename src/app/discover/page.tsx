@@ -1,4 +1,4 @@
-import type {Metadata} from 'next';
+import {createPageMetadata} from '@/lib/seo';
 import Workbench from '@/components/workbench';
-export const metadata:Metadata={title:'Discovery - TraceForge Engine'};
+export const metadata=createPageMetadata('/discover');
 export default function DiscoveryPage(){return <Workbench initialView="discover"/>;}

@@ -44,6 +44,12 @@ The primary rating uses six factors weighted 30/20/15/15/10/10, with five inferr
 
 Swarm's published six factor weights and hard/soft rules are documented in [the reconstruction audit](docs/swarm-verdict-reconstruction.md). The public frontend does not expose all factor-to-point curves or the private judge's complete normalization model. Matching a token's displayed score alone does not validate a model. This repository does not claim scoring parity or superior predictive accuracy. See the [matched-token validation](docs/swarm-analysis-validation.md) for verified differences.
 
+## Search visibility
+
+The canonical public site is `https://www.traceengine.tech`. Production pages include page-specific titles/descriptions, canonical URLs, Open Graph/Twitter previews, a generated 1200x630 social card and website/application JSON-LD. `/sitemap.xml` lists the home, discovery and methodology pages; `/robots.txt` allows public page crawling and excludes API routes. Watchlists and client-loaded token reports use noindex/follow. Preview and development environments are not indexable. These crawler directives are not access controls.
+
+Set `SITE_URL` only when changing the public origin. For Google Search Console HTML-tag verification, set `GOOGLE_SITE_VERIFICATION` to the supplied content value in production environment settings and redeploy. No Google API key is needed. See [the SEO launch guide](docs/seo-launch.md) for domain verification, sitemap submission and ongoing checks. Publishing technical SEO does not itself guarantee Google indexing or rankings.
+
 ## Verification
 
 ```sh

@@ -76,6 +76,7 @@ export default function DiscoveryRadar({profiles,loading,error,meta,paused,onRef
  const select=(id:string)=>setSelected(id);
 
  const stale=meta.cache?.status==='stale'||!!error;
+ const Heading=compact?'h2':'h1';
 
  const seconds=meta.fetchedAt&&now?Math.max(0,Math.floor((now-Date.parse(meta.fetchedAt))/1000)):null;
 
@@ -84,7 +85,7 @@ export default function DiscoveryRadar({profiles,loading,error,meta,paused,onRef
   <div className="dr-console">
   {initialLoading&&<span className="sr-only" role="status">Loading discovery profiles and market snapshots.</span>}
 
-  <header className="dr-heading"><div><h2>Discovery<span className="dr-pulse"/></h2><p>Latest token profiles and pool listings. Select a token to investigate.</p></div>{compact?<button className="dr-open" onClick={onOpen}>Open radar<ArrowUpRight size={17}/></button>:<button className="dr-refresh" disabled={loading} onClick={onRefresh}><RefreshCw size={16} className={loading?'spin':''}/>{loading?'Fetching':'Refresh feed'}</button>}</header>
+  <header className="dr-heading"><div><Heading>Discovery<span className="dr-pulse"/></Heading><p>Latest token profiles and pool listings. Select a token to investigate.</p></div>{compact?<button className="dr-open" onClick={onOpen}>Open radar<ArrowUpRight size={17}/></button>:<button className="dr-refresh" disabled={loading} onClick={onRefresh}><RefreshCw size={16} className={loading?'spin':''}/>{loading?'Fetching':'Refresh feed'}</button>}</header>
 
   <div className="dr-status"><span role="status"><i className={stale?'is-stale':''}/>{loading?'Fetching public profiles':stale?'Last available snapshot':'Auto-refresh every 30s'}</span><span>Fetched {time(meta.fetchedAt)}{seconds!=null&&`  -  ${seconds}s ago`}</span></div>
 
