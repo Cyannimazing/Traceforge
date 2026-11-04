@@ -1,4 +1,7 @@
 .forge-mark{flex:none;display:block}
+.forge-logo{display:block;flex:none;width:190px;line-height:0}.forge-logo img{display:block;width:100%;height:auto}
+@media(max-width:900px){.forge-logo{width:170px}}
+@media(max-width:480px){.forge-logo{width:36px;height:36px}.forge-logo img{width:36px;height:36px;object-fit:contain}}
 
 
 

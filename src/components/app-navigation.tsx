@@ -3,7 +3,8 @@
 import {useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties} from 'react';
 import {ArrowUpRight, BookOpen, Bookmark, Radar, ScanLine, Search} from 'lucide-react';
 import {workspacePath, type WorkspaceView} from '../lib/token-route';
-import {ForgeMark} from './brand';
+import {ForgeLogo} from './brand';
+import OfficialXLink from './official-x-link';
 import './app-navigation.css';
 
 const routes = [
@@ -52,7 +53,7 @@ export default function AppNavigation({view,watchlistCount,paused,onNavigate,onH
  return <header ref={root} className="topbar app-navigation" data-open={open} data-animate={!paused&&inView} onBlur={event=>{if(event.relatedTarget&&!event.currentTarget.contains(event.relatedTarget as Node))setOpen(false);}}>
   <div className="an-inner">
    <a className="an-brand" href="/" aria-label="TraceForge home" onClick={event=>{if(event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;event.preventDefault();setOpen(false);onHome();}}>
-    <span className="an-brand-mark"><ForgeMark size={30}/></span><strong>TRACEFORGE</strong>
+    <ForgeLogo/>
    </a>
    <nav ref={navigation} id={navId} className="an-routes" aria-label="Main navigation" style={style}>
     <span className="an-route-marker" aria-hidden="true"/>
@@ -61,6 +62,7 @@ export default function AppNavigation({view,watchlistCount,paused,onNavigate,onH
     </a>)}
    </nav>
    <div className="an-actions">
+    <OfficialXLink className="an-social"/>
     <button className="an-search" type="button" aria-label="Focus token search" aria-keyshortcuts="Control+k Meta+k" onClick={()=>{setOpen(false);onSearch();}}><Search size={17} aria-hidden="true"/><span>Token search</span><kbd>Ctrl K</kbd></button>
     <button ref={toggle} className="an-toggle" type="button" aria-expanded={open} aria-controls={navId} aria-label={open?'Close navigation':'Open navigation'} onClick={()=>setOpen(value=>!value)}><span>{open?'Close':'Menu'}</span><span className="an-toggle-lines" aria-hidden="true"><i/><i/></span></button>
    </div>
