@@ -32,6 +32,9 @@ const robinhoodRpc=process.env.ROBINHOOD_RPC_URL||'https://rpc.mainnet.chain.rob
 const publicHistory=createPublicHistory();
 const solanaHistory=createAlchemySolanaHistory();
 const evmHistory=createAlchemyEvmHistory({rpcUrls});
+// Reuse the exact authorized configured endpoint; never derive or forward its key.
+const robinhoodAlchemyUrl=(()=>{try{const value=process.env.ROBINHOOD_RPC_URL;if(!value)return undefined;const url=new URL(value);return url.protocol==='https:'&&(url.hostname==='alchemy.com'||url.hostname.endsWith('.alchemy.com'))?value:undefined;}catch{return undefined;}})();
+const robinhoodHistory=createAlchemyEvmHistory({rpcUrls:{robinhood:robinhoodAlchemyUrl},fundingWalletLimit:15,maxRequests:72,deadlineMs:15000,pagesPerQuery:2,fundingTransfersPerWallet:1});
 async function extendedEvmHistory(chain:'ethereum'|'base',token:string,options:PublicHistoryOptions):Promise<PublicHistoryResult>{
  const current=await evmHistory(chain,token,options);
  try{
@@ -60,7 +63,9 @@ export const independentInvestigationService = createInvestigationService({
   poolReserves:createSolanaPoolReserves({rpcUrl:process.env.SOLANA_RPC_URL}),
   resolveClock:createEvidenceClock(),
   publicHistory:(chain,token,options)=>publicHistory(chain,token,{...options,skipFunding:chain==='robinhood'||(chain==='ethereum'||chain==='base')&&!!rpcUrls[chain]}),
-  historicalEvidence:(chain,token,options)=>chain==='solana'&&process.env.SOLANA_RPC_URL?extendedSolanaHistory(options):(chain==='ethereum'||chain==='base')&&rpcUrls[chain]?extendedEvmHistory(chain,token,options):Promise.resolve(undefined),
+  // This phase receives the final RPC/Pons holder snapshot. Earlier explorer
+  // metadata reads intentionally skip Robinhood funding to avoid stale seeds.
+  historicalEvidence:(chain,token,options)=>chain==='robinhood'?(robinhoodAlchemyUrl?robinhoodHistory(chain,token,options):publicHistory(chain,token,{...options,fundingOnly:true,skipFunding:false})):chain==='solana'&&process.env.SOLANA_RPC_URL?extendedSolanaHistory(options):(chain==='ethereum'||chain==='base')&&rpcUrls[chain]?extendedEvmHistory(chain,token,options):Promise.resolve(undefined),
   solanaPublic:createSolanaPublic({rpcUrl:process.env.SOLANA_RPC_URL}),
   poolLaunch:createPoolLaunch({rpcUrls:{ethereum:process.env.ETHEREUM_RPC_URL,base:process.env.BASE_RPC_URL}}),
   makeClient: (signal) => createBitqueryClient({token:process.env.BITQUERY_ACCESS_TOKEN || '',signal,maxRequests:18}),

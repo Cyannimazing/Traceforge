@@ -10,6 +10,34 @@ const at='2026-01-01T00:00:00Z';
 const trade={id:'event-1',attributes:{tx_hash:'hash',tx_from_address:buyer,block_timestamp:at,kind:'buy',from_token_address:token,to_token_address:funder,from_token_amount:'7',to_token_amount:'2'}};
 const report:Report={chain:'ethereum',token,name:'Test',symbol:'T',fetchedAt:at,market:{chainId:'ethereum',pairAddress:funder,baseToken:{address:token}},holders:[],holderCount:null,checks:[],sources:[]};
 
+test('funding-only Robinhood phase uses final supplied wallet addresses without metadata or holder requests',async()=>{
+ const urls:string[]=[],explicit='0x4444444444444444444444444444444444444444';
+ const read=createPublicHistory({fetcher:async input=>{const url=String(input);urls.push(url);return Response.json({items:url.includes('/internal-transactions')?[]:[{hash:'fund',status:'ok',timestamp:at,block_number:10,value:'1000000000000000001',from:{hash:funder},to:{hash:explicit}}],next_page_params:null});}});
+ const result=await read('robinhood',token,{report:{...report,chain:'robinhood',holders:[{address:buyer,share:1,contract:false,locked:null,tag:''}]},mode:'deep',limit:100,fundingOnly:true,walletAddresses:[explicit.toUpperCase().replace('0X','0x'),explicit,'invalid']});
+ assert.equal(urls.length,2);assert(urls.every(url=>url.includes(`/addresses/${explicit}/`)));assert.equal(result.holders,undefined);assert.equal(result.trades.length,0);assert.equal(result.transfers[0].amountRaw,'1000000000000000001');assert.equal(result.transfers[0].decimals,18);assert.match(result.transfers[0].source,/not independently receipt-verified/);
+});
+
+test('empty explorer holder page falls back to nonempty report holder snapshot for funding',async()=>{
+ const urls:string[]=[];const read=createPublicHistory({fetcher:async input=>{const url=String(input);urls.push(url);if(url.includes('/holders'))return Response.json({items:[],next_page_params:null});if(url.includes('/transactions')||url.includes('/internal-transactions'))return Response.json({items:[],next_page_params:null});return Response.json({type:'ERC-20',is_contract:true});}});
+ await read('robinhood',token,{report:{...report,chain:'robinhood',market:null,holders:[{address:buyer,share:1,contract:false,locked:null,tag:''}]},mode:'deep',limit:100});
+ assert(urls.some(url=>url.includes(`/addresses/${buyer}/transactions`)));
+});
+
+test('access denial stops funding fanout and remains explicit across the later funding phase',async()=>{
+ let requests=0;const read=createPublicHistory({fetcher:async()=>{requests++;return new Response('blocked',{status:403});}});
+ const holders=Array.from({length:10},(_,i)=>({address:'0x'+(i+10).toString(16).padStart(40,'0'),share:1,contract:false,locked:null,tag:''}));
+ const options={report:{...report,chain:'robinhood' as const,holders},mode:'deep' as const,limit:100,fundingOnly:true};
+ const result=await read('robinhood',token,options);assert.equal(requests,2);assert.equal(result.transfers.length,0);assert(result.sources.every(source=>source.status==='unavailable'));assert.match(result.reasons.join(' '),/403|access denied/);
+ await read('robinhood',token,options);assert.equal(requests,2);
+});
+
+test('funding-only holder refresh and explicit infrastructure never request wallet history',async()=>{
+ let requests=0;const read=createPublicHistory({fetcher:async()=>{requests++;throw Error('Unexpected request');}});
+ await read('robinhood',token,{report,mode:'holders',limit:100,fundingOnly:true});
+ await read('robinhood',token,{report:{...report,holders:[{address:buyer,share:1,contract:false,locked:null,tag:'pool'}]},walletAddresses:[buyer],mode:'deep',limit:100,fundingOnly:true});
+ assert.equal(requests,0);
+});
+
 test('Robinhood opaque pool IDs retrieve bounded trades while explorer failures remain explicit',async()=>{
  const poolId='0x'+'a'.repeat(64),urls:string[]=[];
  const read=createPublicHistory({now:()=>Date.parse(at),fetcher:async(input)=>{const url=String(input);urls.push(url);return url.includes('geckoterminal')?Response.json({data:[{...trade,attributes:{...trade.attributes,from_token_address:funder,to_token_address:token}}]}):new Response('',{status:403});}});

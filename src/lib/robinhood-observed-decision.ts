@@ -27,6 +27,16 @@ export function robinhoodObservedDecision(report:InvestigationReport,strict:Trus
  const fresh=(at:string|undefined)=>dated(at)&&Date.parse(at!)>=captured-600000;
  const source=(name:string)=>report.sources.some(s=>s.name===name&&s.status==='available'&&fresh(s.fetchedAt));
  if(!source(HOLDINGS)||!source(PONS)||!source('DEX Screener'))return null;
+ // A short fallback list is not a proven top-ranked cohort. Accept either
+ // the reconciled full inventory or the adapter's ledger-ranked, independently
+ // balance-verified raw prefix. Unread lower ranks are not zero balances.
+ const inventory=report.holderEnumeration;
+ if(inventory?.kind!=='pons-creation-ledger'||!Number.isSafeInteger(inventory.recordedAccounts)||inventory.recordedAccounts<=0||inventory.recordedAccounts>10000||!Number.isSafeInteger(inventory.verifiedAccounts)||inventory.verifiedAccounts<=0||inventory.verifiedAccounts>inventory.recordedAccounts||report.holderCount!==inventory.recordedAccounts||report.holders.length!==inventory.verifiedAccounts)return null;
+ const completeInventory=inventory.complete===true,ranked=inventory.ranked;
+ if(completeInventory){if(inventory.verifiedAccounts!==inventory.recordedAccounts)return null;}
+ else if(inventory.complete!==false||ranked?.verified!==true||ranked.rawLimit!==50||!Array.isArray(ranked.addresses)||ranked.addresses.length!==Math.min(50,inventory.recordedAccounts)||ranked.addresses.some(a=>typeof a!=='string'||!/^0x[0-9a-f]{40}$/i.test(a))||new Set(ranked.addresses.map(norm)).size!==ranked.addresses.length)return null;
+ const addresses=new Set<string>();
+ for(const h of report.holders){const a=norm(h.address);if(!/^0x[0-9a-f]{40}$/.test(a)||/^0x0{40}$/.test(a)||!positive(h.share)||h.share>100||addresses.has(a))return null;addresses.add(a);}
  const evidence=new Map(report.investigation.evidence.filter(e=>e.attribution!=='provider-reported'&&!!e.source.trim()&&dated(e.timestamp,e.kind==='holding'||e.kind==='label'?captured:historyClock)).map(e=>[e.id,e]));
  const returnedTrades=[...evidence.values()].filter(e=>e.kind==='trade'&&hash(e.transaction)&&norm(e.token||'')===norm(report.token)&&e.source.startsWith('GeckoTerminal public pool trades')&&source('GeckoTerminal trades')&&(positive(e.amount)||(raw(e.amountRaw)!==null&&raw(e.amountRaw)!>0n)));
  if(!returnedTrades.length)return null;
@@ -41,6 +51,7 @@ export function robinhoodObservedDecision(report:InvestigationReport,strict:Trus
  const creators=new Set(initiators.map(i=>norm(i.address)));if(creators.size!==1)return null;
  const supply=report.totalSupply;if(!positive(supply))return null;
  const scope=holderScope(report),cohort=topHolderCohort(report),graph=buildCurrentHolderGraph(report,{limit:10000});if(!cohort.holders.length||graph.truncated)return null;
+ if(!completeInventory&&(cohort.rawRanked.length!==ranked!.addresses.length||cohort.rawRanked.some((h,i)=>norm(h.address)!==norm(ranked!.addresses[i]))))return null;
  let decimals:number|undefined;const amounts=new Map<string,number>();
  function balance(address:string):number|null{
   const key=norm(address),e=evidence.get(`holding:evm:${key}`),n=raw(e?.amountRaw);
@@ -48,7 +59,12 @@ export function robinhoodObservedDecision(report:InvestigationReport,strict:Trus
   if(decimals!==undefined&&decimals!==e.decimals)return null;decimals=e.decimals;
   const amount=Number(n)/10**e.decimals!;return Number.isFinite(amount)&&amount>=0?amount:null;
  }
- for(const h of scope.allSnapshot){const amount=balance(h.address);if(amount===null||!positive(h.share)||Math.abs(amount/supply*100-h.share)>1e-6)return null;amounts.set(norm(h.address),amount);}
+ let inventoryRaw=0n;
+ for(const h of scope.allSnapshot){const amount=balance(h.address);if(!positive(amount)||!positive(h.share)||Math.abs(amount/supply*100-h.share)>1e-6)return null;amounts.set(norm(h.address),amount);inventoryRaw+=raw(evidence.get(`holding:evm:${norm(h.address)}`)?.amountRaw)!;}
+ // Recheck the serialized report against its attestation; deleted or changed
+ // rows must not retain eligibility. Number supply has only floating precision.
+ const reconciledSupply=Number(inventoryRaw)/10**decimals!;
+ if(amounts.size!==inventory.verifiedAccounts||!positive(reconciledSupply)||reconciledSupply/supply>1+1e-12||completeInventory&&Math.abs(reconciledSupply/supply-1)>1e-12)return null;
  // Direct zero is accepted only when explicitly read, never inferred from a
  // missing holder row. A nonzero creator outside the current snapshot conflicts.
  for(const address of creators){const amount=balance(address);if(amount===null||amount>0&&!amounts.has(address))return null;}
@@ -89,6 +105,7 @@ export function robinhoodObservedDecision(report:InvestigationReport,strict:Trus
  const security=context.guard.critical?null:strict.judgeInputs?.security??null,judge=decisionModel({score:{lower:scored.score,upper:scored.score},danger:hard.length>0,security,memoryHits:0,dumpImpact:{lower:impact,upper:impact},hard});
  return {score:scored.score,scoreBand:scored.decision,judge,factors,impact,largestShare:share(largest),scope:{holderCount:cohort.holders.length,readableFreshWallets:selected.length,unreadFreshWallets:unread+outside,activityProxy:{kind:'low-account-nonce',limit:cohort.activityCandidates.length,readable:selected.length,lowNonce:low,unread,outsideLimit:outside},topHolders:{rawLimit:cohort.rawLimit,rawCount:cohort.rawRanked.length,selectedCount:cohort.holders.length,infrastructureCount:cohort.infrastructure.length,contractCount:cohort.contracts.length,activityLimit:15,floatDenominator:denominator,allAnalyzedCount:scope.holders.length},notes:[
   'Conditional observed-scope point model of the returned sample. Strict evidence bounds remain separate; this score is not a safety probability or a complete audit.',
+  completeInventory?`All ${inventory.recordedAccounts} recorded positive holder balances reconcile at the current anchor.`:`The complete creation ledger identifies the raw top ${ranked!.addresses.length}; every address in that prefix has an independently verified current balance. ${inventory.verifiedAccounts} of ${inventory.recordedAccounts} recorded positive accounts have verified balances. Lower unread ranks remain unknown; this is not a fully checked holder inventory.`,
   `${returnedTrades.length} source-attributed selected-pool trade observations establish a returned activity subset, not complete launch history. No recorded insider/sniper match does not prove absence.`,
   'Low account nonce is not verified lifetime-fresh status; EIP-7702 authorization increments are not transactions sent by the account. Unknown wallets are excluded from that proxy, not assigned favorable counts.',
   'The USD-derived balanced constant-product pool is counterfactual for V4: concentrated ranges, hooks, token taxes, fees, routing and execution are not modeled.',

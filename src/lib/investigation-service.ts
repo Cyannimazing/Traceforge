@@ -19,6 +19,7 @@ import {FOUR_MEME_MANAGER,isBscCustodyOnly,type BscHolderFallbackResult} from '.
 import type {EvmReserveChain,EvmPoolReserveResult} from './evm-pool-reserves';
 import {EVM_HOLDER_SOURCE,type EvmHolderResult,type EvmHolderOptions} from './evm-holder-fallback';
 import {PONS_FACTORY,PONS_DEPLOYER,type PonsLaunchRecordResult,type PonsLaunchOptions} from './pons-launch-record';
+import {qualifiedEvmEoas} from './qualified-evm-eoa';
 
 export type ScanOptions = { mode?: 'deep' | 'market' | 'holders'; expanded?: boolean; fresh?: boolean; signal?: AbortSignal; onEvent?: (event: ScanEvent) => void };
 type Dependencies = { evmPoolReserves?:(chain:EvmReserveChain,pool:string,token:string,options:{holders?:string[];signal?:AbortSignal})=>Promise<EvmPoolReserveResult>; bscHolders?:(report:Report,options:{signal?:AbortSignal;history?:boolean;candidateAddresses?:string[]})=>Promise<BscHolderFallbackResult>; enrichSnapshot?:(report:Report,options:SnapshotEnrichmentOptions)=>Promise<SnapshotEnrichment>; publicScan: (chain: Chain, token: string, options: {mode?: 'deep' | 'market' | 'holders'; signal?: AbortSignal}) => Promise<Report>; makeClient: (signal?: AbortSignal) => BitqueryClient; publicHistory?: (chain: Chain, token: string, options: PublicHistoryOptions) => Promise<PublicHistoryResult>; historicalEvidence?: (chain:Chain,token:string,options:PublicHistoryOptions)=>Promise<PublicHistoryResult|undefined>; solanaPublic?: (token:string,options:{signal?:AbortSignal})=>Promise<SolanaPublicResult>; poolLaunch?:(chain:Chain,token:string,pool:string,options:{signal?:AbortSignal;validationTime?:number;creationTimeHint?:number})=>Promise<PoolLaunchResult>; poolReserves?:(pool:string,token:string,options:{signal?:AbortSignal})=>Promise<SolanaPoolReserveResult>; resolveClock?:(options:{signal?:AbortSignal})=>Promise<EvidenceClock>; now?: () => number };
@@ -34,7 +35,12 @@ const cacheLifetime=(report:InvestigationReport)=>{
   // unresolved when this snapshot explicitly documents failed candidate work.
   // Read the current holder source, not old history reasons carried by a merge.
   const incompleteCustody=isBscCustodyOnly(report)&&report.holders.every(holder=>Number.isFinite(holder.share)&&holder.share>0&&holder.share<100-1e-8)&&holderSources.some(source=>source.name==='BSC RPC finalized holder balances'&&source.status==='available'&&(/Recent Transfer logs were unavailable/i.test(source.detail)||/\b[1-9]\d* (?:reads unavailable|candidates outside the 100-address bound)\b/i.test(source.detail)||/Post-history balance verification[^.]*was unavailable/i.test(source.detail)));
-  return emptyFailure||incompleteCustody?30_000:10*60_000;
+  // Positive provider fallback rows do not mean the independent holder read
+  // succeeded. Pons launches also remain degraded until their qualified current
+  // inventory is complete, regardless of how many fallback balances were read.
+  const evmHolderFailure=holderSources.some(source=>source.name===EVM_HOLDER_SOURCE&&source.status==='unavailable');
+  const incompletePons=report.chain==='robinhood'&&report.sources.some(source=>source.name==='Pons factory launch record'&&source.status==='available')&&report.holderEnumeration?.complete!==true;
+  return emptyFailure||incompleteCustody||evmHolderFailure||incompletePons?30_000:10*60_000;
 };
 
 export function createInvestigationService(deps: Dependencies & HolderDependencies & {persistentCache?:PersistentReportCache}) {
@@ -161,9 +167,15 @@ export function createInvestigationService(deps: Dependencies & HolderDependenci
           const snapshot=chain==='solana'?await solanaTask:undefined;
           options.signal?.throwIfAborted();
           const report=snapshot?.holders?{...publicReport,holders:snapshot.holders.flatMap(h=>h.share===null?[]:[{address:h.address,share:h.share,contract:null,locked:null,tag:''}])}:publicReport;
+          // Funding starts only after the eventual holder snapshot is assembled.
+          // Flags are findings, never an eligibility requirement. Omit known
+          // custody/burn accounts before selecting a bounded top-wallet trace.
+          const excluded=new Set(input.labels.filter(label=>['pool','exchange','bridge','burn'].includes(label.category)).map(label=>label.address.toLowerCase()));
+          excluded.add('0x'+'0'.repeat(40));excluded.add('0x000000000000000000000000000000000000dead');
+          const robinhoodWallets=chain==='robinhood'?[...new Map(report.holders.filter(holder=>!validateToken(chain,holder.address)&&Number.isFinite(holder.share)&&holder.share>0&&!excluded.has(holder.address.toLowerCase())).sort((a,b)=>b.share-a.share||a.address.toLowerCase().localeCompare(b.address.toLowerCase())).map(holder=>[holder.address.toLowerCase(),holder.address.toLowerCase()])).values()].slice(0,15):undefined;
           stage('rpc-history','running','Reading historical transactions from configured RPC sources.');
           try{
-            const result=await deps.historicalEvidence!(chain,token,{report,mode:'deep',limit,signal:options.signal,walletAddresses:snapshot?.holders?.map(holder=>holder.address)});
+            const result=await deps.historicalEvidence!(chain,token,{report,mode:'deep',limit,signal:options.signal,walletAddresses:robinhoodWallets??snapshot?.holders?.map(holder=>holder.address)});
             if(result)stage('rpc-history',result.sources.some(s=>s.status==='available')?'complete':'unavailable',`${result.trades.length} decoded trade records and ${result.transfers.length} transfer records returned with transaction references.`);
             return result;
           }catch{options.signal?.throwIfAborted();stage('rpc-history','unavailable','Historical RPC data could not be completed. Other evidence remains available.');return undefined;}
@@ -273,7 +285,7 @@ export function createInvestigationService(deps: Dependencies & HolderDependenci
           stage('holder-rpc','running',`Verifying ${chain==='robinhood'?'Robinhood safe':chain==='base'?'Base safe':'Ethereum finalized'} candidate balances at one block.`);
           const candidateAddresses=[...new Set([...input.holders.map(h=>h.address),...(prior?.report.holders||[]).map(h=>h.address),...input.trades.map(t=>t.wallet),...input.transfers.filter(t=>!t.native&&t.token.toLowerCase()===token.toLowerCase()).flatMap(t=>[t.from,t.to])])];
           try{evmSnapshot=await deps.evmHolders({...publicReport,market:publicReport.market??prior?.report.market??null},{signal:options.signal,candidateAddresses,ponsSnapshot:ponsVerified?ponsSnapshot:undefined,priorityCandidateAddresses:ponsVerified?[ponsSnapshot!.launcher,ponsSnapshot!.creatorFeeRecipient,ponsSnapshot!.curve]:[]});}catch{options.signal?.throwIfAborted();}
-          if(evmSnapshot){const provenCreators=evmSnapshot.identities.filter(i=>i.role==='creator'&&i.transaction);if(provenCreators.length){input.identities=[...provenCreators,...input.identities.filter(i=>!provenCreators.some(p=>p.role===i.role&&p.address.toLowerCase()===i.address.toLowerCase()))];publicReport={...publicReport,identities:input.identities};}sourceTimes.push(...evmSnapshot.sources);input.reasons.push(...evmSnapshot.reasons);input.labels.push(...evmSnapshot.labels);input.truncated=true;
+          if(evmSnapshot){const provenCreators=evmSnapshot.identities.filter(i=>i.role==='creator'&&i.transaction);if(provenCreators.length){input.identities=[...provenCreators,...input.identities.filter(i=>!provenCreators.some(p=>p.role===i.role&&p.address.toLowerCase()===i.address.toLowerCase()))];publicReport={...publicReport,identities:input.identities};}sourceTimes.push(...evmSnapshot.sources);input.reasons.push(...evmSnapshot.reasons);input.labels.push(...evmSnapshot.labels);input.transfers.push(...evmSnapshot.transfers);input.truncated=true;
             if(evmSnapshot.snapshot&&evmSnapshot.holders){const knownInfrastructure=new Map(evmSnapshot.labels.filter(l=>['pool','burn','exchange','bridge'].includes(l.category)).map(l=>[l.address.toLowerCase(),l.category]));if(selectedPool)knownInfrastructure.set(selectedPool.toLowerCase(),'pool');input.holders=evmSnapshot.holders;publicReport={...publicReport,holderCount:evmSnapshot.holderCount??null,totalSupply:evmSnapshot.totalSupply??publicReport.totalSupply,holders:evmSnapshot.holders.flatMap(h=>h.share===null?[]:[{address:h.address,share:h.share,contract:knownInfrastructure.get(h.address.toLowerCase())==='pool'?true:null,locked:null,tag:knownInfrastructure.get(h.address.toLowerCase())||''}])};}
           }
           // This bound applies only to already-verified current balances. The
@@ -338,7 +350,37 @@ export function createInvestigationService(deps: Dependencies & HolderDependenci
         }
         if(input.truncated)input.reasons.push('One or more row or wallet caps were reached. Expand scope where available; results are not exhaustive.');
         if(!input.identities.length)input.reasons.push('Creator and current authority identities were not returned. They are not inferred from the oldest holder or first trader.');
+        // This task is already running alongside history; waiting here adds no
+        // RPC calls. Account type must be qualified before funding inference.
+        const enrichment=await enrichmentTask;
+        options.signal?.throwIfAborted();
+        const activityProof=enrichment?.walletActivity;
+        const activityProofSource=activityProof?{name:activityProof.source,status:activityProof.wallets.some(w=>w.count!==null)?'available' as const:'unavailable' as const,fetchedAt:activityProof.observedAt,detail:'Bounded wallet activity predicate. See chain-specific count semantics and unknown histories.'}:undefined;
+        const eoas=qualifiedEvmEoas(chain==='solana'?undefined:activityProof,activityProofSource?[activityProofSource]:[],captured);
+        const providerContractSources=new Set(['GoPlus Security','Blockscout address metadata']);
+        const providerContracts=input.labels.filter(label=>label.category==='contract'&&providerContractSources.has(label.source)&&eoas.has(label.address.toLowerCase()));
+        input.labels=input.labels.filter(label=>!providerContracts.includes(label));
         const investigation = analyzeInvestigation(input);
+        for(const label of providerContracts){
+          const address=label.address.toLowerCase(),baseId=`label:${address}:contract`,independent=investigation.evidence.some(e=>e.id===baseId&&!providerContractSources.has(e.source));
+          const id=independent?`provider-contract:${address}:${label.source}`:baseId;
+          investigation.evidence.push({id,kind:'label',to:address,source:label.source,timestamp:label.timestamp,attribution:'provider-reported',description:label.label});
+          const wallet=investigation.wallets.find(w=>w.address===address);if(wallet)wallet.evidenceIds.push(id);
+        }
+        const applyEoaQualification=(inv:InvestigationReport['investigation'])=>{
+          for(const [address,proof] of eoas){
+            const wallet=inv.wallets.find(w=>w.address.toLowerCase()===address);if(!wallet)continue;
+            const baseId=`label:${address}:contract`,flags=inv.evidence.filter(e=>e.kind==='label'&&providerContractSources.has(e.source)&&(e.id===baseId||e.id.startsWith(`provider-contract:${address}:`)));
+            if(!flags.length)continue;
+            const independent=inv.evidence.some(e=>e.id===baseId&&!providerContractSources.has(e.source));
+            if(!independent){wallet.categories=wallet.categories.filter(category=>category!=='contract');if(!wallet.categories.length)wallet.categories=['unclassified'];if(flags.some(flag=>flag.description===wallet.label))delete wallet.label;}
+            for(const flag of flags)flag.attribution='provider-reported';
+            const id=`code-kind:evm:${address}:${proof.blockRef}`;
+            if(!inv.evidence.some(e=>e.id===id))inv.evidence.push({id,kind:'label',to:address,source:'EVM RPC wallet activity',timestamp:proof.observedAt,description:`Canonical ${proof.kind==='eoa'?'empty-code EOA':'EIP-7702 delegated EOA'} code ${proof.code} at rechecked finalized anchor ${proof.blockRef}. The provider contract flag remains an attributed assertion; it does not exclude this EOA from funding inference. Account type does not establish beneficial ownership or lifetime activity.`});
+            if(!wallet.evidenceIds.includes(id))wallet.evidenceIds.push(id);
+          }
+        };
+        applyEoaQualification(investigation);
         if(bscSnapshot?.snapshot){
           const snapshot=bscSnapshot.snapshot,source=publicReport.sources.find(s=>s.name==='BSC RPC finalized holder balances');
           for(const balance of snapshot.balances){
@@ -382,6 +424,9 @@ export function createInvestigationService(deps: Dependencies & HolderDependenci
         if(mode==='deep'&&prior?.report.sources.some(s=>s.status==='available')&&!result.sources.some(s=>s.status==='available'))throw Error('Providers are unavailable; the previous report is preserved.');
         if(mode==='holders'&&prior)result=mergeReportRefresh(prior.report,result,'holders');
         else if(mode==='deep'&&prior)result=mergeDeepReport(prior.report,result);
+        // A holder refresh may retain historical categories. Do not reintroduce
+        // a provider-only contract category disproven by the current code proof.
+        applyEoaQualification(result.investigation);
         if(ponsVerified){
           // Holder refresh merges historical categories. Remove only the now
           // disproven GoPlus service attribution, retaining other identities.
@@ -402,8 +447,6 @@ export function createInvestigationService(deps: Dependencies & HolderDependenci
           }else result.sources.push({name:'EVM RPC finalized V2 reserves',status:'unavailable',detail:evmReserves.reasons.join(' ')});
           stage('pool-reserves',evmReserves.status==='verified'?'complete':'unavailable',evmReserves.status==='verified'?'V2 pool reserves and current holder balances verified at one finalized block. Sell-impact scenario remains conditional.':'Current compatible pool reserves could not be verified.');
         }
-        const enrichment=await enrichmentTask;
-        options.signal?.throwIfAborted();
         if(enrichment){
           result={...result,...enrichment};
           const activity=enrichment.walletActivity,probes=enrichment.controlProbes;
@@ -417,7 +460,11 @@ export function createInvestigationService(deps: Dependencies & HolderDependenci
         result.decisionOutput=buildVerdictOutput({rating:result.trustRating,observed:result.observedDecision});
         if(inFlight.get(key)===revision){
           if(mode==='deep')store(key,result,limit);
-          else if(mode==='holders'&&prior&&prior.expires>now())cache.set(key,{expires:prior.expires,report:{...prior.report,...result,market:prior.report.market,sources:[...new Map([...prior.report.sources,...result.sources.filter(s=>s.name!=='DEX Screener')].map(s=>[s.name,s])).values()]}});
+          else if(mode==='holders'&&prior&&prior.expires>now()){
+            const refreshed={...prior.report,...result,market:prior.report.market,sources:[...new Map([...prior.report.sources,...result.sources.filter(s=>s.name!=='DEX Screener')].map(s=>[s.name,s])).values()]};
+            const entry={expires:Math.min(prior.expires,now()+cacheLifetime(refreshed)),report:refreshed};
+            cache.set(key,entry);persist(chain,token,limit,entry);
+          }
         }
         stage('assessment','complete','Evidence assembled. Observations, inferences and unknowns are separated.');
         return result;

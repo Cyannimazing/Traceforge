@@ -3,6 +3,51 @@ import assert from 'node:assert/strict';
 import {fixtureReport} from '../src/lib/investigation-fixture';
 import {createSnapshotEnrichment} from '../src/lib/snapshot-enrichment';
 const fastScheduler=()=>{let clock=0;return {now:()=>clock,wait:async(ms:number,signal:AbortSignal)=>{signal.throwIfAborted();clock+=ms;}};};
+test('expanded paced activity leaves control probes enough time to recheck their anchor',async t=>{
+ // Advance provider latency, lane pacing and abort deadlines on the same
+ // clock. This reproduces contention without depending on OS timer jitter.
+ let clock=0;
+ const deadlines:{at:number;controller:AbortController}[]=[];
+ t.mock.method(AbortSignal,'timeout',(ms:number)=>{const controller=new AbortController();deadlines.push({at:clock+ms,controller});return controller.signal;});
+ const advance=(ms:number)=>{clock+=ms;for(const deadline of deadlines)if(clock>=deadline.at&&!deadline.controller.signal.aborted)deadline.controller.abort(new DOMException('Timed out','TimeoutError'));};
+ const now=Date.parse('2026-11-04T02:00:00Z'),hash='0x'+'1'.repeat(64),token='0x'+'f'.repeat(40),zero='0x'+'0'.repeat(64);
+ const holders=Array.from({length:90},(_,i)=>({address:'0x'+(i+1).toString(16).padStart(40,'0'),share:.1,contract:false,locked:null,tag:''}));
+ const scheduler={now:()=>clock,wait:async(ms:number,signal:AbortSignal)=>{signal.throwIfAborted();advance(ms);signal.throwIfAborted();}};
+ const methods:string[]=[];let batchStarted=false,controlAnchorBeforeBatches=false;
+ const run=createSnapshotEnrichment({now:()=>now,activityScheduler:scheduler,rpcUrls:{robinhood:'https://rpc.example.test'},fetcher:async(_url,init)=>{
+  const q=JSON.parse(String(init?.body));if(Array.isArray(q))batchStarted=true;else if(q.method==='eth_getBlockByNumber'&&q.params[0]==='0x20'&&!batchStarted)controlAnchorBeforeBatches=true;advance(400);init?.signal?.throwIfAborted();
+  const answer=(r:{id:number;method:string;params:unknown[]})=>{methods.push(r.method);return {jsonrpc:'2.0',id:r.id,result:r.method==='eth_chainId'?'0x1237':r.method==='eth_getBlockByNumber'?{number:'0x20',hash,timestamp:'0x'+Math.floor(now/1000).toString(16)}:r.method==='eth_getCode'?(r.params[0]===token?'0x6000':'0x'):r.method==='eth_getTransactionCount'?'0x2':r.method==='eth_getStorageAt'?zero:r.method==='eth_call'?((r.params[0] as {data:string}).data==='0x8da5cb5b'?zero:'0x'+'1'.padStart(64,'0')):null};};
+  return new Response(JSON.stringify(Array.isArray(q)?q.map(answer):answer(q)));
+ }});
+ const report={...fixtureReport,token,chain:'robinhood' as const,market:null,holders},options={activityScope:{kind:'pons-creation-ledger' as const,maxAddresses:holders.length}};
+ const r=await run(report,options);
+ assert.equal(r.walletActivity?.readableAccounts,holders.length);
+ assert.equal(r.controlProbes?.status,'complete',JSON.stringify({requests:r.controlProbes?.requests,limitations:r.controlProbes?.limitations}));
+ assert.equal(r.controlProbes?.requests,15);
+ assert.equal(r.controlProbes?.evidence.length,8);
+ assert.equal(r.controlProbes?.observations.filter(o=>o.key.startsWith('transfer:')&&o.outcome==='returned-true').length,3);
+ assert(controlAnchorBeforeBatches,'control anchor revalidation must finish before the large activity batches enter the lane');
+ assert(!r.controlProbes?.limitations.some(reason=>reason.includes('could not be rechecked')));
+ assert(!methods.some(method=>method.startsWith('eth_send')));
+});
+
+test('expanded control scheduling preserves explicit deadlines and withholds a changed anchor',async()=>{
+ const now=Date.parse('2026-11-04T02:00:00Z'),hash='0x'+'1'.repeat(64),token='0x'+'f'.repeat(40),zero='0x'+'0'.repeat(64);
+ const holders=[1,2,3,4].map(i=>({address:'0x'+i.toString(16).padStart(40,'0'),share:1,contract:false,locked:null,tag:''}));
+ for(const mode of ['deadline','reorg'] as const){let calls=0;
+  const run=createSnapshotEnrichment({now:()=>now,...(mode==='deadline'?{timeoutMs:50}:{}),activityScheduler:fastScheduler(),rpcUrls:{robinhood:'https://rpc.example.test'},fetcher:async(_url,init)=>{
+   calls++;if(mode==='deadline'){await new Promise(resolve=>setTimeout(resolve,80));init?.signal?.throwIfAborted();}
+   const q=JSON.parse(String(init?.body));const answer=(r:{id:number;method:string;params:unknown[]})=>({jsonrpc:'2.0',id:r.id,result:r.method==='eth_chainId'?'0x1237':r.method==='eth_getBlockByNumber'?{number:'0x20',hash:r.params[0]==='0x20'?'0x'+'2'.repeat(64):hash,timestamp:'0x'+Math.floor(now/1000).toString(16)}:r.method==='eth_getCode'?(r.params[0]===token?'0x6000':'0x'):r.method==='eth_getTransactionCount'?'0x2':r.method==='eth_getStorageAt'?zero:r.method==='eth_call'?((r.params[0] as {data:string}).data==='0x8da5cb5b'?zero:'0x'+'1'.padStart(64,'0')):null});
+   return new Response(JSON.stringify(Array.isArray(q)?q.map(answer):answer(q)));
+  }});
+  const r=await run({...fixtureReport,token,chain:'robinhood',market:null,holders},{activityScope:{kind:'pons-creation-ledger',maxAddresses:holders.length}});
+  assert.equal(r.controlProbes?.status,'unavailable',mode);assert.equal(r.controlProbes?.evidence.length,0,mode);
+  assert(r.controlProbes?.observations.every(o=>o.status==='unknown'),mode);
+  if(mode==='deadline')assert.equal(calls,1,'an explicit short deadline must not become a fifteen-second probe');
+  else assert(r.controlProbes?.limitations.some(reason=>reason.includes('could not be rechecked')));
+ }
+});
+
 test('cancellation during qualified pacing stops queued RPC work promptly',async()=>{
  const controller=new AbortController();let calls=0;const scheduler={now:()=>0,wait:async(_ms:number,signal:AbortSignal)=>{controller.abort(Error('cancelled'));signal.throwIfAborted();}};
  const run=createSnapshotEnrichment({rpcUrls:{robinhood:'https://rpc.example.test'},activityScheduler:scheduler,fetcher:async()=>{calls++;throw Error('Unexpected network call');}});

@@ -24,7 +24,7 @@ export type PublicHistoryResult = {
   trades: TradeRecord[]; transfers: TransferRecord[]; identities: IdentityRecord[]; labels: LabelRecord[];
   reasons: string[]; sources: Report['sources']; truncated: boolean;
 };
-export type PublicHistoryOptions = { report: Report; mode: 'deep' | 'holders'; limit: number; signal?: AbortSignal; walletAddresses?:string[]; skipFunding?:boolean };
+export type PublicHistoryOptions = { report: Report; mode: 'deep' | 'holders'; limit: number; signal?: AbortSignal; walletAddresses?:string[]; skipFunding?:boolean; fundingOnly?:boolean };
 
 export function parsePoolTrades(payload: unknown, chain: Chain, token: string): TradeRecord[] {
   const rows = obj(payload).data;
@@ -59,7 +59,7 @@ export function parseExplorerTransfers(payload: unknown, receiver: string): Tran
     const from = evmAddress(obj(row.from).hash), to = evmAddress(obj(row.to).hash);
     const timestamp = str(row.timestamp), transaction = str(row.hash), amount = unitAmount(row.value,18);
     if (!from || to !== receiver.toLowerCase() || !transaction || row.status !== 'ok' || !Number.isSafeInteger(parseCount(row.block_number)) || !Number.isFinite(Date.parse(timestamp)) || amount === undefined || amount <= 0) return [];
-    return [{id:`blockscout:${transaction}:native`,from,to,timestamp,transaction,amount,native:true,token:'native',source:'Blockscout confirmed native transaction (bounded incoming history; first observed, not first-ever)'}];
+    return [{id:`blockscout:${transaction}:native`,from,to,timestamp,transaction,amount,amountRaw:rawAmount(row.value)!.toString(),decimals:18,native:true,token:'native',source:'Blockscout indexed successful native transaction (bounded incoming history; first observed, not first-ever; not independently receipt-verified)'}];
   });
 }
 
@@ -71,7 +71,7 @@ export function parseExplorerInternalTransfers(payload: unknown, receiver: strin
     const from=evmAddress(obj(row.from).hash),to=evmAddress(obj(row.to).hash),index=parseCount(row.index);
     const timestamp=str(row.timestamp),transaction=str(row.transaction_hash),amount=unitAmount(row.value,18);
     if(!from||to!==receiver.toLowerCase()||!transaction||row.success!==true||row.error||!['call','selfdestruct','suicide'].includes(str(row.type))||index===null||!Number.isSafeInteger(index)||!Number.isSafeInteger(parseCount(row.block_number))||!Number.isFinite(Date.parse(timestamp))||amount===undefined||amount<=0)return [];
-    return [{id:`blockscout:${transaction}:internal:${index}`,from,to,timestamp,transaction,amount,native:true,token:'native',source:'Blockscout successful native-value internal trace (bounded incoming history; first observed, not first-ever)'}];
+    return [{id:`blockscout:${transaction}:internal:${index}`,from,to,timestamp,transaction,amount,amountRaw:rawAmount(row.value)!.toString(),decimals:18,native:true,token:'native',source:'Blockscout indexed successful native-value internal trace (bounded incoming history; first observed, not first-ever; not independently trace-verified)'}];
   });
 }
 
@@ -99,6 +99,9 @@ class PublicRequestError extends Error {
 
 /** No keys, recursive crawling, fabricated history, or launch-coverage claims. */
 export function createPublicHistory(deps: {fetcher?: typeof fetch; now?: () => number; clock?:()=>number; sleep?:(ms:number,signal:AbortSignal)=>Promise<void>} = {}) {
+  // An access denial is not a transient page failure. Do not fan out more
+  // requests to the same denied origin during this scan or its funding phase.
+  const deniedOrigins=new Map<string,number>();
   return async (chain: Chain, token: string, options: PublicHistoryOptions): Promise<PublicHistoryResult> => {
     options.signal?.throwIfAborted();
     if (validateToken(chain,token)) throw Error('Invalid token address.');
@@ -122,6 +125,7 @@ export function createPublicHistory(deps: {fetcher?: typeof fetch; now?: () => n
       checkPhase();
       if(++requests>pageBudget)throw new PublicRequestError('Planned public evidence page budget reached.');
       const origin=new URL(url).origin;
+      if((deniedOrigins.get(origin)||0)>clock())throw new PublicRequestError('Public explorer access denied (HTTP 403); further requests are withheld during the access-denial cooldown.');
       for(let attempt=0;attempt<2;attempt++){
         checkPhase();
         const wait=Math.max(0,(cooldown.get(origin)||0)-clock());
@@ -130,6 +134,7 @@ export function createPublicHistory(deps: {fetcher?: typeof fetch; now?: () => n
         try{
           const response=await(deps.fetcher||fetch)(url,{headers:{Accept:'application/json'},signal:requestSignal,cache:'no-store'});
           if(!response.ok){
+            if(response.status===401||response.status===403){deniedOrigins.set(origin,clock()+60000);await response.body?.cancel();throw new PublicRequestError(`Public explorer access denied (HTTP ${response.status}); no retry or alternate route was attempted.`);}
             const header=response.headers.get('Retry-After');
             const seconds=header&&/^\d+(?:\.\d+)?$/.test(header.trim())?Number(header)*1000:NaN;
             const after=header?(Number.isFinite(seconds)?seconds:Date.parse(header)-clock()):undefined;
@@ -170,7 +175,7 @@ export function createPublicHistory(deps: {fetcher?: typeof fetch; now?: () => n
       }
     };
     const pool = options.report.market?.pairAddress;
-    const tradesTask = options.mode === 'deep' && isMarketPairId(chain,pool)
+    const tradesTask = !options.fundingOnly && options.mode === 'deep' && isMarketPairId(chain,pool)
       ? run('GeckoTerminal trades','Up to 300 recent trades from one selected market pool; sender attribution, not a complete wallet or launch history.',async()=>{
           const networks = {ethereum:'eth',base:'base',bsc:'bsc',solana:'solana',robinhood:'robinhood'};
           const payload = await get(`https://api.geckoterminal.com/api/v2/networks/${networks[chain]}/pools/${encodeURIComponent(pool)}/trades`);
@@ -181,7 +186,7 @@ export function createPublicHistory(deps: {fetcher?: typeof fetch; now?: () => n
     const explorer = chain === 'ethereum' ? 'https://eth.blockscout.com' : chain === 'base' ? 'https://base.blockscout.com' : chain === 'robinhood' ? 'https://robinhoodchain.blockscout.com' : undefined;
     if (explorer) {
       const base = `${explorer}/api/v2`, path = encodeURIComponent(token.toLowerCase());
-      const [metadata, firstPage, creation, publicTrades] = await Promise.all([
+      const [metadata, firstPage, creation, publicTrades] = options.fundingOnly ? [undefined,undefined,undefined,undefined] as const : await Promise.all([
         run('Blockscout token','Explorer token decimals, total supply and holder count at retrieval time.',async()=>{
           const value = obj(await get(`${base}/tokens/${path}`));
           if (value.type !== 'ERC-20') throw Error('Fungible token metadata unavailable.');
@@ -224,7 +229,9 @@ export function createPublicHistory(deps: {fetcher?: typeof fetch; now?: () => n
       result.trades=publicTrades||[];
       if (options.mode === 'deep' && !options.skipFunding) {
         const excluded = new Set([...result.labels.map(l=>l.address),...options.report.holders.filter(h=>h.contract||['exchange','bridge','pool','burn'].includes(h.tag.toLowerCase())).map(h=>h.address.toLowerCase()),...(pool?[pool.toLowerCase()]:[])]);
-        const candidates = [...new Set([...(result.holders||options.report.holders).map(h=>h.address.toLowerCase()),...result.trades.map(t=>t.wallet)])].filter(a=>evmAddress(a)&&!excluded.has(a));
+        const snapshotHolders=result.holders?.length?result.holders:options.report.holders;
+        const selectedAddresses=options.walletAddresses?.length?options.walletAddresses:snapshotHolders.map(h=>h.address);
+        const candidates = [...new Set([...selectedAddresses,...result.trades.map(t=>t.wallet)].map(a=>a.toLowerCase()))].filter(a=>evmAddress(a)&&!excluded.has(a)&&!/^0x0{40}$/.test(a)&&a!=='0x000000000000000000000000000000000000dead');
         const walletCap=expanded?12:8,selected=candidates.slice(0,walletCap);
         if(candidates.length>walletCap)result.truncated=true;
         type FundingState={address:string;internal:boolean;pages:number;next:string;seen:Set<string>;done:boolean;failure?:string;capturedAt?:string;transfers:TransferRecord[]};
@@ -264,10 +271,10 @@ export function createPublicHistory(deps: {fetcher?: typeof fetch; now?: () => n
           if(state.failure)result.reasons.push(`${name}: ${state.failure}${state.pages?' Earlier successful pages were retained.':''}`);
         }
         const all=states.flatMap(state=>state.transfers);
-        const normalKeys=new Set(all.filter(t=>t.id.endsWith(':native')).map(t=>`${t.transaction}:${t.from}:${t.to}:${t.amount}`));
+        const normalKeys=new Set(all.filter(t=>t.id.endsWith(':native')).map(t=>`${t.transaction}:${t.from}:${t.to}:${t.amountRaw}`));
         // Index 0 can repeat the top-level coin transfer; keep legitimate child
         // traces with equal amounts and different indices as separate evidence.
-        result.transfers=[...new Map(all.filter(t=>!t.id.endsWith(':internal:0')||!normalKeys.has(`${t.transaction}:${t.from}:${t.to}:${t.amount}`)).map(t=>[t.id,t])).values()];
+        result.transfers=[...new Map(all.filter(t=>!t.id.endsWith(':internal:0')||!normalKeys.has(`${t.transaction}:${t.from}:${t.to}:${t.amountRaw}`)).map(t=>[t.id,t])).values()];
         result.reasons.push(`Public funding scope: ${fundingPages} page request(s) across ${selected.length} selected addresses not labeled as contracts (maximum ${walletCap}; ${fundingBudget} funding pages). Up to ${expanded?3:2} normal and ${expanded?2:1} internal pages per address, subject to the shared 50-second deadline. Records are first observed in this bounded sample, never verified first-ever funding; unrecognized services and unindexed traces remain possible.`);
       }
     } else {

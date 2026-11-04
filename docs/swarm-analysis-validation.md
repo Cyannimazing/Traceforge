@@ -1,6 +1,8 @@
 # Public Swarm analysis validation
 
-Latest ZKBLAST comparison: [Full-holder validation, 2026-11-04](all-holder-validation-2026-11-04.md). The fresh production stream verified all 242 recorded balances and selected all 239 ordinary holders for activity checks. The top 50 are displayed; all 46 Swarm addresses are recovered. The expanded readable cohort produces 77/100 and a 55.6% Clear weight, rather than forcing the older bounded sample's score. The [initial bounded comparison](zkblast-validation-2026-11-04.md) remains a historical capture.
+Current correction and end-to-end comparison: [holder retrieval, ranked scope and matched-token validation, 2026-11-04](holder-inventory-validation-2026-11-04.md). The exact SWARM case now matches all 47 top-wallet addresses and shares, with both published links independently supported. Private cross-token memory parity remains unverified; the report records the resulting score difference and timed partial-inventory limits.
+
+Earlier ZKBLAST comparison: [Full-holder validation, 2026-11-04](all-holder-validation-2026-11-04.md). That production stream verified all 242 recorded balances and selected all 239 ordinary holders for activity checks. The top 50 were displayed; all 46 Swarm addresses were recovered. That expanded readable cohort produced 77/100 and a 55.6% Clear weight. The [initial bounded comparison](zkblast-validation-2026-11-04.md) also remains a historical capture.
 
 Latest release: [report and retrieval validation](report-release-validation-2026-11-03.md), including the reproduced Four.Meme custody/float/first-minute fixes, current chain-state changes and remaining evidence limits. Earlier measurements below remain historical observations.
 

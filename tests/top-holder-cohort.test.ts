@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {topHolderCohort} from '../src/lib/top-holder-cohort';
+import {buildCurrentHolderGraph} from '../src/lib/current-holder-graph';
 import type {InvestigationReport} from '../src/lib/investigation-types';
 const at='2026-11-04T01:00:00Z',hash='0x'+'a'.repeat(64),ref='0x20:'+hash,a=(n:number)=>'0x'+n.toString(16).padStart(40,'0');
 function fixture():InvestigationReport{
@@ -12,6 +13,15 @@ function fixture():InvestigationReport{
 test('raw top fifty precede set-aside decisions, delegated EOAs stay and no lower rows backfill',()=>{
  const r=fixture(),activity=r.walletActivity!.wallets;Object.assign(activity[1],{accountKind:'contract',count:null,exact:false,codeProof:{code:'0x60016000',blockRef:ref}});Object.assign(activity[2],{accountKind:'delegated-eoa',codeProof:{code:'0xef0100'+'1'.repeat(40),blockRef:ref}});
  const before=JSON.stringify(r),out=topHolderCohort(r);assert.equal(out.rawLimit,50);assert.equal(out.rawRanked.length,50);assert.equal(out.holders.length,48);assert.equal(out.infrastructure.length,1);assert.equal(out.contracts.length,1);assert(out.holders.some(h=>h.address===a(3)));assert(!out.holders.some(h=>h.address===a(51)));assert.equal(out.denominator,100-.6-.59);assert.equal(JSON.stringify(r),before);
+});
+test('default top cohort includes unflagged wallets; flags do not filter it and only evidence changes grouping',()=>{
+ const r=fixture();r.investigation.wallets[2].categories=[];
+ const expected=r.holders.slice(1,50).map(h=>h.address),initial=topHolderCohort(r);
+ assert.deepEqual(initial.holders.map(h=>h.address),expected);assert(initial.holders.some(h=>h.address===a(2)));assert(initial.holders.some(h=>h.address===a(3)));assert.equal(buildCurrentHolderGraph(r,{cohort:'top'}).walletGroups,49);
+ r.investigation.wallets[1].categories=['sniper','early-buyer'];r.investigation.wallets[2].categories=['creator'];r.investigation.wallets[3].categories=['insider','deployer-linked'];r.investigation.wallets[4].categories=['shared-funder'];
+ assert.deepEqual(topHolderCohort(r).holders.map(h=>h.address),expected);assert.equal(buildCurrentHolderGraph(r,{cohort:'top'}).walletGroups,49);
+ const id='canonical-holder-transfer';r.investigation.evidence.push({id,kind:'transfer',from:a(2),to:a(3),amount:1,token:r.token,transaction:hash,timestamp:at,source:'Canonical transfer receipt',description:'Observed transfer between current holders'});r.investigation.relationships.push({id,kind:'transfer',from:a(2),to:a(3),evidenceIds:[id],description:'Observed transfer'});
+ const graph=buildCurrentHolderGraph(r,{cohort:'top'});assert.equal(graph.nodes.length,49);assert.equal(graph.documentedGroups,1);assert.equal(graph.walletGroups,48);assert.equal(graph.edges.length,1);assert.deepEqual(topHolderCohort(r).holders.map(h=>h.address),expected);
 });
 test('provider flags, text reasons and missing stale malformed or reorged code proof cannot set aside a wallet',()=>{
  for(const mode of ['missing','stale','wrong-source','wrong-block','malformed','wrong-kind','failed','future','unbound-balance']){const r=fixture(),w=r.walletActivity!.wallets[1];r.holders[1].contract=true;Object.assign(w,{count:null,exact:false,reason:'Verified contract account',accountKind:'contract',codeProof:{code:'0x6000',blockRef:ref}});if(mode==='missing')delete w.codeProof;if(mode==='stale')r.walletActivity!.observedAt='2026-11-03T01:00:00Z';if(mode==='wrong-source')r.walletActivity!.source='Provider';if(mode==='wrong-block')w.codeProof!.blockRef='0x21:'+hash;if(mode==='malformed')w.codeProof!.code='0x600';if(mode==='wrong-kind')w.codeProof!.code='0x';if(mode==='failed')r.walletActivity!.failure='anchor-changed';if(mode==='future')r.walletActivity!.blockTimestamp='2026-11-05T01:00:00Z';if(mode==='unbound-balance')r.investigation.evidence.find(e=>e.id==='holding:evm:'+w.address)!.amountRaw='1';assert.equal(topHolderCohort(r).contracts.length,0,mode);}

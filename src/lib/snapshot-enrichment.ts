@@ -122,10 +122,14 @@ export function createSnapshotEnrichment(deps:{rpcUrls?:Partial<Record<Chain,str
    const oldest=Math.min(Date.parse(latest.observedAt),...wallets.map(wallet=>Date.parse(wallet.observedAt!)));
    return {...latest,observedAt:new Date(oldest).toISOString(),wallets,truncated:addresses.length>100};
   };
-  const tasks=await Promise.allSettled([
-   activity(),
-   report.chain==='solana'?Promise.resolve(undefined):runEvmControlProbes({chain:report.chain,token:report.token,holders,recipient:holders[0]?.address||'0x000000000000000000000000000000000000dEaD',signal:options.signal,now:deps.now,timeoutMs:deps.timeoutMs},rpc),
-  ]);
+  const controls=()=>report.chain==='solana'?Promise.resolve(undefined):runEvmControlProbes({chain:report.chain,token:report.token,holders,recipient:holders[0]?.address||'0x000000000000000000000000000000000000dEaD',signal:options.signal,now:deps.now,timeoutMs:deps.timeoutMs??(expanded?15000:undefined)},rpc);
+  // Expanded activity shares the paced endpoint lane with these fifteen
+  // bounded reads. Finish controls and their anchor check before admitting
+  // large activity batches; otherwise their own deadline can expire in queue.
+  // Both passes still share the existing overall deadline and CU pacing.
+  const controlTask=expanded?controls():undefined;
+  const activityTask=controlTask?controlTask.then(activity,activity):activity();
+  const tasks=await Promise.allSettled([activityTask,controlTask||controls()]);
   options.signal?.throwIfAborted();
   return {walletActivity:tasks[0].status==='fulfilled'?tasks[0].value:undefined,controlProbes:tasks[1].status==='fulfilled'?tasks[1].value:undefined};
  };
