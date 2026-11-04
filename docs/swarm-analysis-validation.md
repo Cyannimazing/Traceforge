@@ -1,5 +1,7 @@
 # Public Swarm analysis validation
 
+Latest ZKBLAST comparison: [Robinhood end-to-end validation, 2026-11-04](zkblast-validation-2026-11-04.md). Fresh captures matched the 78/100 score and 59.0% selected model weight, recovered all 46 Swarm holder addresses, and separated 239 recorded accounts from 95 independently analyzed ordinary holders. Factor assumptions and remaining float-policy differences are documented there.
+
 Latest release: [report and retrieval validation](report-release-validation-2026-11-03.md), including the reproduced Four.Meme custody/float/first-minute fixes, current chain-state changes and remaining evidence limits. Earlier measurements below remain historical observations.
 
 New token comparison: [Base 1KTO100M end-to-end validation](base-1kto100m-validation.md). The independent production scan recovered all 14 Swarm holder addresses with exact raw balances, retained two additional unqualified contract holders, and verified six selected-pool first-minute buys. The audit separates a real market collapse, infrastructure-exclusion policy and remaining model-input limits.
@@ -110,7 +112,7 @@ TraceForge's later independent scan at 07:18:49 UTC completed in 2.762 seconds a
 
 The token comparisons describe recorded snapshots and the old implementation. The reconstruction section describes the updated code. Neither claims that every gap is fixed, that independent results must match older provider snapshots, or that predictive accuracy is calibrated.
 
-EVM freshness correction: nonce above ten can rule lifetime freshness out. Nonce at or below ten remains unresolved because incoming/internal activity is absent from that counter; it never triggers the 80% fresh-wallet hard stop.
+EVM freshness correction (superseded 2026-11-04): account nonce is not universally an outgoing-transaction count. EIP-7702 authorizations also increment it and can later be revoked, leaving empty code. Neither a low nor a high nonce establishes the lifetime-transaction predicate. Current EVM nonce records retain unknown lifetime freshness; a separately labeled observed-scope nonce proxy never triggers the verified 80% lifetime-fresh hard stop.
 
 ## Live six-factor integration check - 2026-11-03
 

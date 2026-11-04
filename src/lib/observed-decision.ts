@@ -8,9 +8,10 @@ import {scoreFactors} from './reconstructed-score';
 import {decisionModel,type DecisionModelResult} from './decision-model';
 import {PUMPSWAP_PROGRAM} from './solana-pool-reserves';
 import {clockReferenceTime} from './evidence-clock';
+import {robinhoodObservedDecision} from './robinhood-observed-decision';
 
-export type ObservedFactor={id:ScoringFactorId;value:number;basis:'observed-holdings'|'readable-wallets'|'observed-exposure'|'observed-none'|'conditional-scenario';detail:string};
-export type ObservedDecision={score:number;scoreBand:'CLEAN'|'OK'|'CAUTION'|'AVOID';judge:DecisionModelResult;factors:ObservedFactor[];scope:{holderCount:number;readableFreshWallets:number;unreadFreshWallets:number;notes:string[]};impact:number;largestShare:number};
+export type ObservedFactor={id:ScoringFactorId;value:number;basis:'observed-holdings'|'readable-wallets'|'account-nonce-proxy'|'observed-exposure'|'observed-none'|'conditional-scenario';detail:string};
+export type ObservedDecision={score:number;scoreBand:'CLEAN'|'OK'|'CAUTION'|'AVOID';judge:DecisionModelResult;factors:ObservedFactor[];scope:{holderCount:number;readableFreshWallets:number;unreadFreshWallets:number;activityProxy?:{kind:'low-account-nonce';limit:number;readable:number;lowNonce:number;unread:number;outsideLimit:number};notes:string[]};impact:number;largestShare:number};
 const HISTORY_SOURCES=new Set(['Alchemy finalized Solana transaction history','Alchemy durable Solana mint-address history']);
 const uint64=(value:string)=>/^\d{1,20}$/.test(value)&&BigInt(value)<=18446744073709551615n?BigInt(value):null;
 
@@ -19,6 +20,7 @@ const uint64=(value:string)=>/^\d{1,20}$/.test(value)&&BigInt(value)<=1844674407
  * The initial nominal reserve scenario supports verified base-side PumpSwap.
  */
 export function observedDecision(report:InvestigationReport,strictRating:TrustRating=trustRating(report)):ObservedDecision|null{
+ if(report.chain==='robinhood')return robinhoodObservedDecision(report,strictRating);
  if(report.providerAnalysis||strictRating.coreVerified!==true||report.chain!=='solana')return null;
  const context=agentEvidenceContext(report);if(context.guard.missingCore)return null;
  const captured=Date.parse(report.fetchedAt),historyClock=clockReferenceTime(report.investigation.coverage.clock,Date.parse(report.investigation.coverage.fetchedAt));

@@ -4,9 +4,9 @@ import {readWalletActivity} from '../src/lib/wallet-activity';
 const a='0x0000000000000000000000000000000000000001', b='0x0000000000000000000000000000000000000002';
 const hash='0x'+'1'.repeat(64);
 const evm=async(method:string,params:unknown[])=>method==='eth_chainId'?'0x1':method==='eth_getBlockByNumber'?{number:'0x20',hash}:method==='eth_getCode'?'0x':params[0]===a?'0xa':'0xb';
-test('EVM ten outgoing transactions cannot establish freshness; eleven rules it out at a fixed anchor',async()=>{
+test('EVM account nonce is measured at a fixed anchor but never proves lifetime freshness',async()=>{
  const result=await readWalletActivity('ethereum',[a,b,a],evm);
- assert.equal(result.wallets.length,2); assert.equal(result.wallets[0].fresh,null);assert.equal(result.wallets[1].fresh,false);assert.equal(result.wallets[0].count,10);assert.equal(result.wallets[0].exact,true);assert.equal(result.wallets[0].basis,'evm-outgoing-count');assert.equal(result.blockRef,'0x20:'+hash);
+ assert.equal(result.wallets.length,2); assert.equal(result.wallets[0].fresh,null);assert.equal(result.wallets[1].fresh,null);assert.equal(result.wallets[0].count,10);assert.equal(result.wallets[0].exact,true);assert.equal(result.wallets[0].basis,'evm-account-nonce');assert.equal(result.blockRef,'0x20:'+hash);
 });
 
 test('zero nonce cannot distinguish an unused wallet from a wallet with incoming history',async()=>{
@@ -39,3 +39,6 @@ test('failed wallets retain unknown and cancellation propagates',async()=>{
 test('invalid Solana signature strings do not establish wallet activity',async()=>{const records=rows(11);records[0].signature='0'.repeat(64);assert.equal((await readWalletActivity('solana',[sol],async()=>records)).wallets[0].fresh,null);});
 
 test('verified contract code explains unsupported nonce scope instead of claiming RPC failed',async()=>{const r=await readWalletActivity('ethereum',[a],async(m,p)=>m==='eth_getCode'?'0x1234':evm(m,p));assert.equal(r.wallets[0].count,null);assert.match(r.wallets[0].reason,/contract account/i);assert.doesNotMatch(r.wallets[0].reason,/RPC did not verify/);});
+test('exact EIP-7702 designators retain measured account nonce without treating authorization increments as transactions',async()=>{for(const count of [1,10,11,723]){const r=await readWalletActivity('ethereum',[a],async(m,p)=>m==='eth_getCode'?'0xef0100e6cae83bde06e4c305530e199d7217f42808555b':m==='eth_getTransactionCount'?'0x'+count.toString(16):evm(m,p));const wallet=r.wallets[0];assert.equal(wallet.count,count);assert.equal(wallet.exact,true);assert.equal(wallet.basis,'evm-account-nonce');assert.equal(wallet.fresh,null);assert.match(wallet.reason,/EIP-7702/);assert.match(wallet.reason,/authorization/);assert.doesNotMatch(wallet.reason,/Verified contract account/);}});
+test('near-matching delegation bytecode remains a contract or unavailable, never a nonce-qualified delegated EOA',async()=>{for(const code of ['0xef0100','0xef0100'+'1'.repeat(38),'0xef0100'+'1'.repeat(42),'0xef0101'+'1'.repeat(40),'0xef0100'+'0'.repeat(40),'0xef0100'+'g'.repeat(40)]){const r=await readWalletActivity('ethereum',[a],async(m,p)=>m==='eth_getCode'?code:evm(m,p));assert.equal(r.wallets[0].count,null);assert.equal(r.wallets[0].fresh,null);assert.equal(r.wallets[0].exact,false);}});
+test('empty code with a high nonce may have prior revoked delegation and cannot prove more than ten lifetime transactions',async()=>{const r=await readWalletActivity('ethereum',[a],async(m,p)=>m==='eth_getTransactionCount'?'0x2d3':evm(m,p));assert.equal(r.wallets[0].count,723);assert.equal(r.wallets[0].basis,'evm-account-nonce');assert.equal(r.wallets[0].fresh,null);assert.match(r.wallets[0].reason,/authorization/);});

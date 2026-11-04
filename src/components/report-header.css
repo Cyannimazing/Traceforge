@@ -43,6 +43,7 @@
 .rh-metrics>div{min-width:0;padding:14px 20px;border-right:1px solid #303030}
 .rh-metrics>div:last-child{border-right:0}
 .rh-metrics dt{font:11px/1.5 var(--font-sans);color:#a7a7a7}
+.rh-metric-note{display:block;margin-top:4px;font:10px/1.4 var(--font-sans);color:#aaa}
 .rh-metrics dd{margin:6px 0 0;font:500 clamp(16px,1.55vw,22px)/1.3 var(--font-mono);letter-spacing:-.025em;font-variant-numeric:tabular-nums;overflow-wrap:anywhere;color:#e8e8e8}
 .rh-search{padding:0 20px 16px;position:relative;z-index:2}
 .rh-search .report-token-entry{margin:0!important}
@@ -60,3 +61,6 @@
 
 .rh-address .rh-contract{min-width:0;max-width:100%;overflow-wrap:anywhere;word-break:break-all;line-height:1.6}
 @media(min-width:761px) and (max-width:1100px){.rh-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}.rh-metrics>div:nth-child(-n+3){border-bottom:1px solid #282828}.rh-metrics>div:nth-child(3n){border-right:0}}
+
+/* Keep the phone action rows intentional at both narrow and wide widths. */
+@media(max-width:760px){.rh-identity{align-items:flex-start}.rh-actions{display:grid;grid-template-columns:minmax(0,1fr) repeat(3,44px);gap:6px}.rh-actions .rh-change{min-width:0;padding:0 4px;font-size:10px;gap:4px;white-space:nowrap}.rh-actions>button:not(.rh-change):not(.rh-refresh){width:44px}.rh-actions .rh-refresh{grid-column:1/-1;min-width:0;width:100%;margin:0}}

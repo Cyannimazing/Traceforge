@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "d3-hierarchy": "^3.1.2",
     "gsap": "^3.15.0",
     "lucide-react": "latest",
     "next": "latest",
@@ -19,6 +20,7 @@
     "viem": "^2.57.14"
   },
   "devDependencies": {
+    "@types/d3-hierarchy": "^3.1.7",
     "@types/node": "^24",
     "@types/react": "^19",
     "@types/react-dom": "^19",

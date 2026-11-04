@@ -1,5 +1,5 @@
 import {CHAINS,validateToken,type Chain} from './analysis';
-export type WalletActivity={address:string;count:number|null;exact:boolean;fresh:boolean|null;basis:'evm-outgoing-count'|'solana-address-signatures';reason:string;observedAt?:string};
+export type WalletActivity={address:string;count:number|null;exact:boolean;fresh:boolean|null;basis:'evm-outgoing-count'|'evm-account-nonce'|'solana-address-signatures';reason:string;observedAt?:string};
 export type WalletActivitySnapshot={source:string;observedAt:string;blockRef?:string;blockTimestamp?:string;finality?:'finalized';wallets:WalletActivity[];truncated:boolean};
 /** Fixed diagnostic codes only. Never expose a provider error message or URL. */
 export class WalletActivityRpcError extends Error {
@@ -8,13 +8,15 @@ export class WalletActivityRpcError extends Error {
 type Rpc=(method:string,params:unknown[],signal?:AbortSignal)=>Promise<unknown>;
 const obj=(v:unknown):Record<string,unknown>=>v&&typeof v==='object'&&!Array.isArray(v)?v as Record<string,unknown>:{};
 const hex=(v:unknown)=>typeof v==='string'&&/^0x[0-9a-f]+$/i.test(v);
-/** EVM nonce counts outgoing transactions, not incoming/internal activity.
+/** EVM nonce includes outgoing transactions and accepted EIP-7702
+ * authorizations, even after delegation is revoked. It is not a lifetime
+ * transaction count. https://eips.ethereum.org/EIPS/eip-7702
  * Solana short pages cannot prove complete lifetime coverage; eleven distinct
  * signatures suffice only to disprove the <=10 predicate. No archive crawl. */
 export async function readWalletActivity(chain:Chain,addresses:string[],rpc:Rpc,options:{signal?:AbortSignal;now?:()=>number}={}):Promise<WalletActivitySnapshot>{
  options.signal?.throwIfAborted();
  const unique=[...new Set(addresses.map(a=>chain==='solana'?a:a.toLowerCase()))];
- const selected=unique.slice(0,100),basis=chain==='solana'?'solana-address-signatures':'evm-outgoing-count';
+ const selected=unique.slice(0,100),basis=chain==='solana'?'solana-address-signatures':'evm-account-nonce';
  const unknown=(address:string,reason='The RPC did not verify this wallet activity.'):WalletActivity=>({address,count:null,exact:false,fresh:null,basis,reason});
  const result:WalletActivitySnapshot={source:chain==='solana'?'Solana RPC wallet activity':'EVM RPC wallet activity',observedAt:new Date((options.now||Date.now)()).toISOString(),wallets:selected.map(a=>unknown(a)),truncated:unique.length>100};
  const call=(method:string,params:unknown[])=>rpc(method,params,options.signal);
@@ -44,9 +46,12 @@ export async function readWalletActivity(chain:Chain,addresses:string[],rpc:Rpc,
      result.wallets[index]={address,count,exact:false,fresh:count>10?false:null,basis,reason:count>10?'At least 11 distinct finalized address transactions observed.':'The short provider page does not establish complete lifetime history.'};
     }else{
      const [code,nonce]=await Promise.all([call('eth_getCode',[address,block]),call('eth_getTransactionCount',[address,block])]);
-     if(typeof code==='string'&&/^0x(?:[0-9a-fA-F]{2})+$/.test(code)){result.wallets[index]=unknown(address,'Verified contract account: outgoing EOA nonce does not measure its incoming transfers or internal activity. Lifetime freshness remains unknown.');continue;}
-     if(code!=='0x'||!hex(nonce)||BigInt(nonce as string)>BigInt(Number.MAX_SAFE_INTEGER))continue;
-     const count=Number(BigInt(nonce as string));result.wallets[index]={address,count,exact:true,fresh:count>10?false:null,basis,reason:count>10?'More than ten outgoing transactions at the fixed finalized block rules out the <=10 lifetime-transaction predicate. Incoming and internal transactions are not counted.':'The exact outgoing count is at most ten, but incoming and internal history is not covered. Lifetime freshness remains unknown.'};
+     // EIP-7702 uses exactly 23 bytes. A zero target clears code rather than
+     // creating a delegation indicator; other nonempty code is not an EOA.
+     const delegated=typeof code==='string'&&/^0xef0100[0-9a-f]{40}$/i.test(code)&&!/^0xef01000{40}$/i.test(code);
+     if(!delegated&&typeof code==='string'&&/^0x(?:[0-9a-fA-F]{2})+$/.test(code)){result.wallets[index]=unknown(address,'Verified contract account: its nonce does not measure incoming transfers or internal activity. Lifetime freshness remains unknown.');continue;}
+     if((code!=='0x'&&!delegated)||!hex(nonce)||BigInt(nonce as string)>BigInt(Number.MAX_SAFE_INTEGER))continue;
+     const count=Number(BigInt(nonce as string));result.wallets[index]={address,count,exact:true,fresh:null,basis,reason:`${delegated?'EIP-7702 delegated EOA:':'Empty-code EOA:'} exact account nonce ${count} at the fixed finalized block. Nonce includes outgoing transactions and accepted EIP-7702 authorization increments, including prior delegation that may have been revoked. Incoming, internal and sponsored execution history is not counted. Neither a low nor high nonce proves lifetime freshness.`};
     }
    }catch(error){options.signal?.throwIfAborted();if(error instanceof WalletActivityRpcError)result.wallets[index]=unknown(address,error.code==='rate-limit'?'Provider rate limit prevented verification within the bounded scan.':error.code==='deadline'?'The bounded RPC deadline expired before wallet activity could be verified.':'The provider response was unavailable; wallet activity remains unknown.');}
   }
