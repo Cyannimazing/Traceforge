@@ -10,12 +10,12 @@ test('changing the score changes the overall rating rather than using a token-sp
 test('missing or invalid scores do not become a fabricated zero or a range',()=>{for(const score of [null,NaN,Infinity,-1,101]){const html=render(score,'CAUTION','uncertainty-allocation');assert.match(html,/Not scored/);assert.doesNotMatch(html,/role="meter"|NaN|Infinity|Verdict confidence/);assert.match(html,/Decision weight/);}});
 test('rule allocation is distinguished from model confidence and state uses semantic tones',()=>{assert.match(render(44,'AVOID','rule'),/Rule allocation/);assert.match(render(87),/data-verdict="clear"/);assert.match(render(70,'CAUTION'),/data-verdict="watch"/);assert.match(render(44,'AVOID'),/data-verdict="high-risk"/);});
 
-test('partial evidence shows assessed points and weighted coverage without an inflated confidence headline',()=>{
+test('partial scoring progress retains the original hundred-point scale without an inflated confidence headline',()=>{
  const html=renderToStaticMarkup(React.createElement(AssessmentHeadline,{score:null,decision:'CAUTION',confidence:99.9,basis:'uncertainty-allocation',progress:{earned:20,maximum:45,resolvedFactors:3,totalFactors:6,modelCoverage:45,currentCompleted:3,currentTotal:3}}));
- assert.match(html,/Assessed points/);assert.match(html,/>20</);assert.match(html,/\/45/);assert.match(html,/Model assessed/);assert.match(html,/>45</);
- assert.match(html,/3 of 6 factors/);assert.doesNotMatch(html,/99\.9|Verdict confidence|Not scored/);
+ assert.match(html,/Score progress/);assert.match(html,/>20</);assert.match(html,/\/100/);assert.match(html,/Factors assessed/);assert.match(html,/3\/6/);
+ assert.match(html,/45 points assessed; 55 pending/);assert.doesNotMatch(html,/99\.9|Verdict confidence|Not scored|\/45/);
 });
-test('no resolved factors shows an evidence state rather than zero out of zero or a safety score',()=>{
+test('no resolved factors shows zero progress with all hundred points pending rather than a completed zero rating',()=>{
  const html=renderToStaticMarkup(React.createElement(AssessmentHeadline,{score:null,decision:'CAUTION',confidence:99.9,basis:'uncertainty-allocation',progress:{earned:0,maximum:0,resolvedFactors:0,totalFactors:6,modelCoverage:0,currentCompleted:0,currentTotal:3}}));
- assert.match(html,/Awaiting measurements/);assert.doesNotMatch(html,/\/0|99\.9|Overall score: 0/);
+ assert.match(html,/Score progress/);assert.match(html,/\/100/);assert.match(html,/0 points assessed; 100 pending/);assert.doesNotMatch(html,/\/0|99\.9|Overall score: 0/);
 });

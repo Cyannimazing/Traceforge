@@ -5,6 +5,7 @@ import {ArrowUpRight, BookOpen, Bookmark, Radar, ScanLine, Search} from 'lucide-
 import {workspacePath, type WorkspaceView} from '../lib/token-route';
 import {ForgeLogo} from './brand';
 import OfficialXLink from './official-x-link';
+import OfficialTokenLink from './official-token-link';
 import './app-navigation.css';
 
 const routes = [
@@ -62,6 +63,7 @@ export default function AppNavigation({view,watchlistCount,paused,onNavigate,onH
     </a>)}
    </nav>
    <div className="an-actions">
+    <OfficialTokenLink/>
     <OfficialXLink className="an-social"/>
     <button className="an-search" type="button" aria-label="Focus token search" aria-keyshortcuts="Control+k Meta+k" onClick={()=>{setOpen(false);onSearch();}}><Search size={17} aria-hidden="true"/><span>Token search</span><kbd>Ctrl K</kbd></button>
     <button ref={toggle} className="an-toggle" type="button" aria-expanded={open} aria-controls={navId} aria-label={open?'Close navigation':'Open navigation'} onClick={()=>setOpen(value=>!value)}><span>{open?'Close':'Menu'}</span><span className="an-toggle-lines" aria-hidden="true"><i/><i/></span></button>

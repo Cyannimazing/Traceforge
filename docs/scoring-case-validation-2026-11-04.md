@@ -35,3 +35,9 @@ Source references: [Solana token extensions](https://solana.com/docs/tokens/exte
 ## Release checks
 
 934 tests passed, TypeScript passed, and the production build passed. Read-only review found no important issues. HTTP checks covered eight page types, five transparent icon sizes, the original Cyril AI credit, the 1200 by 630 Open Graph image, sitemap, robots and Google ownership file. Desktop and actual 320-pixel browser views verified the verdict, transparent mark, navigation and custom picker. Mobile menu opens and closes with Escape; picker trigger and menu both measured 252 pixels with six equal 44-pixel options. No horizontal overflow was observed. Browser review also caught and corrected the missing-market placeholder wrapping within narrow metric cells.
+
+## Follow-up: fixed display scale and project token
+
+At the operator's request, partial **Score progress** now keeps the original `/100` display scale. For example, MeiMei's established point contribution is displayed as `0/100`, with `15 points assessed; 85 pending` and `1/6 factors assessed`. It is not normalized to the assessed subset and is not labeled as a completed overall rating. No pending factor is assigned a measured zero-risk input. Full supported scores, verdict weights and critical rules remain unchanged. The earlier X/Y values in the case table describe the underlying resolved-point arithmetic, not the latest headline format.
+
+The operator designated `0xf712daf52ee4097e369488b6eb4fa3bc299ba62d` as the project token. The network resolver found code only on Robinhood among checked networks. Separate configured-RPC calls verified chain ID 4663, name **Trace Engine**, symbol **TE**, and 18 decimals at 14:53 Singapore. Navigation and footer links identify this contract and open its Robinhood explorer page. This is identity configuration, not a token-safety endorsement, and the official-token configuration is not imported by the investigation or scoring code.
