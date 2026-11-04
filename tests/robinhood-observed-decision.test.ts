@@ -90,13 +90,34 @@ test('top assessment keeps a bounded cohort while full input inventory retains m
  const r=report();for(let i=100;i<220;i++){const address=a(i),id=`holding:evm:${address}`;r.holders.push({address,share:.1,contract:false,locked:null,tag:''});r.investigation.wallets.push({address,share:.1,categories:['unclassified'],evidenceIds:[id]});r.investigation.evidence.push({id,kind:'holding',to:address,token,amountRaw:'1',decimals:0,timestamp:at,source:'EVM RPC holder balances',description:'Pinned balance'});r.walletActivity!.wallets.push({address,count:5,exact:true,fresh:null,basis:'evm-account-nonce',reason:'Account nonce only'});}
  reconcileFixture(r);const out=observedDecision(r)!;assert(out);assert.equal(out.scope.holderCount,48);assert.equal(out.scope.activityProxy?.readable,15);assert.equal(out.scope.activityProxy?.lowNonce,13);assert.equal(out.factors.find(f=>f.id==='fresh')!.value,13/15);assert.equal(out.scope.activityProxy?.outsideLimit,33);assert.equal(r.holders.length,125);
 });
-test('canonical Pons creation receipt upgrades the state identity without rejecting its historical event timestamp',()=>{
+for(const history of ['Robinhood Pons Transfer candidate history','Alchemy Robinhood token-transfer index'])test(`canonical Pons receipt identity retains arithmetic and provenance gates: ${history}`,()=>{
  // Relevant public fields from zkblast-observed-live.json; token and wallet
  // addresses remain the synthetic fixture so no production identity is seeded.
- const history='Robinhood Pons Transfer candidate history',eventAt='2026-10-28T19:10:48Z',transaction='0x3de4087ec2a03e185b1b01a6a1a80732178bbccde02342b240df8ac2591f0614';
+ const eventAt='2026-10-28T19:10:48Z',transaction='0x3de4087ec2a03e185b1b01a6a1a80732178bbccde02342b240df8ac2591f0614';
  const r=report(),identity=r.identities![0],proof=r.investigation.evidence.find(e=>e.id===`identity:creator:${creator}`)!;Object.assign(identity,{source:history,timestamp:eventAt,timestampBasis:'provider-event',transaction});Object.assign(proof,{source:history,timestamp:eventAt,transaction});r.sources.push({name:history,status:'available',fetchedAt:at,detail:'Canonical mint receipt + official TokenLaunched event bind token and launcher; anchor checked'});
- const out=observedDecision(r);assert(out);assert.equal(out.score,67);assert.equal(identity.timestamp,eventAt);assert.equal(proof.timestamp,eventAt);
- for(const mode of ['mismatch','malformed','source-failed','stale-retrieval','future-event','provider-import']){const bad=structuredClone(r),i=bad.identities![0],e=bad.investigation.evidence.find(e=>e.id===proof.id)!;if(mode==='mismatch')e.transaction='0x'+'b'.repeat(64);if(mode==='malformed'){i.transaction='not-a-hash';e.transaction=i.transaction;}if(mode==='source-failed')bad.sources.find(s=>s.name===history)!.status='unavailable';if(mode==='stale-retrieval')bad.sources.find(s=>s.name===history)!.fetchedAt='2026-11-01T00:00:00Z';if(mode==='future-event'){i.timestamp='2026-11-05T00:00:00Z';e.timestamp=i.timestamp;}if(mode==='provider-import')e.attribution='provider-reported';assert.equal(observedDecision(bad),null,mode);}
+ const out=observedDecision(r);assert(out);assert.equal(out.score,observedDecision(report())!.score);assert.equal(out.score,Math.round(out.factors.reduce((sum,f)=>sum+factorPoints(f.id,f.value)!,0)));assert.equal(identity.timestamp,eventAt);assert.equal(proof.timestamp,eventAt);
+ const changed=structuredClone(r);changed.market!.liquidity!.usd=2000;const dynamic=observedDecision(changed)!;assert(dynamic.impact<out.impact);assert(dynamic.score>out.score,'a canonical history source must not supply a fixed point score');
+ for(const mode of ['mismatch','malformed','source-failed','source-mismatch','missing-source','stale-retrieval','future-event','timestamp-mismatch','wrong-timestamp-basis','provider-import','missing-identity-receipt','missing-proof-receipt','missing-authority','wrong-proof-kind','index-marker-only']){
+  const bad=structuredClone(r),i=bad.identities![0],e=bad.investigation.evidence.find(e=>e.id===proof.id)!;
+  if(mode==='mismatch')e.transaction='0x'+'b'.repeat(64);
+  if(mode==='malformed'){i.transaction='not-a-hash';e.transaction=i.transaction;}
+  if(mode==='source-failed')bad.sources.find(s=>s.name===history)!.status='unavailable';
+  if(mode==='source-mismatch')e.source='Unqualified mint index';
+  if(mode==='missing-source')bad.sources=bad.sources.filter(s=>s.name!==history);
+  if(mode==='stale-retrieval')bad.sources.find(s=>s.name===history)!.fetchedAt='2026-11-01T00:00:00Z';
+  if(mode==='future-event'){i.timestamp='2026-11-05T00:00:00Z';e.timestamp=i.timestamp;}
+  if(mode==='timestamp-mismatch')e.timestamp='2026-10-28T19:10:49Z';
+  if(mode==='wrong-timestamp-basis')i.timestampBasis='local-observation';
+  if(mode==='provider-import')e.attribution='provider-reported';
+  if(mode==='missing-identity-receipt')delete i.transaction;
+  if(mode==='missing-proof-receipt')delete e.transaction;
+  if(mode==='missing-authority')bad.investigation.evidence=bad.investigation.evidence.filter(e=>e.id!==proof.id);
+  if(mode==='wrong-proof-kind')e.kind='label';
+  if(mode==='index-marker-only'){bad.holderEnumeration!.indexProvenance={kind:'alchemy-token-index',pages:2,exhausted:true,indexedEvents:10,canonicalReceiptCount:1};delete i.transaction;delete e.transaction;}
+  assert.equal(observedDecision(bad),null,mode);
+ }
+ const hard=structuredClone(r);hard.checks[0].status='critical';const h=observedDecision(hard)!;assert.equal(h.scoreBand,'AVOID');assert.equal(h.judge.decision,'AVOID');
+ const soft=structuredClone(r);soft.checks.find(c=>c.key==='is_mintable')!.status='warning';const s=observedDecision(soft)!;assert(s.score<=59);assert.notEqual(s.scoreBand,'OK');
 });
 test('delegated EOA account nonces participate only in the stated proxy, never as exact outgoing counts or lifetime-fresh flags',()=>{
  const r=report();Object.assign(r.walletActivity!.wallets[1],{basis:'evm-account-nonce',count:1,fresh:null,reason:'EIP-7702 authorization increments are included in the account nonce.'});const strict=trustRating(r),out=observedDecision(r,strict);assert(out);assert.equal(out.factors.find(f=>f.id==='fresh')!.value,2/3);assert.equal(out.scope.activityProxy?.kind,'low-account-nonce');assert.equal(out.scope.activityProxy?.lowNonce,2);assert.match(out.factors.find(f=>f.id==='fresh')!.detail,/authorization increments/);assert.equal(r.walletActivity!.wallets[1].fresh,null);assert.equal(strict.score,null);assert.equal(strict.hard?.length,0);

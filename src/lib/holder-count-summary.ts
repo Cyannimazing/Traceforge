@@ -9,6 +9,6 @@ export function holderCountSummary(report:InvestigationReport){
  const total=typeof count==='number'&&Number.isSafeInteger(count)&&count>=scope.allSnapshot.length?count:null;
  const inventory=report.holderEnumeration;
  const allRecordedChecked=!report.fixture&&!report.providerAnalysis&&total!==null&&total>0&&inventory?.kind==='pons-creation-ledger'&&inventory.complete===true&&inventory.recordedAccounts===total&&inventory.verifiedAccounts===total&&scope.allSnapshot.length===total;
- const derived=total!==null&&report.sources.some(source=>source.name==='Robinhood Pons Transfer candidate history'&&source.status==='available'&&source.detail.includes(`Transfer-ledger count: ${total} recorded holder accounts`));
+ const derived=total!==null&&report.sources.some(source=>['Robinhood Pons Transfer candidate history','Alchemy Robinhood token-transfer index'].includes(source.name)&&source.status==='available'&&source.detail.includes(`Transfer-ledger count: ${total} recorded holder accounts`));
  return {total,derived,allRecordedChecked,displayed:top.holders.length,analyzed:scope.holders.length,infrastructure:scope.infrastructure.length,traced:report.investigation.wallets.length,topRaw:top.rawRanked.length,topSetAside:top.infrastructure.length+top.contracts.length};
 }

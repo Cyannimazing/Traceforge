@@ -3,6 +3,11 @@ import assert from 'node:assert/strict';
 import {fixtureReport} from '../src/lib/investigation-fixture';
 import {holderCountSummary} from '../src/lib/holder-count-summary';
 test('recorded total, checked holders and traced addresses remain separate quantities',()=>{const r=structuredClone(fixtureReport);r.holderCount=239;r.sources.push({name:'Robinhood Pons Transfer candidate history',status:'available',fetchedAt:r.fetchedAt,detail:'Transfer-ledger count: 239 recorded holder accounts at this safe anchor.'});const counts=holderCountSummary(r);assert.equal(counts.total,239);assert.equal(counts.derived,true);assert.ok(counts.analyzed<counts.total!);assert.equal(counts.traced,r.investigation.wallets.length);assert.equal(counts.analyzed+counts.infrastructure,r.holders.length);});
+test('authenticated token-index ledger counts remain source-derived and distinct from independently checked accounts',()=>{
+ const r=structuredClone(fixtureReport);r.holderCount=239;r.sources.push({name:'Alchemy Robinhood token-transfer index',status:'available',fetchedAt:r.fetchedAt,detail:'Transfer-ledger count: 239 recorded holder accounts at this safe anchor.'});
+ assert.equal(holderCountSummary(r).derived,true);assert.equal(holderCountSummary(r).allRecordedChecked,false);
+ r.sources.at(-1)!.status='unavailable';assert.equal(holderCountSummary(r).derived,false);
+});
 test('contradictory totals and missing totals are not inferred from the analyzed sample',()=>{for(const total of [null,0,1,NaN,Infinity,2.5]){const r=structuredClone(fixtureReport);r.holderCount=total;assert.equal(holderCountSummary(r).total,null);}});
 
 test('top-holder presentation never reduces the analyzed holder inventory',()=>{

@@ -17,14 +17,24 @@ This fixes the reproduced 10-raw / 7-top-holder fallback and its unsupported Cle
 - Large activity batches could starve controls of their shorter timeout. Expanded controls now finish their anchor check before large activity batches, within the same overall deadline and compute-unit pacing.
 - Degraded fallback reports retry after 30 seconds, including after restart. Complete inventories retain normal reuse. Cache schema 19 invalidates prior interpretations.
 
+### Production primary-index correction
+
+The first deployed check at 10:54 UTC still returned seven top wallets: the public log route returned HTTP 429 from the deployed environment. That failure was not treated as a completed comparison or retried through another public host.
+
+Configured Robinhood Alchemy endpoints now select the authenticated token-transfer index as their primary candidate source, before any public-RPC preflight. Fixed-safe-anchor pages are exhausted with raw-unit, ordering, duplicate, cursor and budget checks. The initial mint and official factory event are verified against an actual successful receipt and canonical headers. Index records do not acquire fabricated block hashes or become trade evidence. Current balances still require independent same-block `balanceOf`, supply and ending-anchor checks; nominated connections require separate exact receipts and headers. Rate/access denial stops the selected provider path, without public failover or retries.
+
+The authenticated path allows 35 seconds for discovery and 60 seconds total from the original holder-stage start, with one paced endpoint lane and an anchor/proof reserve. The public route retains its existing 20/38-second bounds. Cache schema 20 invalidates earlier interpretations.
+
+The bounded live adapter exhausted 18 pages containing 17,539 events, independently verified all 199 positive balances, reconciled 100% of same-block supply and verified four direct-transfer receipts in 47.8 seconds. The full independent report below took 92.3 seconds cold; a subsequent populated-cache check returned the same 199 balances and score in 0.11 seconds. This is not cold-speed parity with Swarm's cached scan.
+
 ## Matched-token results
 
 Public comparison and independent production-build requests were close together, but their underlying capture times differ.
 
 | Token | TraceForge capture UTC | Positive balances verified / ledger count | Top wallets, ours / Swarm | Independent point / output | Captured Swarm score / output |
 | --- | --- | --- | --- | --- | --- |
-| SWARM, Robinhood `0x72bf...1f57` | 10:41:15 | 177 / 199; raw top 50 verified | 47 / 47 | 72, Watch 59.9% | 59, CAUTION 53.8% |
-| ZKBLAST, Robinhood `0x3f9f...ecd7` | 10:42:25 | 158 / 338; raw top 50 verified | 46 / 46 | 70, Watch 66.0% | 81, OK 68.1% |
+| SWARM, Robinhood `0x72bf...1f57` | 11:14:36 | 199 / 199; all positive balances verified | 47 / 47 | 72, Watch 59.9% | 59, CAUTION 53.8% |
+| ZKBLAST, Robinhood `0x3f9f...ecd7` | 11:17:06 | 203 / 348; raw top 50 verified, remaining balances unread | 46 / 46 | 70, Watch 48.6% | 81, OK 68.1% |
 | Grokbot, Solana `6NaM...pump` | 10:43:49 | 20 sampled accounts/owners; census unknown | 19 / 19 | 87, Clear 80.1% | 87, OK 80.1% |
 
 Percentages are calculated model weights, not calibrated probabilities of safety.
@@ -41,15 +51,15 @@ Swarm explicitly caps the score at 59 because three holders appeared in its cros
 
 ### Other snapshots and failures
 
-ZKBLAST's Swarm capture was 06:40:48 UTC, four hours earlier. Forty-one top addresses overlap; five ranks differ on each side. Current liquidity, price and nonces differ too. Copying 81 would override later evidence. Grokbot's Swarm capture was 01:00:13 UTC: fifteen addresses overlap and four current ranks differ on each side, despite matching score and weight.
+ZKBLAST's Swarm capture was 06:40:48 UTC, more than four hours earlier. Forty-one top addresses overlap; five ranks differ on each side. Current liquidity, price and nonces differ too. Copying 81 would override later evidence. Its authenticated index exhausted seven pages and 6,998 events. Grokbot's Swarm capture was 01:00:13 UTC: fifteen addresses overlap and four current ranks differ on each side, despite matching score and weight.
 
 An earlier Solana owner read returned unavailable. A focused four-read reproduction and subsequent full scans succeeded without changing parsing rules. The original generic error discarded the upstream detail, so its exact transient cause cannot be established.
 
 ## Verification and limits
 
-987 tests pass with none skipped or failing; TypeScript and the Desktop production build pass. Coverage includes old/inactive tokens, page gaps and caps, duplicate events, canonical receipt mismatches, partial tails, missing top ranks, zero balances, provider denials, concurrent pacing, unflagged holders, delegated EOAs, refresh persistence, control starvation, cancellation and changed anchors.
+1,012 tests pass with none skipped or failing; TypeScript and the Desktop production build pass. Coverage includes authenticated index exhaustion and malformed/cyclic pages, old/inactive tokens, page gaps and caps, duplicate events, canonical receipt mismatches, partial tails, missing top ranks, zero balances, provider denials without route changes, concurrent pacing, unflagged holders, delegated EOAs, refresh persistence, control starvation, cancellation and changed anchors.
 
-An earlier live standalone capture verified all 199 positive SWARM balances and reconciled 100% of supply. That capture is not substituted for the later timed partial snapshot. Browser verification confirms SWARM's 47 top wallets, three documented links, 44 groups, 72/100 and 59.9% Watch output, plus Grokbot's 19 top wallets, 87/100 and 80.1% Clear display. Navigation/footer token promotion was removed across eight deployed routes; the full project address and Copy remain on the home page.
+The final authenticated independent SWARM report itself verifies all 199 positive balances; this is no longer substituted from a standalone capture. The earlier timed public-log snapshot checked only 177 and remains a separate historical observation. Browser verification confirms SWARM's 47 top wallets, three documented links, 44 groups, 72/100 and 59.9% Watch output, plus Grokbot's 19 top wallets, 87/100 and 80.1% Clear display. Navigation/footer token promotion was removed across eight deployed routes; the full project address and Copy remain on the home page.
 
 Public log access is rate limited. Large inventories can exceed bounded deadlines. Ranked-prefix verification is not a complete ownership census. Complete acquisition/funding histories, internal transfers, executable V4 impact, cross-token recurrence coverage and outcome calibration remain unproven. Near-equal raw balances collapsing to equal floating-point shares can conservatively withhold prefix eligibility. Swarm's private memory and judge internals have not been recovered.
 

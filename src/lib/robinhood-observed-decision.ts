@@ -13,7 +13,7 @@ import {topHolderCohort} from './top-holder-cohort';
 const norm=(s:string)=>s.toLowerCase(),positive=(n:unknown):n is number=>typeof n==='number'&&Number.isFinite(n)&&n>0;
 const raw=(v:unknown)=>typeof v==='string'&&/^\d{1,78}$/.test(v)&&BigInt(v)<2n**256n?BigInt(v):null;
 const hash=(v:unknown)=>typeof v==='string'&&/^0x[0-9a-f]{64}$/i.test(v);
-const HOLDINGS='EVM RPC holder balances',PONS='Pons factory launch record',PONS_HISTORY='Robinhood Pons Transfer candidate history';
+const HOLDINGS='EVM RPC holder balances',PONS='Pons factory launch record',PONS_HISTORIES=['Robinhood Pons Transfer candidate history','Alchemy Robinhood token-transfer index'];
 
 /** A counterfactual point model of the returned Robinhood sample. It never
  * changes strict evidence bounds, lifetime-fresh labels or launch completeness.
@@ -46,7 +46,7 @@ export function robinhoodObservedDecision(report:InvestigationReport,strict:Trus
   if(i.source===PONS)return fresh(i.timestamp)&&i.timestampBasis==='local-observation';
   // The receipt-backed adapter upgrades this same identity to its immutable
   // creation event. Freshness applies to the retrieval source, not launch time.
-  return i.source===PONS_HISTORY&&source(PONS_HISTORY)&&i.timestampBasis==='provider-event'&&dated(i.timestamp,historyClock)&&hash(i.transaction)&&hash(e.transaction)&&norm(i.transaction!)===norm(e.transaction!);
+  return PONS_HISTORIES.includes(i.source)&&source(i.source)&&i.timestampBasis==='provider-event'&&dated(i.timestamp,historyClock)&&hash(i.transaction)&&hash(e.transaction)&&norm(i.transaction!)===norm(e.transaction!);
  });
  const creators=new Set(initiators.map(i=>norm(i.address)));if(creators.size!==1)return null;
  const supply=report.totalSupply;if(!positive(supply))return null;
@@ -105,7 +105,7 @@ export function robinhoodObservedDecision(report:InvestigationReport,strict:Trus
  const security=context.guard.critical?null:strict.judgeInputs?.security??null,judge=decisionModel({score:{lower:scored.score,upper:scored.score},danger:hard.length>0,security,memoryHits:0,dumpImpact:{lower:impact,upper:impact},hard});
  return {score:scored.score,scoreBand:scored.decision,judge,factors,impact,largestShare:share(largest),scope:{holderCount:cohort.holders.length,readableFreshWallets:selected.length,unreadFreshWallets:unread+outside,activityProxy:{kind:'low-account-nonce',limit:cohort.activityCandidates.length,readable:selected.length,lowNonce:low,unread,outsideLimit:outside},topHolders:{rawLimit:cohort.rawLimit,rawCount:cohort.rawRanked.length,selectedCount:cohort.holders.length,infrastructureCount:cohort.infrastructure.length,contractCount:cohort.contracts.length,activityLimit:15,floatDenominator:denominator,allAnalyzedCount:scope.holders.length},notes:[
   'Conditional observed-scope point model of the returned sample. Strict evidence bounds remain separate; this score is not a safety probability or a complete audit.',
-  completeInventory?`All ${inventory.recordedAccounts} recorded positive holder balances reconcile at the current anchor.`:`The complete creation ledger identifies the raw top ${ranked!.addresses.length}; every address in that prefix has an independently verified current balance. ${inventory.verifiedAccounts} of ${inventory.recordedAccounts} recorded positive accounts have verified balances. Lower unread ranks remain unknown; this is not a fully checked holder inventory.`,
+  completeInventory?`All ${inventory.recordedAccounts} recorded positive holder balances reconcile at the current anchor.`:`${inventory.indexProvenance?'The exhausted provider token-transfer index':'The complete creation ledger'} identifies the raw top ${ranked!.addresses.length}; every address in that prefix has an independently verified current balance. ${inventory.verifiedAccounts} of ${inventory.recordedAccounts} recorded positive accounts have verified balances. Lower unread ranks remain unknown; this is not a fully checked holder inventory.`,
   `${returnedTrades.length} source-attributed selected-pool trade observations establish a returned activity subset, not complete launch history. No recorded insider/sniper match does not prove absence.`,
   'Low account nonce is not verified lifetime-fresh status; EIP-7702 authorization increments are not transactions sent by the account. Unknown wallets are excluded from that proxy, not assigned favorable counts.',
   'The USD-derived balanced constant-product pool is counterfactual for V4: concentrated ranges, hooks, token taxes, fees, routing and execution are not modeled.',

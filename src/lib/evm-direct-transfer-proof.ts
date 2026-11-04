@@ -1,4 +1,5 @@
 import type {TransferRecord} from './investigation';
+import type {AlchemyDirectNomination} from './alchemy-pons-candidates';
 export const DIRECT_TRANSFER_SOURCE='EVM canonical holder-transfer receipts';
 const TOPIC='0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef',HASH=/^0x[0-9a-f]{64}$/i,ADDRESS=/^0x[0-9a-f]{40}$/i;
 const object=(v:unknown):Record<string,any>=>v&&typeof v==='object'&&!Array.isArray(v)?v as Record<string,any>:{};
@@ -41,4 +42,44 @@ export async function verifyDirectTransferCandidates(input:Input,read:(calls:Cal
  }
  if(transfers.length){try{if(input.canRead?.()===false)throw Error('deadline');const checked=object((await read([{method:'eth_getBlockByNumber',params:[input.anchor.number,false]}]))[0]);if(quantity(checked.number)!==anchorNumber||checked.hash?.toLowerCase()!==input.anchor.hash.toLowerCase()||quantity(checked.timestamp)!==anchorTime)throw Error('reorg');}catch{input.signal?.throwIfAborted();transfers.length=0;stopped=true;return finish(' Ending anchor was not verified; all links withheld.');}}
  return finish(failed||stopped?' Some proofs were unavailable, conflicting or outside the remaining request/time budget.':'');
+}
+
+export type IndexedTransferProofInput=Omit<Input,'candidates'>&{nominations:AlchemyDirectNomination[]};
+/** Index rows nominate a transaction/log only. Every returned identity, raw
+ * amount and time is matched to actual successful receipt and canonical header.
+ * No block hash is fabricated to adapt index rows into canonical log records.
+ */
+export async function verifyIndexedTransferCandidates(input:IndexedTransferProofInput,read:(calls:Call[])=>Promise<unknown[]>){
+ input.signal?.throwIfAborted();const transfers:TransferRecord[]=[],anchorNumber=quantity(input.anchor.number),anchorTime=quantity(input.anchor.timestamp);let attempted=0,rejected=0,stopped=false,truncated=false;
+ const finish=(extra='')=>({transfers,truncated:truncated||rejected>0||stopped,detail:`${transfers.length} indexed token-transfer nominations independently verified from ${attempted} transaction proof batches. Scope: top 50 eligible positive holders, at most 4 transactions and 32 logs. Accepted links match exact successful receipt logs, canonical block headers and the ending safe anchor; index rows alone never establish a relationship, trade or ownership.${extra}`});
+ if(!ADDRESS.test(input.token)||anchorNumber===null||anchorTime===null||anchorTime<=0||!HASH.test(input.anchor.hash)||!Number.isInteger(input.decimals)||input.decimals<0||input.decimals>255){stopped=true;return finish(' Invalid anchor or token units; links withheld.');}
+ const token=input.token.toLowerCase(),excluded=new Set([token,'0x'+'0'.repeat(40),'0x000000000000000000000000000000000000dead',...(input.excludedAddresses||[])].map(a=>a.toLowerCase()));
+ const eligible=[...new Set(input.eligibleAddresses.map(a=>a.toLowerCase()).filter(a=>ADDRESS.test(a)&&!excluded.has(a)))].slice(0,50),ranks=new Map(eligible.map((a,i)=>[a,i])),records=new Map<string,AlchemyDirectNomination>(),conflicts=new Set<string>();
+ // Incoming nomination bounds are independent of proof-request bounds.
+ if(input.nominations.length>1000)truncated=true;
+ for(const n of input.nominations.slice(0,1000)){
+  if(typeof n.token!=='string'||n.token.toLowerCase()!==token||typeof n.from!=='string'||typeof n.to!=='string'||!ranks.has(n.from.toLowerCase())||!ranks.has(n.to.toLowerCase())||n.from.toLowerCase()===n.to.toLowerCase()||!HASH.test(n.transaction)||!Number.isSafeInteger(n.logIndex)||n.logIndex<0||!Number.isSafeInteger(n.blockNumber)||n.blockNumber<0||n.blockNumber>anchorNumber||typeof n.amountRaw!=='string'||! /^[1-9][0-9]{0,77}$/.test(n.amountRaw)||BigInt(n.amountRaw)>((1n<<256n)-1n)){rejected++;continue;}
+  const row={token,from:n.from.toLowerCase(),to:n.to.toLowerCase(),transaction:n.transaction.toLowerCase(),logIndex:n.logIndex,blockNumber:n.blockNumber,amountRaw:n.amountRaw},key=row.transaction+':'+row.logIndex,prior=records.get(key);
+  if(prior&&JSON.stringify(prior)!==JSON.stringify(row)){conflicts.add(key);rejected++;}else records.set(key,row);
+ }
+ const sorted=[...records].filter(([key])=>!conflicts.has(key)).map(([,row])=>row).sort((a,b)=>Math.max(ranks.get(a.from)!,ranks.get(a.to)!)-Math.max(ranks.get(b.from)!,ranks.get(b.to)!)||a.blockNumber-b.blockNumber||a.logIndex-b.logIndex),groups=new Map<string,AlchemyDirectNomination[]>();let selected=0;
+ for(const n of sorted){if(selected>=32||!groups.has(n.transaction)&&groups.size>=4){truncated=true;continue;}const rows=groups.get(n.transaction)||[];rows.push(n);groups.set(n.transaction,rows);selected++;}
+ for(const [transaction,rows] of groups){
+  input.signal?.throwIfAborted();if(input.canRead?.()===false){stopped=true;break;}attempted++;
+  try{
+   const blockNumber=rows[0].blockNumber,[rawReceipt,rawBlock]=await read([{method:'eth_getTransactionReceipt',params:[transaction]},{method:'eth_getBlockByNumber',params:['0x'+blockNumber.toString(16),false]}]),receipt=object(rawReceipt),block=object(rawBlock),time=quantity(block.timestamp);
+   const blockHash=typeof block.hash==='string'&&HASH.test(block.hash)?block.hash.toLowerCase():null;
+   if(receipt.status!=='0x1'||receipt.transactionHash?.toLowerCase()!==transaction||quantity(receipt.blockNumber)!==blockNumber||!blockHash||receipt.blockHash?.toLowerCase()!==blockHash||quantity(block.number)!==blockNumber||time===null||time<=0||time>anchorTime||!Array.isArray(receipt.logs)||receipt.logs.length>2000){rejected+=rows.length;continue;}
+   for(const n of rows){
+    // Count all matching global positions before normalizing, so a conflicting
+    // malformed duplicate cannot be hidden beside one apparently valid log.
+    const atPosition=receipt.logs.filter((v:unknown)=>quantity(object(v).logIndex)===n.logIndex),proof=atPosition.length===1?normalize(atPosition[0]):null;
+    if(n.blockNumber!==blockNumber||!proof||proof.transactionHash!==transaction||proof.blockHash!==blockHash||quantity(proof.blockNumber)!==blockNumber||proof.address!==token||wordAddress(proof.topics[1])!==n.from||wordAddress(proof.topics[2])!==n.to||BigInt(proof.data)!==BigInt(n.amountRaw)){rejected++;continue;}
+    const amount=Number(BigInt(proof.data))/10**input.decimals;if(!Number.isFinite(amount)||amount<=0){rejected++;continue;}
+    transfers.push({id:`evm-direct:${transaction}:${n.logIndex}`,from:n.from,to:n.to,token,native:false,amountRaw:BigInt(proof.data).toString(),decimals:input.decimals,amount,timestamp:new Date(time*1000).toISOString(),transaction,source:`${DIRECT_TRANSFER_SOURCE}; Alchemy index nomination independently matched to exact successful receipt log and canonical block header; safe anchor ${anchorNumber}; direct token transfer, not a buy, sell or ownership proof`});
+   }
+  }catch(error){input.signal?.throwIfAborted();rejected++;stopped=true;if(error instanceof Error&&/rate limit|denied/i.test(error.message)){transfers.length=0;return finish(' Provider denied further reads; no retry was made and links without ending-anchor proof were withheld.');}break;}
+ }
+ if(transfers.length){try{if(input.canRead?.()===false)throw Error('deadline');const checked=object((await read([{method:'eth_getBlockByNumber',params:[input.anchor.number,false]}]))[0]);if(quantity(checked.number)!==anchorNumber||checked.hash?.toLowerCase()!==input.anchor.hash.toLowerCase()||quantity(checked.timestamp)!==anchorTime)throw Error('anchor');}catch{input.signal?.throwIfAborted();transfers.length=0;stopped=true;return finish(' Ending anchor was not verified; links withheld.');}}
+ return finish(rejected||stopped?' Some nominations were conflicting, unavailable or outside the remaining work budget.':'');
 }
