@@ -75,3 +75,16 @@ test('top fifty display leaves later holder relationships available to the full 
  assert.equal(all.shown,239);assert.equal(all.edges.length,1);assert.equal(all.documentedGroups,1);
  assert.equal(r.holders.length,239);assert.equal(displayed.nodes[0].share,r.holders[0].share);
 });
+
+test('top-wallet view ranks raw balances before exclusions and never backfills beyond its source window',()=>{
+ const r=report('base');r.holders=Array.from({length:55},(_,i)=>({address:'0x'+(i+1).toString(16).padStart(40,'0'),share:(55-i)/100,contract:false,locked:false,tag:''}));
+ r.investigation.wallets=r.holders.map(h=>({address:h.address,share:h.share,categories:['unclassified'],evidenceIds:[]}));
+ const pool=r.investigation.wallets[0];pool.categories=['pool'];pool.evidenceIds=[`label:${pool.address}:pool`];r.investigation.evidence=[{id:pool.evidenceIds[0],kind:'label',source:'Verified registry',timestamp:at,description:'Documented platform'}];
+ const before=JSON.stringify(r),g=buildCurrentHolderGraph(r,{limit:50,cohort:'top'});
+ assert.equal(g.shown,49);assert.equal(g.total,49);assert.equal(g.walletGroups,49);
+ assert.equal(g.nodes[0].address,r.holders[1].address);assert.equal(g.nodes.at(-1)!.address,r.holders[49].address);
+ assert(!g.nodes.some(n=>n.address===r.holders[50].address));assert.equal(JSON.stringify(r),before);
+ const full=buildCurrentHolderGraph(r,{limit:10000});assert.equal(full.nodes.length,54);
+ transfer(r,'cohort-link',r.holders[1].address,r.holders[2].address,'transfer','native');
+ const connected=buildCurrentHolderGraph(r,{cohort:'top'});assert.equal(connected.documentedGroups,1);assert.equal(connected.walletGroups,48);
+});

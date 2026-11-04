@@ -1,0 +1,26 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {topHolderCohort} from '../src/lib/top-holder-cohort';
+import type {InvestigationReport} from '../src/lib/investigation-types';
+const at='2026-11-04T01:00:00Z',hash='0x'+'a'.repeat(64),ref='0x20:'+hash,a=(n:number)=>'0x'+n.toString(16).padStart(40,'0');
+function fixture():InvestigationReport{
+ const holders=Array.from({length:60},(_,i)=>({address:a(i+1),share:(60-i)/100,contract:null,locked:null,tag:''}));
+ const r={chain:'robinhood',token:a(999),fetchedAt:at,totalSupply:100000,holders,sources:[{name:'EVM RPC wallet activity',status:'available',fetchedAt:at,detail:''},{name:'EVM RPC holder balances',status:'available',fetchedAt:at,detail:''}],investigation:{wallets:holders.map(h=>({address:h.address,share:h.share,categories:['unclassified'],evidenceIds:[]})),evidence:holders.map(h=>({id:'holding:evm:'+h.address,kind:'holding',to:h.address,token:a(999),amountRaw:String(Math.round(h.share*1000)),decimals:0,timestamp:at,source:'EVM RPC holder balances',description:''})),relationships:[],coverage:{fetchedAt:at}},walletActivity:{source:'EVM RPC wallet activity',observedAt:at,blockTimestamp:at,finality:'finalized',blockRef:ref,truncated:false,wallets:holders.map(h=>({address:h.address,count:20,exact:true,fresh:null,basis:'evm-account-nonce',reason:'',accountKind:'eoa',codeProof:{code:'0x',blockRef:ref}}))}} as unknown as InvestigationReport;
+ const w=r.investigation.wallets[0],id='label:'+w.address+':pool';w.categories=['pool'];w.evidenceIds=[id];r.investigation.evidence.push({id,kind:'label',source:'Verified deployment registry',timestamp:at,description:'pool'});
+ return r;
+}
+test('raw top fifty precede set-aside decisions, delegated EOAs stay and no lower rows backfill',()=>{
+ const r=fixture(),activity=r.walletActivity!.wallets;Object.assign(activity[1],{accountKind:'contract',count:null,exact:false,codeProof:{code:'0x60016000',blockRef:ref}});Object.assign(activity[2],{accountKind:'delegated-eoa',codeProof:{code:'0xef0100'+'1'.repeat(40),blockRef:ref}});
+ const before=JSON.stringify(r),out=topHolderCohort(r);assert.equal(out.rawLimit,50);assert.equal(out.rawRanked.length,50);assert.equal(out.holders.length,48);assert.equal(out.infrastructure.length,1);assert.equal(out.contracts.length,1);assert(out.holders.some(h=>h.address===a(3)));assert(!out.holders.some(h=>h.address===a(51)));assert.equal(out.denominator,100-.6-.59);assert.equal(JSON.stringify(r),before);
+});
+test('provider flags, text reasons and missing stale malformed or reorged code proof cannot set aside a wallet',()=>{
+ for(const mode of ['missing','stale','wrong-source','wrong-block','malformed','wrong-kind','failed','future','unbound-balance']){const r=fixture(),w=r.walletActivity!.wallets[1];r.holders[1].contract=true;Object.assign(w,{count:null,exact:false,reason:'Verified contract account',accountKind:'contract',codeProof:{code:'0x6000',blockRef:ref}});if(mode==='missing')delete w.codeProof;if(mode==='stale')r.walletActivity!.observedAt='2026-11-03T01:00:00Z';if(mode==='wrong-source')r.walletActivity!.source='Provider';if(mode==='wrong-block')w.codeProof!.blockRef='0x21:'+hash;if(mode==='malformed')w.codeProof!.code='0x600';if(mode==='wrong-kind')w.codeProof!.code='0x';if(mode==='failed')r.walletActivity!.failure='anchor-changed';if(mode==='future')r.walletActivity!.blockTimestamp='2026-11-05T01:00:00Z';if(mode==='unbound-balance')r.investigation.evidence.find(e=>e.id==='holding:evm:'+w.address)!.amountRaw='1';assert.equal(topHolderCohort(r).contracts.length,0,mode);}
+});
+test('first fifteen selected rows are activity candidates even with unread rows; ties and input order are deterministic',()=>{
+ const r=fixture();r.holders[20].share=r.holders[21].share;const before=topHolderCohort(r);r.walletActivity!.wallets[3].count=null;r.holders.reverse();r.walletActivity!.wallets.reverse();const out=topHolderCohort(r);assert.deepEqual(out.holders,before.holders);assert.equal(out.activityCandidates.length,15);assert.deepEqual(out.activityCandidates.map(h=>h.address),before.holders.slice(0,15).map(h=>h.address));assert(!out.activityCandidates.some(h=>h.address===a(17)));
+});
+test('Solana uses twenty raw owners before infrastructure without treating program-looking strings as code proof',()=>{
+ const r=fixture();r.chain='solana';const out=topHolderCohort(r);assert.equal(out.rawLimit,20);assert.equal(out.rawRanked.length,20);assert.equal(out.infrastructure.length,1);assert.equal(out.holders.length,19);assert.equal(out.contracts.length,0);assert.equal(out.activityCandidates.length,15);
+});
+
+test('a missing current market-pool balance withholds float while measured infrastructure below the cap remains subtracted',()=>{const r=fixture();r.market={pairAddress:a(888)} as never;r.sources.push({name:'DEX Screener',status:'available',fetchedAt:at,detail:''});assert.equal(topHolderCohort(r).floatBasis.denominator,null);assert.match(topHolderCohort(r).floatBasis.reason!,/no snapshot balance/);r.market=null;const w=r.investigation.wallets[59],id='label:'+w.address+':burn';w.categories=['burn'];w.evidenceIds=[id];r.investigation.evidence.push({id,kind:'label',timestamp:at,source:'Verified burn identity',description:''});const c=topHolderCohort(r);assert.equal(c.infrastructure.length,1);assert.equal(c.floatBasis.denominator,100-.6-.01);});

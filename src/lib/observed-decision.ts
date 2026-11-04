@@ -9,9 +9,10 @@ import {decisionModel,type DecisionModelResult} from './decision-model';
 import {PUMPSWAP_PROGRAM} from './solana-pool-reserves';
 import {clockReferenceTime} from './evidence-clock';
 import {robinhoodObservedDecision} from './robinhood-observed-decision';
+import {topHolderCohort} from './top-holder-cohort';
 
 export type ObservedFactor={id:ScoringFactorId;value:number;basis:'observed-holdings'|'readable-wallets'|'account-nonce-proxy'|'observed-exposure'|'observed-none'|'conditional-scenario';detail:string};
-export type ObservedDecision={score:number;scoreBand:'CLEAN'|'OK'|'CAUTION'|'AVOID';judge:DecisionModelResult;factors:ObservedFactor[];scope:{holderCount:number;readableFreshWallets:number;unreadFreshWallets:number;activityProxy?:{kind:'low-account-nonce';limit:number;readable:number;lowNonce:number;unread:number;outsideLimit:number};notes:string[]};impact:number;largestShare:number};
+export type ObservedDecision={score:number;scoreBand:'CLEAN'|'OK'|'CAUTION'|'AVOID';judge:DecisionModelResult;factors:ObservedFactor[];scope:{holderCount:number;readableFreshWallets:number;unreadFreshWallets:number;activityProxy?:{kind:'low-account-nonce';limit:number;readable:number;lowNonce:number;unread:number;outsideLimit:number};topHolders?:{rawLimit:number;rawCount:number;selectedCount:number;infrastructureCount:number;contractCount:number;activityLimit:number;floatDenominator:number;allAnalyzedCount:number};notes:string[]};impact:number;largestShare:number};
 const HISTORY_SOURCES=new Set(['Alchemy finalized Solana transaction history','Alchemy durable Solana mint-address history']);
 const uint64=(value:string)=>/^\d{1,20}$/.test(value)&&BigInt(value)<=18446744073709551615n?BigInt(value):null;
 
@@ -35,15 +36,15 @@ export function observedDecision(report:InvestigationReport,strictRating:TrustRa
   const e=evidence.get(id);return id===`identity:creator:${w.address}`&&e?.kind==='authority'&&!!e.transaction?.trim()&&HISTORY_SOURCES.has(e.source)&&sourceAvailable(e.source);
  })).map(w=>w.address));
  if(!creators.size)return null;
- const scope=holderScope(report),graph=buildCurrentHolderGraph(report,{limit:1000});
- if(!scope.holders.length||graph.truncated||graph.nodes.some(n=>n.share===null))return null;
- const shares=new Map(scope.holders.map(h=>[h.address,h.share])),denominator=100-scope.infrastructure.reduce((sum,h)=>sum+h.share,0);
- if(!(denominator>0))return null;
+ const scope=holderScope(report),cohort=topHolderCohort(report),graph=buildCurrentHolderGraph(report,{limit:Math.max(1000,report.holders.length)});
+ if(!cohort.holders.length||graph.truncated||graph.nodes.some(n=>n.share===null))return null;
+ const shares=new Map(cohort.holders.map(h=>[h.address,h.share])),denominator=cohort.denominator;
+ if(denominator===null||!(denominator>0))return null;
  const activity=report.walletActivity;
  if(!activity||!fresh(activity.observedAt)||!sourceAvailable(activity.source,true))return null;
  const activityRows=new Map(activity.wallets.map(w=>[w.address,w]));
- const eligible=scope.holders.filter(h=>!creators.has(h.address));let readable=0;
- for(const h of eligible){
+ const eligible=cohort.holders.filter(h=>!creators.has(h.address));let readable=0;
+ for(const h of cohort.activityCandidates.filter(h=>!creators.has(h.address))){
   const w=activityRows.get(h.address),count=w?.count;
   // Existing bounded probes can disprove freshness, but neither short Solana
   // pages nor low EVM nonces establish <=10 lifetime transactions.
@@ -55,7 +56,7 @@ export function observedDecision(report:InvestigationReport,strictRating:TrustRa
  const seen=new Set<string>(),groups:string[][]=[];
  for(const address of shares.keys()){
   if(seen.has(address))continue;const group:string[]=[],pending=[address];
-  while(pending.length){const a=pending.pop()!;if(seen.has(a))continue;seen.add(a);group.push(a);pending.push(...(adjacency.get(a)||[]));}groups.push(group);
+  while(pending.length){const a=pending.pop()!;if(seen.has(a)||!shares.has(a))continue;seen.add(a);group.push(a);pending.push(...(adjacency.get(a)||[]));}groups.push(group);
  }
  const groupShare=(group:string[])=>group.reduce((sum,a)=>sum+shares.get(a)!,0);
  groups.sort((a,b)=>groupShare(b)-groupShare(a)||a[0].localeCompare(b[0]));
@@ -76,12 +77,12 @@ export function observedDecision(report:InvestigationReport,strictRating:TrustRa
  const rawShare=Number(q)/10**pool.base.decimals/supply*100;
  if(!Number.isFinite(rawShare)||Math.abs(rawShare-groupShare(largest))>1e-6)return null;
  const divisor=(x+q)*(x+q),impact=Number((divisor-x*x)*1_000_000_000_000n/divisor)/1_000_000_000_000;
- const strictInputs=buildScoringInputs(report),measured=new Map(strictInputs.map(f=>[f.id,f]));
+ const scopedInputs=buildScoringInputs(report,{exposureScope:{addresses:cohort.holders.map(h=>h.address),denominator}}),measured=new Map(scopedInputs.map(f=>[f.id,f]));
  const factors:ObservedFactor[]=[
   {id:'swarm',value:impact,basis:'conditional-scenario',detail:`Nominal raw reserve-price drop 1 - x²/(x+q)², with q=${q} and x=${x}, at ${pool.blockRef}. Assumes fee-free constant-product updates, successful transfers and no hook or token-extension side effects. It is not an executable trade quote or verified sell capability.`},
-  {id:'fresh',value:0,basis:'readable-wallets',detail:`0 lifetime-fresh wallets established among ${readable} readable non-creator holders; all have more than ten observed transactions. ${eligible.length-readable} unread or indeterminate non-creator wallets are excluded, not classified as old or fresh.`},
+  {id:'fresh',value:0,basis:'readable-wallets',detail:`0 lifetime-fresh wallets established among ${readable} readable non-creator holders within the first ${cohort.activityCandidates.length} selected top holders; all have more than ten observed transactions. Selection precedes unread/creator filtering; later rows never backfill. ${eligible.length-readable} other non-creator wallets are excluded, not classified as old or fresh.`},
   ...(['insiders','concentration','snipers','dev'] as const).map(id=>{
-   const value=measured.get(id)!.lower;
+   const value=id==='concentration'?groups.slice(0,10).reduce((sum,g)=>sum+groupShare(g),0)/denominator:measured.get(id)!.lower;
    return {id,value,basis:id==='concentration'?'observed-holdings' as const:value>0?'observed-exposure' as const:'observed-none' as const,detail:id==='concentration'?'Top ten documented holder groups in this snapshot, divided by supply after excluding observed infrastructure. Unobserved holdings and relationships are outside this conditional score.':`${id==='insiders'?'Early or creator-origin':id==='snipers'?'First-minute buyer':'Creator-linked'} exposure documented in the retrieved scope only. ${value===0?'Zero recorded matches is not proof of absent activity. ':''}${measured.get(id)!.detail}`};
   }),
  ];
@@ -100,5 +101,5 @@ export function observedDecision(report:InvestigationReport,strictRating:TrustRa
   ...(!pool.constantProductEligible?pool.limitations:[]),
   'Connected groups describe documented relationships, not established common ownership. Holder shares cover the supplied current account snapshot.',
  ];
- return {score:scored.score,scoreBand:scored.decision,judge,factors,scope:{holderCount:scope.holders.length,readableFreshWallets:readable,unreadFreshWallets:eligible.length-readable,notes},impact,largestShare:groupShare(largest)/denominator};
+ return {score:scored.score,scoreBand:scored.decision,judge,factors,scope:{holderCount:cohort.holders.length,readableFreshWallets:readable,unreadFreshWallets:eligible.length-readable,topHolders:{rawLimit:cohort.rawLimit,rawCount:cohort.rawRanked.length,selectedCount:cohort.holders.length,infrastructureCount:cohort.infrastructure.length,contractCount:cohort.contracts.length,activityLimit:15,floatDenominator:denominator,allAnalyzedCount:scope.holders.length},notes},impact,largestShare:groupShare(largest)/denominator};
 }

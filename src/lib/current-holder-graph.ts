@@ -1,17 +1,18 @@
 import type {Evidence,InvestigatedWallet,InvestigationReport,Relationship} from './investigation-types';
 import {holderScope} from './holder-scope';
+import {topHolderCohort} from './top-holder-cohort';
 import {clockReferenceTime} from './evidence-clock';
 
-export type CurrentHolderGraph={nodes:InvestigatedWallet[];edges:Relationship[];total:number;excludedInfrastructure:number;shown:number;truncated:boolean;documentedGroups:number};
+export type CurrentHolderGraph={nodes:InvestigatedWallet[];edges:Relationship[];total:number;excludedInfrastructure:number;shown:number;truncated:boolean;documentedGroups:number;walletGroups:number};
 
 /** Current snapshot addresses only. A documented group is a connected component
  * among displayed wallets, not a claim of shared ownership or a count of people. */
-export function buildCurrentHolderGraph(report:InvestigationReport,options:{limit?:number}={}):CurrentHolderGraph{
+export function buildCurrentHolderGraph(report:InvestigationReport,options:{limit?:number;cohort?:'top'|'all'}={}):CurrentHolderGraph{
  const normalize=(a:string)=>report.chain==='solana'?a:a.toLowerCase();
- const scope=holderScope(report),infra=new Set(scope.infrastructureAddresses);
+ const scope=holderScope(report),top=options.cohort==='top'?topHolderCohort(report):null,infra=new Set([...scope.infrastructureAddresses,...(top?.contractAddresses||[])]);
  const requested=options.limit??100,limit=Number.isFinite(requested)?Math.max(0,Math.min(10000,Math.floor(requested))):100;
  const existing=new Map(report.investigation.wallets.map(w=>[normalize(w.address),w]));
- const sorted=[...scope.holders].sort((a,b)=>(Number.isFinite(b.share)?b.share:-1)-(Number.isFinite(a.share)?a.share:-1)||normalize(a.address).localeCompare(normalize(b.address)));
+ const sorted=[...(top?.holders||scope.holders)].sort((a,b)=>(Number.isFinite(b.share)?b.share:-1)-(Number.isFinite(a.share)?a.share:-1)||normalize(a.address).localeCompare(normalize(b.address)));
  const nodes:InvestigatedWallet[]=sorted.slice(0,limit).map(h=>{
   const address=normalize(h.address),old=existing.get(address);
   return {...old,address,share:Number.isFinite(h.share)&&h.share>=0&&h.share<=100?h.share:null,categories:old?.categories.filter(c=>!old.categorySources?.[c])||['unclassified'],evidenceIds:old?[...old.evidenceIds]:[]};
@@ -55,5 +56,5 @@ export function buildCurrentHolderGraph(report:InvestigationReport,options:{limi
   if(seen.has(start))continue;documentedGroups++;const pending=[start];
   while(pending.length){const address=pending.pop()!;if(seen.has(address))continue;seen.add(address);pending.push(...(adjacency.get(address)||[]));}
  }
- return {nodes,edges,total:scope.holders.length,excludedInfrastructure:scope.infrastructure.length,shown:nodes.length,truncated:scope.holders.length>nodes.length,documentedGroups};
+ return {nodes,edges,total:sorted.length,excludedInfrastructure:top?top.infrastructure.length+top.contracts.length:scope.infrastructure.length,shown:nodes.length,truncated:sorted.length>nodes.length,documentedGroups,walletGroups:nodes.length-adjacency.size+documentedGroups};
 }

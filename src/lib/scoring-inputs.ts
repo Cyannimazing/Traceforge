@@ -9,6 +9,7 @@ import {clockReferenceTime} from './evidence-clock';
 
 export type ScoringFactorId='swarm'|'fresh'|'insiders'|'concentration'|'snipers'|'dev';
 export type FactorMeasurement={id:ScoringFactorId;value:number|null;lower:number;upper:number;evidenceIds:string[];detail:string};
+export type ExposureScope={addresses:readonly string[];denominator:number};
 const ids:ScoringFactorId[]=['swarm','fresh','insiders','concentration','snipers','dev'];
 const clamp=(n:number)=>Math.max(0,Math.min(1,n));
 const unique=(values:string[])=>[...new Set(values)];
@@ -24,7 +25,7 @@ const bounded=(id:ScoringFactorId,lower:number,upper:number,evidenceIds:string[]
 
 /** Evidence fractions and mathematical scope bounds only. No scoring curves,
  * inferred ownership, missing-data defaults or calibrated probabilities. */
-export function buildScoringInputs(report:InvestigationReport):FactorMeasurement[]{
+export function buildScoringInputs(report:InvestigationReport,options:{exposureScope?:ExposureScope}={}):FactorMeasurement[]{
  const result=new Map(ids.map(id=>[id,unknown(id,'Required independent evidence is unavailable; absence is not a zero-risk measurement.')]));
  const normalize=(a:string)=>report.chain==='solana'?a:a.toLowerCase();
  const reference=clockReferenceTime(report.investigation.coverage.clock,Date.parse(report.investigation.coverage.fetchedAt));
@@ -80,6 +81,15 @@ export function buildScoringInputs(report:InvestigationReport):FactorMeasurement
  }
 
  const positive=(e:Evidence)=>typeof e.amount==='number'?Number.isFinite(e.amount)&&e.amount>0:typeof e.amountRaw==='string'&&/^[1-9]\d{0,77}$/.test(e.amountRaw);
+ // Conditional point models may count a selected current-balance cohort.
+ // Keep the original report's identity, receipt, timing and funding evidence;
+ // only the counted recipient holdings and their supplied denominator change.
+ // The default strict calculation continues to use the full snapshot.
+ const requested=options.exposureScope,selected=requested?new Set(requested.addresses.map(normalize)):null;
+ const exposureShares=selected?new Map([...shares].filter(([a])=>selected.has(a))):shares,exposureDenominator=requested?.denominator??denominator;
+ const exposureValid=Number.isFinite(exposureDenominator)&&exposureDenominator>0&&exposureDenominator<=100&&(!selected||[...selected].every(a=>shares.has(a)))&&[...exposureShares.values()].reduce((sum,n)=>sum+n,0)<=exposureDenominator+1e-8;
+ const exposureShare=(addresses:Iterable<string>)=>unique([...addresses]).reduce((sum,a)=>sum+(exposureShares.get(normalize(a))||0),0)/exposureDenominator;
+ const exposureMissing=requested?Math.max(0,exposureDenominator-[...exposureShares.values()].reduce((sum,n)=>sum+n,0))/exposureDenominator:missingShare/denominator;
  const transfers=[...evidence.values()].filter(e=>e.kind==='transfer'&&e.transaction?.trim()&&e.from&&e.to&&normalize(e.from)!==normalize(e.to)&&positive(e));
  const creators=new Set<string>(),creatorProofs:string[]=[];
  for(const [address,w] of wallets){
@@ -91,31 +101,31 @@ export function buildScoringInputs(report:InvestigationReport):FactorMeasurement
  const native=report.chain==='solana'?['SOL','native']:report.chain==='bsc'?['BNB','native']:['ETH','native'];
  const funded=new Set<string>(),fundedProofs:string[]=[];
  for(const e of transfers){
-  if(!creators.has(normalize(e.from!))||!shares.has(normalize(e.to!)))continue;
+  if(!creators.has(normalize(e.from!))||!exposureShares.has(normalize(e.to!)))continue;
   const scanned=e.token&&normalize(e.token)===normalize(report.token),nativeFunding=native.includes(e.token||'')&&eligibleNative.has(e.id)&&!(report.chain==='solana'&&e.amount!==undefined&&e.amount<.0001);
   if(scanned||nativeFunding){funded.add(normalize(e.to!));fundedProofs.push(e.id);}
  }
- if(creators.size){
-  const exposure=new Set([...creators].filter(a=>shares.has(a)).concat([...funded])),lower=share(exposure);
-  result.set('dev',bounded('dev',lower,complete?lower+missingShare/denominator:1,[...creatorProofs,...fundedProofs,...holdingIds(exposure)],`Current creator and directly creator-funded/recipient holdings are counted once. Observed exposure ${(lower*100).toFixed(4)}% of adjusted supply. Transfers do not establish current common control; absent creator balances and unobserved funding remain unknown.`));
+ if(creators.size&&exposureValid){
+  const exposure=new Set([...creators].filter(a=>exposureShares.has(a)).concat([...funded])),lower=exposureShare(exposure);
+  result.set('dev',bounded('dev',lower,complete?lower+exposureMissing:1,[...creatorProofs,...fundedProofs,...holdingIds(exposure)],`Current creator and directly creator-funded/recipient holdings are counted once${requested?' within the selected exposure cohort':''}. Observed exposure ${(lower*100).toFixed(4)}% of adjusted supply. Transfers do not establish current common control; absent creator balances and unobserved funding remain unknown.`));
  }
  const early=new Set(funded),earlyProofs=[...fundedProofs,...(funded.size?creatorProofs:[])];
  const launch=report.investigation.coverage.launchVerified&&validDate(report.investigation.coverage.earliestTradeAt)?Date.parse(report.investigation.coverage.earliestTradeAt!):null;
- if(launch!==null)for(const e of transfers){if(e.token&&normalize(e.token)===normalize(report.token)&&shares.has(normalize(e.to!))&&Date.parse(e.timestamp)<launch){early.add(normalize(e.to!));earlyProofs.push(e.id);}}
- if(early.size||complete&&creators.size){const lower=share(early);result.set('insiders',bounded('insiders',lower,complete?lower+missingShare/denominator:1,[...earlyProofs,...holdingIds(early)],'Union of observed prelaunch token recipients and current creator-funded holders. This measures related exposure, not insider intent or privileged information. Positive partial observations are lower bounds.'));}
+ if(launch!==null)for(const e of transfers){if(e.token&&normalize(e.token)===normalize(report.token)&&exposureShares.has(normalize(e.to!))&&Date.parse(e.timestamp)<launch){early.add(normalize(e.to!));earlyProofs.push(e.id);}}
+ if(exposureValid&&(early.size||complete&&creators.size)){const lower=exposureShare(early);result.set('insiders',bounded('insiders',lower,complete?lower+exposureMissing:1,[...earlyProofs,...holdingIds(early)],`Union of observed prelaunch token recipients and current creator-funded holders${requested?' within the selected exposure cohort':''}. This measures related exposure, not insider intent or privileged information. Positive partial observations are lower bounds.`));}
 
  const snipers=new Set<string>(),sniperProofs:string[]=[];
  const pools=report.investigation.coverage.poolTimings||[report.investigation.coverage.poolTiming].filter(p=>!!p);
  for(const event of report.investigation.timeline){
   const address=normalize(event.wallet),w=wallets.get(address),e=evidence.get(event.evidenceId);
-  if(event.kind!=='buy'||!shares.has(address)||!w?.categories.includes('sniper')||w.categorySources?.sniper==='swarm'||e?.kind!=='trade'||!e.transaction||!positive(e)||!e.token||normalize(e.token)!==normalize(report.token))continue;
+  if(event.kind!=='buy'||!exposureShares.has(address)||!w?.categories.includes('sniper')||w.categorySources?.sniper==='swarm'||e?.kind!=='trade'||!e.transaction||!positive(e)||!e.token||normalize(e.token)!==normalize(report.token))continue;
   const when=Date.parse(e.timestamp),inGlobal=launch!==null&&when>=launch&&when<=launch+60_000;
   const inPool=pools.some(p=>p&&p.verified&&p.chain===report.chain&&p.scope==='selected-pool'&&[p.token0,p.token1].some(t=>normalize(t)===normalize(report.token))&&validDate(p.verifiedAt)&&validDate(p.firstSwapAt)&&validDate(p.windowEndAt)&&Date.parse(p.windowEndAt)===Date.parse(p.firstSwapAt)+60_000&&Date.parse(p.through.timestamp)>Date.parse(p.windowEndAt)&&when>=Date.parse(p.firstSwapAt)&&when<=Date.parse(p.windowEndAt)&&p.eligibleTradeIds.some(id=>e.id===id||e.id.startsWith(`trade:${id}:`)));
   const curve=report.investigation.coverage.curveTiming;
   const inCurve=curve?.verified&&curve.scope==='selected-launchpad'&&curve.protocol==='four-meme-v2'&&curve.chain===report.chain&&normalize(curve.token)===normalize(report.token)&&validDate(curve.verifiedAt)&&validDate(curve.firstPurchaseAt)&&validDate(curve.windowEndAt)&&Date.parse(curve.windowEndAt)===Date.parse(curve.firstPurchaseAt)+60_000&&Date.parse(curve.through.timestamp)>Date.parse(curve.windowEndAt)&&when>=Date.parse(curve.firstPurchaseAt)&&when<=Date.parse(curve.windowEndAt)&&curve.eligibleTradeIds.some(id=>e.id.startsWith(`trade:${id}:`))&&e.source===curve.source;
   if(inGlobal||inPool||inCurve){snipers.add(address);sniperProofs.push(e.id);}
  }
- if(snipers.size||complete){const lower=share(snipers);result.set('snipers',bounded('snipers',lower,complete?lower+missingShare/denominator:1,[...sniperProofs,...holdingIds(snipers)],'Current balances of wallets with transaction-backed buys in verified first-minute windows. Selected-pool and launchpad windows are not token-wide launch history; timing alone does not prove automation. Positive partial classifications are lower bounds.'));}
+ if(exposureValid&&(snipers.size||complete)){const lower=exposureShare(snipers);result.set('snipers',bounded('snipers',lower,complete?lower+exposureMissing:1,[...sniperProofs,...holdingIds(snipers)],`Current balances of wallets with transaction-backed buys in verified first-minute windows${requested?' within the selected exposure cohort':''}. Selected-pool and launchpad windows are not token-wide launch history; timing alone does not prove automation. Positive partial classifications are lower bounds.`));}
 
  const pool=report.poolReserves?.snapshot;
  const supported=pool&&[pool.base,pool.quote].every(t=>t.mintExtensions.every(e=>['metadataPointer','tokenMetadata'].includes(e))&&t.vaultExtensions.every(e=>e==='immutableOwner'));

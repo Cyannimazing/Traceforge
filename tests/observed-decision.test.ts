@@ -4,6 +4,7 @@ import fixture from './fixtures/grok-observed-inputs.json';
 import type {InvestigationReport} from '../src/lib/investigation-types';
 import {observedDecision} from '../src/lib/observed-decision';
 import {trustRating} from '../src/lib/trust-rating';
+import {buildScoringInputs} from '../src/lib/scoring-inputs';
 const report=()=>structuredClone(fixture.report) as InvestigationReport;
 
 test('public Grok observations produce independently calculated87 and80.1% with explicit conditional scope',()=>{
@@ -60,3 +61,7 @@ test('new observed prelaunch exposure changes the calculation instead of pinning
  r.investigation.evidence.push({id:'new-observed-transfer',kind:'transfer',transaction:'observed-tx',source:'Alchemy finalized Solana transaction history',timestamp:'2026-10-28T06:29:00Z',from:'other',to:holder,token:r.token,amount:100,description:'Observed prelaunch transfer'});
  const result=observedDecision(r);assert(result);assert(result.factors.find(f=>f.id==='insiders')!.value>0);assert(result.score<87);
 });
+
+test('Solana activity attempts stop at the first fifteen selected holders and never backfill unread entries',()=>{const r=report(),infra=new Set(r.investigation.wallets.filter(w=>w.categories.includes('pool')).map(w=>w.address)),selected=r.holders.filter(h=>!infra.has(h.address)).sort((a,b)=>b.share-a.share||a.address.localeCompare(b.address)),creator=r.investigation.wallets.find(w=>w.categories.includes('creator'))!.address;for(const w of r.walletActivity!.wallets){w.count=null;w.fresh=null;}const eligible=selected.slice(0,15).find(h=>h.address!==creator)!;const first=r.walletActivity!.wallets.find(w=>w.address===eligible.address)!;first.count=11;first.fresh=false;for(const h of selected.slice(15)){const w=r.walletActivity!.wallets.find(w=>w.address===h.address)!;w.count=11;w.fresh=false;}const out=observedDecision(r);assert(out);assert.equal(out.scope.readableFreshWallets,1);first.count=null;first.fresh=null;assert.equal(observedDecision(r),null);});
+
+test('creator funding below the raw Solana top twenty changes strict exposure but not selected point factors',()=>{const r=report(),baseline=observedDecision(r)!,creator=r.investigation.wallets.find(w=>w.categories.includes('creator'))!.address,outside='123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijk';r.holders.push({address:outside,share:1,contract:false,locked:null,tag:''});r.investigation.wallets.push({address:outside,share:1,categories:['unclassified'],evidenceIds:[]});r.investigation.evidence.push({id:'outside-funding',kind:'transfer',transaction:'outside-transfer',from:creator,to:outside,token:r.token,amount:1,source:'Alchemy finalized Solana transaction history',timestamp:r.investigation.coverage.fetchedAt,description:''});const strict=trustRating(r),out=observedDecision(r,strict)!;assert(out);assert(buildScoringInputs(r).find(f=>f.id==='dev')!.lower>baseline.factors.find(f=>f.id==='dev')!.value);assert.deepEqual(out.factors.map(f=>[f.id,f.value]),baseline.factors.map(f=>[f.id,f.value]));assert.equal(out.score,baseline.score);assert.equal(r.holders.length,21);});

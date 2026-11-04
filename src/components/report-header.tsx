@@ -33,7 +33,7 @@ export default function ReportHeader({report,refreshing,watched,editToken,search
   {name:'24h volume',value:value(report.market?.volume?.h24)},
   {name:'Market cap',value:value(report.market?.marketCap)},
   ...(counts.total!==null?[{name:'Holders',value:counts.total.toLocaleString('en-US'),note:counts.allRecordedChecked?'All recorded balances checked':counts.derived?'Transfer-derived accounts':'Reported accounts',detail:counts.allRecordedChecked?'Every recorded positive holder balance was independently checked at the stated block and reconciled to total supply.':counts.derived?'Recorded positive accounts reconstructed from token Transfer history. Only the analyzed subset is independently balance-checked.':'Source-reported total holder accounts.'}]:[]),
-  {name:'Holders analyzed',value:report.holders.length?scope.holders.length.toLocaleString('en-US'):'Unavailable',note:scope.infrastructure.length?scope.infrastructure.length+' platform / burn accounts set aside':undefined,detail:scope.infrastructure.length+' infrastructure accounts excluded'},
+  {name:'Top wallets',value:report.holders.length?counts.displayed.toLocaleString('en-US'):'Unavailable',note:counts.topRaw+' ranked balances'+(counts.topSetAside?' - '+counts.topSetAside+' set aside':''),detail:scope.holders.length+' non-infrastructure holder balances retained in the full investigation. The top-wallet view ranks raw balances before setting aside verified infrastructure and contract accounts.'},
   ...(counts.total===null?[{name:'Addresses traced',value:report.investigation.wallets.length.toLocaleString('en-US'),detail:'Distinct addresses across the retrieved evidence; not a count of people'}]:[]),
  ];
  return <section className="report-header" aria-label="Token investigation summary">

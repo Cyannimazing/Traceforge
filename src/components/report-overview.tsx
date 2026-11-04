@@ -15,8 +15,9 @@ import {decisionLabels,decisionLabel,presentationText,earlyBuyingExplanation} fr
 import {buildCurrentHolderGraph} from '@/lib/current-holder-graph';
 import {layoutHolderMap} from '@/lib/holder-map-layout';
 import {holderMapDrift} from '@/lib/holder-map-motion';
-import {holderMapFloatBasis,mapDisplayShare,resolveShareBasis,sharePercentText,type MapShareBasis} from '@/lib/holder-map-basis';
+import {mapDisplayShare,resolveShareBasis,sharePercentText,type MapShareBasis} from '@/lib/holder-map-basis';
 import {holderScope} from '@/lib/holder-scope';
+import {topHolderCohort} from '@/lib/top-holder-cohort';
 import {HOLDER_DISPLAY_LIMIT} from '@/lib/holder-count-summary';
 import {computeRiskMetrics} from '@/lib/risk-metrics';
 import RiskMeasurements from './risk-measurements';
@@ -56,7 +57,8 @@ export default function ReportOverview({ report, selection, onSelect, onInspect,
   const agentResult=useCryptoReview(report),agentReview=LLM_REVIEW_ENABLED&&agentResult?.status==='ready'?agentResult.review:null;
   const id = useId(), inv = report.investigation, provider = report.providerAnalysis, assessment = getDisplayAssessment(report), age = sourceAge(report);
   const snapshot=useMemo(()=>holderScope(report),[report]);
-  const floatBasis=useMemo(()=>holderMapFloatBasis(snapshot.infrastructure,snapshot.currentInfrastructureAddresses,report.chain==='solana',snapshot.holders),[snapshot,report.chain]);
+  const cohort=useMemo(()=>topHolderCohort(report),[report]);
+  const floatBasis=cohort.floatBasis;
   const basisScope=`${report.chain}:${report.token}`;
   const [basisChoice,setBasisChoice]=useState<{scope:string;basis:MapShareBasis}|null>(null);
   const shareBasis=resolveShareBasis(controlledShareBasis??(basisChoice?.scope===basisScope?basisChoice.basis:'float'),floatBasis);
@@ -77,7 +79,7 @@ export default function ReportOverview({ report, selection, onSelect, onInspect,
   const drag = useRef<{ x: number; y: number; originX: number; originY: number } | null>(null);
   const animate = !paused && !reduced && visible && onScreen;
   const graph = useMemo(() => {
-    const current=buildCurrentHolderGraph(report,{limit:LIMIT});
+    const current=buildCurrentHolderGraph(report,{limit:LIMIT,cohort:'top'});
     const wallets=current.nodes,edges=current.edges;
     const layout=layoutHolderMap(wallets,WIDTH,HEIGHT);
     const nodes=wallets.map((wallet,index)=>({...wallet,rank:index+1,...layout[index]}));
@@ -90,7 +92,7 @@ export default function ReportOverview({ report, selection, onSelect, onInspect,
       while (queue.length) { const address = queue.shift()!; members.push(address); for (const next of neighbors.get(address)!) if (!visited.has(next)) { visited.add(next); queue.push(next); } }
       if (members.length > 1) groups.push(members);
     }
-    return { total:current.total,excludedInfrastructure:current.excludedInfrastructure,truncated:current.truncated,documentedGroups:current.documentedGroups,nodes, edges, neighbors, linked: groups.sort((a, b) => b.length - a.length)[0] || [], positions: new Map(nodes.map(node => [node.address, node])) };
+    return { total:current.total,excludedInfrastructure:current.excludedInfrastructure,truncated:current.truncated,documentedGroups:current.documentedGroups,walletGroups:current.walletGroups,nodes, edges, neighbors, linked: groups.sort((a, b) => b.length - a.length)[0] || [], positions: new Map(nodes.map(node => [node.address, node])) };
   }, [report]);
   const floating = animate && graph.nodes.length>0 && !hovered && !mapFocusHeld && !mapDragging && !(selection === undefined ? localSelection : selection);
 
@@ -205,7 +207,7 @@ export default function ReportOverview({ report, selection, onSelect, onInspect,
           <p>How Gemini weighs this evidence across the three decisions. Not a probability of token safety.</p>
         </>:<p>{agentReview.overrides.length?'Decision weights withheld because an evidence rule changed or restricted the AI assessment.':'The available evidence does not support decision weights.'}</p>}
       </section>}
-      {observed&&<details className="ro-rating-details"><summary>Observed score - {observed.score}/100</summary><dl>{observed.factors.map(factor=><div key={factor.id}><dt>{factor.id}<small>{factor.detail}</small></dt><dd>{(factor.value*100).toFixed(2)}%</dd></div>)}</dl><p>{observed.scope.readableFreshWallets} readable non-creator wallets assessed; {observed.scope.unreadFreshWallets} unread excluded.</p>{observed.scope.notes.map(note=><p key={note}>{note}</p>)}</details>}
+      {observed&&<details className="ro-rating-details"><summary>Observed score - {observed.score}/100</summary><dl>{observed.factors.map(factor=><div key={factor.id}><dt>{factor.id}<small>{factor.detail}</small></dt><dd>{(factor.value*100).toFixed(2)}%</dd></div>)}</dl><p>{observed.scope.readableFreshWallets} readable non-creator wallets assessed; {observed.scope.unreadFreshWallets} outside this activity sample.</p>{observed.scope.notes.map(note=><p key={note}>{note}</p>)}</details>}
       <div className="ro-holder-scope">
         <dl aria-label="Holder snapshot and investigation scope">
           <div><dt>Snapshot holders</dt><dd>{snapshot.holders.length.toLocaleString()}</dd></div>
@@ -245,7 +247,7 @@ export default function ReportOverview({ report, selection, onSelect, onInspect,
     <div className="ro-map ro-map-designed">
       <header className="ro-map-heading"><h2>Holder map <Crosshair size={17} aria-hidden="true" /></h2><ShareBasisSelector value={shareBasis} onChange={changeShareBasis} floatAvailable={floatBasis.denominator!==null} describedBy={`${id}-map-basis`} label="Holder map percentage basis"/></header>
       {floatBasis.reason&&<p className="ro-map-basis-unavailable">{floatBasis.reason} Showing total supply.</p>}
-      <div className="ro-map-metrics"><span><strong>{graph.nodes.length}<small> / {graph.total}</small></strong>Holders shown</span><span><strong>{graph.edges.length}</strong>Documented links</span><span><strong>{graph.documentedGroups}</strong>Connected groups</span></div>
+      <div className="ro-map-metrics"><span><strong>{graph.nodes.length}</strong>Top wallets</span><span><strong>{graph.edges.length}</strong>Documented links</span><span title="Connected wallets count as one group when transaction evidence supports the link. This is not a count of people."><strong>{graph.walletGroups}</strong>Wallet groups</span></div>
       <div className="ro-canvas">
         <svg viewBox={`${mapOriginX} 0 ${mapWidth} ${HEIGHT}`} role="group" aria-labelledby={`${id}-map-title`} aria-describedby={`${id}-map-help`} tabIndex={0}
           onFocusCapture={()=>setMapFocusHeld(true)} onBlurCapture={event=>{if(!event.currentTarget.contains(event.relatedTarget as Node|null))setMapFocusHeld(false);}}
@@ -274,9 +276,9 @@ export default function ReportOverview({ report, selection, onSelect, onInspect,
       {graph.nodes.length>0&&<div className="ro-holder-rail" aria-label="Largest displayed holders">{graph.nodes.slice(0,3).map(node=><button type="button" key={node.address} className={selectedWallets.has(node.address)?'is-selected':''} onPointerEnter={()=>setHovered(node.address)} onPointerLeave={()=>setHovered(null)} onFocus={()=>setHovered(node.address)} onBlur={()=>setHovered(null)} onClick={()=>selectWallet(node.address)} aria-label={`Inspect holder rank ${node.rank}, ${node.address}, ${shareText(node.share)}`}><span className="ro-rail-rank">{String(node.rank).padStart(2,'0')}</span><span><strong>{short(node.address)}</strong><small>{shareText(node.share)}</small></span><ArrowUpRight size={13}/></button>)}</div>}
       <div className="ro-map-caption"><div aria-live="polite"><strong>{focused ? short(focused.address) : selected ? short(selected) : 'Select a holder'}</strong><span>{focused ? `${shareText(focused.share)} - ${graph.neighbors.get(focused.address)?.size || 0} visible connections` : selected ? 'Outside the displayed holder set. Open wallet evidence for its snapshot and history.' : 'Hover or focus a wallet. Select it to inspect the evidence.'}</span></div>{graph.linked.length > 1 && <button type="button" onClick={selectGroup}>{graph.linked.length} linked<ArrowUpRight size={14} /></button>}</div>
       <div className="ro-legend"><span><i />{shareBasis==='float'?'Snapshot float':'Total supply'}</span><span><i className="is-hollow" />Share unknown</span><span><i className="is-ring" />Creator</span><span><i className="is-authority" />Owner</span><span><i className="is-link" />Documented link</span></div>
-      <p className="ro-map-quick-help">Top {graph.nodes.length} of {graph.total} holders. Drag to explore. Select a wallet for evidence.</p>
+      <p className="ro-map-quick-help">{cohort.rawRanked.length} ranked balances, {graph.excludedInfrastructure} set aside. Drag to explore. Select a wallet for evidence.</p>
       <details className="ro-map-method"><summary>How shares and connections work</summary>
-      <p id={`${id}-map-basis`} className="ro-map-basis-note">{floatBasis.denominator===null?floatBasis.reason:<>Snapshot float = 100% − {floatBasis.excluded!.toLocaleString(undefined,{maximumFractionDigits:8})}% measured current infrastructure = {floatBasis.denominator.toLocaleString(undefined,{maximumSignificantDigits:10})}% of total supply. Wallet snapshot-float share = supply share ÷ this denominator × 100.</>} Uses measured current infrastructure, not the sum of displayed holders. Previously identified infrastructure without current balances is outside this denominator: its balance is unknown, not zero. Other infrastructure may be unrecognized. This is not verified circulating float or a complete supply census.</p>
+      <p id={`${id}-map-basis`} className="ro-map-basis-note">{floatBasis.denominator===null?floatBasis.reason:<>Snapshot float = 100% − {floatBasis.excluded!.toLocaleString(undefined,{maximumFractionDigits:8})}% measured set-aside balances = {floatBasis.denominator.toLocaleString(undefined,{maximumSignificantDigits:10})}% of total supply. Wallet snapshot-float share = supply share ÷ this denominator × 100.</>} Uses measured platform, burn and selected verified code-contract balances, not the sum of displayed wallets. A contract account is not automatically a pool or locker. Previously identified infrastructure without current balances is outside this denominator: its balance is unknown, not zero. Other infrastructure may be unrecognized. This is not verified circulating float or a complete supply census.</p>
       <p id={`${id}-map-help`} className="ro-map-help">{graph.nodes.length} largest current holders shown{graph.truncated?` of ${graph.total} analyzed`:''}. {graph.excludedInfrastructure} infrastructure addresses excluded. Labels show the selected percentage basis. Bubble areas retain their supply-share proportions; tiny holdings use a minimum marker. Lines show transaction-backed relationships, not common ownership. Motion is decorative, not live transfers; position has no risk meaning. Historical-only addresses remain in Traced addresses. Drag to pan; arrow keys pan when the map is focused. + / - zoom; Home resets the view.</p>
       </details>
     </div>

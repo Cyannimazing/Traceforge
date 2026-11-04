@@ -1,5 +1,5 @@
 import {CHAINS,validateToken,type Chain} from './analysis';
-export type WalletActivity={address:string;count:number|null;exact:boolean;fresh:boolean|null;basis:'evm-outgoing-count'|'evm-account-nonce'|'solana-address-signatures';reason:string;observedAt?:string};
+export type WalletActivity={address:string;count:number|null;exact:boolean;fresh:boolean|null;basis:'evm-outgoing-count'|'evm-account-nonce'|'solana-address-signatures';reason:string;observedAt?:string;accountKind?:'eoa'|'delegated-eoa'|'contract';codeProof?:{code:string;blockRef:string}};
 export type WalletActivitySnapshot={source:string;observedAt:string;blockRef?:string;blockTimestamp?:string;finality?:'finalized';wallets:WalletActivity[];truncated:boolean;requestedAccounts?:number;selectedAccounts?:number;readableAccounts?:number;failure?:'rate-limit'|'deadline'|'unavailable'|'anchor-changed'};
 /** Fixed diagnostic codes only. Never expose a provider error message or URL. */
 export class WalletActivityRpcError extends Error {
@@ -33,15 +33,17 @@ export async function readWalletActivity(chain:Chain,addresses:string[],rpc:Rpc,
     result.blockTimestamp=new Date(anchorTime).toISOString();result.finality='finalized';
    }
    block=anchor.number as string;hash=anchor.hash;result.blockRef=block+':'+hash;
+   if(hex(anchor.timestamp)){const timestamp=Number(BigInt(anchor.timestamp as string))*1000;if(Number.isSafeInteger(timestamp)){result.blockTimestamp=new Date(timestamp).toISOString();result.finality='finalized';}}
   }catch(error){options.signal?.throwIfAborted();result.failure=error instanceof WalletActivityRpcError?error.code:'unavailable';return result;}
  }
  const applyEvm=(index:number,code:unknown,nonce:unknown)=>{const address=selected[index];
      // EIP-7702 uses exactly 23 bytes. A zero target clears code rather than
      // creating a delegation indicator; other nonempty code is not an EOA.
      const delegated=typeof code==='string'&&/^0xef0100[0-9a-f]{40}$/i.test(code)&&!/^0xef01000{40}$/i.test(code);
-     if(!delegated&&typeof code==='string'&&/^0x(?:[0-9a-fA-F]{2})+$/.test(code)){result.wallets[index]=unknown(address,'Verified contract account: its nonce does not measure incoming transfers or internal activity. Lifetime freshness remains unknown.');return;}
+     const codeProof=typeof code==='string'?{code,blockRef:block+':'+hash}:undefined;
+     if(!delegated&&typeof code==='string'&&/^0x(?:[0-9a-fA-F]{2})+$/.test(code)){result.wallets[index]={...unknown(address,'Verified contract account: its nonce does not measure incoming transfers or internal activity. Lifetime freshness remains unknown.'),accountKind:'contract',codeProof};return;}
      if((code!=='0x'&&!delegated)||!hex(nonce)||BigInt(nonce as string)>BigInt(Number.MAX_SAFE_INTEGER))return;
-     const count=Number(BigInt(nonce as string));result.wallets[index]={address,count,exact:true,fresh:null,basis,reason:`${delegated?'EIP-7702 delegated EOA:':'Empty-code EOA:'} exact account nonce ${count} at the fixed finalized block. Nonce includes outgoing transactions and accepted EIP-7702 authorization increments, including prior delegation that may have been revoked. Incoming, internal and sponsored execution history is not counted. Neither a low nor high nonce proves lifetime freshness.`};
+     const count=Number(BigInt(nonce as string));result.wallets[index]={address,count,exact:true,fresh:null,basis,accountKind:delegated?'delegated-eoa':'eoa',codeProof,reason:`${delegated?'EIP-7702 delegated EOA:':'Empty-code EOA:'} exact account nonce ${count} at the fixed finalized block. Nonce includes outgoing transactions and accepted EIP-7702 authorization increments, including prior delegation that may have been revoked. Incoming, internal and sponsored execution history is not counted. Neither a low nor high nonce proves lifetime freshness.`};
  };
  let cursor=0;
  if(chain==='robinhood'&&options.rpcBatch){
@@ -56,7 +58,7 @@ export async function readWalletActivity(chain:Chain,addresses:string[],rpc:Rpc,
     }catch(error){options.signal?.throwIfAborted();if(error instanceof WalletActivityRpcError){result.failure=error.code;if(['rate-limit','deadline'].includes(error.code))stopped=true;}}
    }
   }));
-  if(stopped)result.wallets=result.wallets.map(w=>w.count===null?unknown(w.address,'The provider rate limit or bounded deadline prevented further activity reads.'):w);
+  if(stopped)result.wallets=result.wallets.map(w=>w.count===null&&!w.codeProof?unknown(w.address,'The provider rate limit or bounded deadline prevented further activity reads.'):w);
  }else await Promise.all(Array.from({length:Math.min(2,selected.length)},async()=>{
   for(;;){const index=cursor++;if(index>=selected.length)return;const address=selected[index];options.signal?.throwIfAborted();if(validateToken(chain,address))continue;
    try{

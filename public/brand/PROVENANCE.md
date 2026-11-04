@@ -13,3 +13,9 @@ The insect concept was retired at the user's request. Active mark: custom author
 ## Creative social preview - 2026-11-04
 
 `traceforge-creative-logo.png` uses the supplied `TraceForge-Creative-Logo.png` artwork. The original 2172 by 724 PNG was cropped to its wordmark area (left 105, top 180, width 1978, height 376), resized to 1100 by 209, and encoded as an optimized PNG. No lettering or mark was redrawn. The Open Graph card embeds this local asset and the existing local Space Grotesk font, with no remote asset requests or generated token scores. The card is shared by Open Graph and Twitter metadata.
+
+## Cyril AI maker credit - 2026-11-04
+
+`cyril-ai-icon-dark.webp` is the user's original 256 by 256 WebP from their portfolio's `public/brand/cyril-ai-icon-dark.webp`, copied unchanged with their authorization. Its white and cyan artwork is the portfolio's dark-surface variant. It was not regenerated, recolored, cropped, or re-encoded. SHA-256: `184d1c6f8b8ac6234ad609815bb9350d1dad272f1af60487e8cca67383dd4fdd`.
+
+The footer displays the intact mark at 28 by 28 CSS pixels beside the existing Cyril AI maker credit, with clear space and without a filter or mask. It identifies the maker; the TraceForge identity and social-preview artwork remain separate.
