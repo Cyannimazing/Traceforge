@@ -8,6 +8,16 @@ const at = (seconds: number) => new Date(Date.UTC(2026, 0, 1) + seconds * 1000).
 const trade = (wallet: string, seconds: number, side: 'buy' | 'sell' = 'buy', id = `${wallet}-${seconds}`) => ({ id, wallet, timestamp: at(seconds), side, amount: 10, transaction: `tx-${id}`, source: 'test' });
 const transfer = (from: string, to: string, id: string) => ({ id, from, to, timestamp: at(-60), amount: 1, token: 'native', native: true, transaction: `tx-${id}`, source: 'test' });
 const base = (): InvestigationInput => ({ chain: 'ethereum', token: 'token', holders: [], trades: [], transfers: [], identities: [], labels: [], launchVerified: true, earliestTradeAt: at(0), complete: true, reasons: [], fetchedAt: at(600), holderLimit: 100, buyerLimit: 100, fundingHops: 1, truncated: false });
+test('verified current-holder scope is independent of the historical buyer and query caps',()=>{
+ const holders=Array.from({length:239},(_,i)=>({address:`holder${i}`,share:100/239,balance:1}));
+ const input={...base(),holders,trades:Array.from({length:120},(_,i)=>trade(`historical${i}`,100+i))};
+ assert.equal(analyzeInvestigation(input).wallets.filter(w=>w.share!==null).length,100);
+ const out=analyzeInvestigation({...input,currentHolderLimit:239});assert.equal(out.wallets.filter(w=>w.share!==null).length,239);assert.equal(out.wallets.find(w=>w.address==='holder238')?.balance,1);assert.equal(out.coverage.holderLimit,100);assert.equal(out.coverage.buyerLimit,100);assert.equal(out.wallets.filter(w=>w.categories.includes('early-buyer')).length,100);assert.equal(out.wallets.find(w=>w.address==='historical119')?.share,null);
+});
+test('current inventory bounds remain finite and disclose clipping without widening history',()=>{
+ const holders=Array.from({length:10001},(_,i)=>({address:`holder${i}`,share:.001,balance:1}));const out=analyzeInvestigation({...base(),holders,currentHolderLimit:10001});assert.equal(out.wallets.length,10000);assert.equal(out.coverage.holderLimit,100);assert.equal(out.coverage.truncated,true);assert.match(out.coverage.reasons.join(' '),/current-holder inventory exceeds/);
+ for(const currentHolderLimit of [Infinity,NaN,-1])assert.equal(analyzeInvestigation({...base(),holders:holders.slice(0,239),currentHolderLimit}).wallets.length,100);
+});
 const proof=():PoolTimingProof=>({verified:true,scope:'selected-pool',pool:'pool',chain:'ethereum',firstSwapAt:at(100),firstSwapTransaction:'tx-start',firstSwapLogIndex:1,windowEndAt:at(160),creation:{transaction:'tx-creation',blockNumber:1,blockHash:'block1'},through:{blockNumber:100,blockHash:'block100',timestamp:at(161)},factory:'factory',token0:'token',token1:'other',eligibleTradeIds:['start','a-160','late-161'],verifiedAt:at(600)});
 
 test('multiple pools use each event own first-minute window and never establish global launch',()=>{

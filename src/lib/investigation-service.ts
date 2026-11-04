@@ -14,14 +14,14 @@ import {computeRiskMetrics} from './risk-metrics';
 import type {SolanaPoolReserveResult} from './solana-pool-reserves';
 import {clockReferenceTime,type EvidenceClock} from './evidence-clock';
 import type {PersistentReportCache} from './report-cache';
-import type {SnapshotEnrichment} from './snapshot-enrichment';
+import type {SnapshotEnrichment,SnapshotEnrichmentOptions} from './snapshot-enrichment';
 import {FOUR_MEME_MANAGER,isBscCustodyOnly,type BscHolderFallbackResult} from './bsc-holder-fallback';
 import type {EvmReserveChain,EvmPoolReserveResult} from './evm-pool-reserves';
 import {EVM_HOLDER_SOURCE,type EvmHolderResult,type EvmHolderOptions} from './evm-holder-fallback';
 import {PONS_FACTORY,PONS_DEPLOYER,type PonsLaunchRecordResult,type PonsLaunchOptions} from './pons-launch-record';
 
 export type ScanOptions = { mode?: 'deep' | 'market' | 'holders'; expanded?: boolean; fresh?: boolean; signal?: AbortSignal; onEvent?: (event: ScanEvent) => void };
-type Dependencies = { evmPoolReserves?:(chain:EvmReserveChain,pool:string,token:string,options:{holders?:string[];signal?:AbortSignal})=>Promise<EvmPoolReserveResult>; bscHolders?:(report:Report,options:{signal?:AbortSignal;history?:boolean;candidateAddresses?:string[]})=>Promise<BscHolderFallbackResult>; enrichSnapshot?:(report:Report,options:{signal?:AbortSignal})=>Promise<SnapshotEnrichment>; publicScan: (chain: Chain, token: string, options: {mode?: 'deep' | 'market' | 'holders'; signal?: AbortSignal}) => Promise<Report>; makeClient: (signal?: AbortSignal) => BitqueryClient; publicHistory?: (chain: Chain, token: string, options: PublicHistoryOptions) => Promise<PublicHistoryResult>; historicalEvidence?: (chain:Chain,token:string,options:PublicHistoryOptions)=>Promise<PublicHistoryResult|undefined>; solanaPublic?: (token:string,options:{signal?:AbortSignal})=>Promise<SolanaPublicResult>; poolLaunch?:(chain:Chain,token:string,pool:string,options:{signal?:AbortSignal;validationTime?:number;creationTimeHint?:number})=>Promise<PoolLaunchResult>; poolReserves?:(pool:string,token:string,options:{signal?:AbortSignal})=>Promise<SolanaPoolReserveResult>; resolveClock?:(options:{signal?:AbortSignal})=>Promise<EvidenceClock>; now?: () => number };
+type Dependencies = { evmPoolReserves?:(chain:EvmReserveChain,pool:string,token:string,options:{holders?:string[];signal?:AbortSignal})=>Promise<EvmPoolReserveResult>; bscHolders?:(report:Report,options:{signal?:AbortSignal;history?:boolean;candidateAddresses?:string[]})=>Promise<BscHolderFallbackResult>; enrichSnapshot?:(report:Report,options:SnapshotEnrichmentOptions)=>Promise<SnapshotEnrichment>; publicScan: (chain: Chain, token: string, options: {mode?: 'deep' | 'market' | 'holders'; signal?: AbortSignal}) => Promise<Report>; makeClient: (signal?: AbortSignal) => BitqueryClient; publicHistory?: (chain: Chain, token: string, options: PublicHistoryOptions) => Promise<PublicHistoryResult>; historicalEvidence?: (chain:Chain,token:string,options:PublicHistoryOptions)=>Promise<PublicHistoryResult|undefined>; solanaPublic?: (token:string,options:{signal?:AbortSignal})=>Promise<SolanaPublicResult>; poolLaunch?:(chain:Chain,token:string,pool:string,options:{signal?:AbortSignal;validationTime?:number;creationTimeHint?:number})=>Promise<PoolLaunchResult>; poolReserves?:(pool:string,token:string,options:{signal?:AbortSignal})=>Promise<SolanaPoolReserveResult>; resolveClock?:(options:{signal?:AbortSignal})=>Promise<EvidenceClock>; now?: () => number };
 type Cached = { expires: number; report: InvestigationReport };
 type HolderDependencies={evmHolders?:(report:Report,options:EvmHolderOptions)=>Promise<EvmHolderResult>;ponsLaunch?:(chain:Chain,token:string,options:PonsLaunchOptions)=>Promise<PonsLaunchRecordResult>};
 const batch = <T>(items: T[], size: number) => Array.from({length:Math.ceil(items.length/size)},(_,i)=>items.slice(i*size,(i+1)*size));
@@ -141,7 +141,8 @@ export function createInvestigationService(deps: Dependencies & HolderDependenci
           options.signal?.throwIfAborted();
           const holderReport=snapshot?.holders?{...publicReport,holders:snapshot.holders.flatMap(h=>h.share===null?[]:[{address:h.address,share:h.share,contract:null,locked:null,tag:''}])}:publicReport;
           stage('wallet-activity','running',`Checking activity for ${holderReport.holders.length} returned holder addresses; no exhaustive history crawl.`);
-          const enriched=await deps.enrichSnapshot!(holderReport,{signal:options.signal});
+          const enumeration=chain==='robinhood'?evmSnapshot?.snapshot?.holderEnumeration:undefined;
+          const enriched=await deps.enrichSnapshot!(holderReport,{signal:options.signal,...(enumeration?.kind==='pons-creation-ledger'?{activityScope:{kind:'pons-creation-ledger' as const,maxAddresses:Math.min(10000,holderReport.holders.length)}}:{})});
           const wallets=enriched.walletActivity?.wallets||[];
           stage('wallet-activity',wallets.some(w=>w.count!==null)?'complete':'unavailable',`${wallets.filter(w=>w.count!==null).length} of ${wallets.length} selected wallet activity responses verified. Short histories remain unresolved.`);
           if(enriched.controlProbes)stage('control-probes',enriched.controlProbes.status==='unavailable'?'unavailable':'complete',`${enriched.controlProbes.observations.filter(o=>o.status==='observed').length} direct RPC control observations at one block. Transfer simulation is not a sellability test.`);
@@ -275,6 +276,13 @@ export function createInvestigationService(deps: Dependencies & HolderDependenci
           if(evmSnapshot){const provenCreators=evmSnapshot.identities.filter(i=>i.role==='creator'&&i.transaction);if(provenCreators.length){input.identities=[...provenCreators,...input.identities.filter(i=>!provenCreators.some(p=>p.role===i.role&&p.address.toLowerCase()===i.address.toLowerCase()))];publicReport={...publicReport,identities:input.identities};}sourceTimes.push(...evmSnapshot.sources);input.reasons.push(...evmSnapshot.reasons);input.labels.push(...evmSnapshot.labels);input.truncated=true;
             if(evmSnapshot.snapshot&&evmSnapshot.holders){const knownInfrastructure=new Map(evmSnapshot.labels.filter(l=>['pool','burn','exchange','bridge'].includes(l.category)).map(l=>[l.address.toLowerCase(),l.category]));if(selectedPool)knownInfrastructure.set(selectedPool.toLowerCase(),'pool');input.holders=evmSnapshot.holders;publicReport={...publicReport,holderCount:evmSnapshot.holderCount??null,totalSupply:evmSnapshot.totalSupply??publicReport.totalSupply,holders:evmSnapshot.holders.flatMap(h=>h.share===null?[]:[{address:h.address,share:h.share,contract:knownInfrastructure.get(h.address.toLowerCase())==='pool'?true:null,locked:null,tag:knownInfrastructure.get(h.address.toLowerCase())||''}])};}
           }
+          // This bound applies only to already-verified current balances. The
+          // historical holder/buyer query limits remain unchanged.
+          const currentSnapshot=evmSnapshot?.snapshot;
+          if(chain==='robinhood'&&currentSnapshot?.chain===chain&&currentSnapshot.holderEnumeration?.kind==='pons-creation-ledger'&&evmSnapshot?.holders){
+            const positives=new Set(currentSnapshot.balances.filter(b=>b.status==='observed'&&typeof b.amountRaw==='string'&&/^[1-9]\d{0,77}$/.test(b.amountRaw)).map(b=>b.address.toLowerCase()));
+            if(evmSnapshot.holders.every(h=>!validateToken(chain,h.address)&&typeof h.share==='number'&&Number.isFinite(h.share)&&h.share>0&&positives.has(h.address.toLowerCase())))input.currentHolderLimit=Math.min(10000,evmSnapshot.holders.length);
+          }
           stage('holder-rpc',evmSnapshot?.snapshot?'complete':'unavailable',evmSnapshot?.snapshot?`${evmSnapshot.holders?.length||0} positive candidate balances verified at ${evmSnapshot.snapshot.finality} block ${evmSnapshot.snapshot.blockNumber}. ${evmSnapshot.holderCount!=null?`Separate transfer-ledger count: ${evmSnapshot.holderCount} recorded accounts.`:'Full holder count remains unknown.'}`:'Candidate balances could not be verified; missing values remain unknown.');
         }
         const solana=await solanaTask;
@@ -341,10 +349,12 @@ export function createInvestigationService(deps: Dependencies & HolderDependenci
         }
         if(evmSnapshot?.snapshot){
           const snapshot=evmSnapshot.snapshot;
+          const enumeration=snapshot.holderEnumeration;
+          const currentScope=enumeration?.complete&&input.currentHolderLimit===evmSnapshot.holders?.length&&enumeration.recordedAccounts===enumeration.verifiedAccounts&&enumeration.verifiedAccounts===evmSnapshot.holders?.length?'All recorded positive balances were checked and reconciled to same-block total supply at this anchor; this does not establish complete trading or funding history.':'Bounded candidate sample, not a holder census.';
           for(const balance of snapshot.balances.filter(b=>b.status==='observed'&&b.amountRaw!==undefined)){
             const wallet=investigation.wallets.find(w=>w.address.toLowerCase()===balance.address);if(!wallet)continue;
             const id=`holding:evm:${balance.address}`;
-            investigation.evidence.push({id,kind:'holding',to:balance.address,timestamp:snapshot.observedAt,amountRaw:balance.amountRaw,decimals:snapshot.decimals,token,source:EVM_HOLDER_SOURCE,description:`balanceOf(${balance.address}) = ${balance.amountRaw} raw units at ${snapshot.chain} ${snapshot.finality} block ${snapshot.blockNumber} (${snapshot.blockHash}); block time ${snapshot.blockTimestamp}. Same-block total supply ${snapshot.totalSupplyRaw}, decimals ${snapshot.decimals}; block hash rechecked. Bounded candidate sample, not a holder census.${snapshot.finality==='safe'?' Safe state is not finalized; a reorganization can change this observation.':''}`});wallet.evidenceIds.push(id);
+            investigation.evidence.push({id,kind:'holding',to:balance.address,timestamp:snapshot.observedAt,amountRaw:balance.amountRaw,decimals:snapshot.decimals,token,source:EVM_HOLDER_SOURCE,description:`balanceOf(${balance.address}) = ${balance.amountRaw} raw units at ${snapshot.chain} ${snapshot.finality} block ${snapshot.blockNumber} (${snapshot.blockHash}); block time ${snapshot.blockTimestamp}. Same-block total supply ${snapshot.totalSupplyRaw}, decimals ${snapshot.decimals}; block hash rechecked. ${currentScope}${snapshot.finality==='safe'?' Safe state is not finalized; a reorganization can change this observation.':''}`});wallet.evidenceIds.push(id);
           }
         }
         if(solana?.sources.some(source=>source.name==='Solana RPC Holders'&&source.status==='available')){
@@ -368,7 +378,7 @@ export function createInvestigationService(deps: Dependencies & HolderDependenci
         }
         const status=investigation.findings.some(f=>f.level==='critical')?'critical':investigation.findings.some(f=>f.level==='warning')?'caution':investigation.coverage.status==='complete'?'clear':'insufficient';
         investigation.assessment={status,title:status==='critical'?'Critical provider flag':status==='caution'?'Evidence needs review':status==='insufficient'?'Insufficient evidence':'No flagged pattern in scope',summary:status==='critical'||status==='caution'?'Review the provider flags and linked transactions alongside the missing-history and scope limits. Provider reports are not an independent audit; relationships do not prove common control.':status==='insufficient'?'Missing history prevents a reliable all-clear. Public snapshots remain available where providers respond.':'No configured pattern was detected in the stated sample. This is not a safety guarantee.'};
-        let result: InvestigationReport={...publicReport,sources:[...publicReport.sources,...sourceTimes],investigation,...(solana?{solana:{snapshot:solana.snapshot,tokenAccounts:solana.tokenAccounts,authorities:solana.authorities,extensions:solana.extensions}}:{})};
+        let result: InvestigationReport={...publicReport,holderEnumeration:evmSnapshot?.snapshot?.holderEnumeration,sources:[...publicReport.sources,...sourceTimes],investigation,...(solana?{solana:{snapshot:solana.snapshot,tokenAccounts:solana.tokenAccounts,authorities:solana.authorities,extensions:solana.extensions}}:{})};
         if(mode==='deep'&&prior?.report.sources.some(s=>s.status==='available')&&!result.sources.some(s=>s.status==='available'))throw Error('Providers are unavailable; the previous report is preserved.');
         if(mode==='holders'&&prior)result=mergeReportRefresh(prior.report,result,'holders');
         else if(mode==='deep'&&prior)result=mergeDeepReport(prior.report,result);

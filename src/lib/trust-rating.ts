@@ -33,7 +33,7 @@ export function trustRating(report:InvestigationReport):TrustRating{
  if(inputs.find(i=>i.id==='swarm')!.lower>=.5)hard.push('Modeled largest-hand sell impact is at least 50% in the stated pool scenario.');
  if(inputs.find(i=>i.id==='fresh')!.lower>=.8)hard.push('At least 80% of current evaluated holder wallets satisfy the fresh-wallet predicate.');
  if(inputs.find(i=>i.id==='dev')!.lower>=.1)soft.push('Observed creator-linked holdings are at least 10% of adjusted supply.');
- const graph=buildCurrentHolderGraph(report,{limit:1000}),adj=new Map<string,Set<string>>();
+ const graph=buildCurrentHolderGraph(report,{limit:Math.max(1000,report.holders.length)}),adj=new Map<string,Set<string>>();
  for(const e of graph.edges)for(const [a,b]of [[e.from,e.to],[e.to,e.from]]){const set=adj.get(a)||new Set<string>();set.add(b);adj.set(a,set);}
  const seen=new Set<string>();let largeGroup=false;
  for(const start of adj.keys()){if(seen.has(start))continue;const pending=[start];let size=0;while(pending.length){const a=pending.pop()!;if(seen.has(a))continue;seen.add(a);size++;pending.push(...(adj.get(a)||[]));}if(size>=3)largeGroup=true;}

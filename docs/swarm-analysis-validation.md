@@ -1,6 +1,6 @@
 # Public Swarm analysis validation
 
-Latest ZKBLAST comparison: [Robinhood end-to-end validation, 2026-11-04](zkblast-validation-2026-11-04.md). Fresh captures matched the 78/100 score and 59.0% selected model weight, recovered all 46 Swarm holder addresses, and separated 239 recorded accounts from 95 independently analyzed ordinary holders. Factor assumptions and remaining float-policy differences are documented there.
+Latest ZKBLAST comparison: [Full-holder validation, 2026-11-04](all-holder-validation-2026-11-04.md). The fresh production stream verified all 242 recorded balances and selected all 239 ordinary holders for activity checks. The top 50 are displayed; all 46 Swarm addresses are recovered. The expanded readable cohort produces 77/100 and a 55.6% Clear weight, rather than forcing the older bounded sample's score. The [initial bounded comparison](zkblast-validation-2026-11-04.md) remains a historical capture.
 
 Latest release: [report and retrieval validation](report-release-validation-2026-11-03.md), including the reproduced Four.Meme custody/float/first-minute fixes, current chain-state changes and remaining evidence limits. Earlier measurements below remain historical observations.
 

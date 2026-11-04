@@ -1,9 +1,22 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readWalletActivity} from '../src/lib/wallet-activity';
+import {readWalletActivity,WalletActivityRpcError} from '../src/lib/wallet-activity';
 const a='0x0000000000000000000000000000000000000001', b='0x0000000000000000000000000000000000000002';
 const hash='0x'+'1'.repeat(64);
+test('qualified Robinhood activity checks all 239 accounts in bounded batches and retains unknowns',async()=>{
+ const addresses=Array.from({length:239},(_,i)=>'0x'+(i+1).toString(16).padStart(40,'0'));let batches=0,active=0,peak=0;const now=Date.parse('2026-11-04T02:00:00Z');
+ const rpc=async(m:string)=>m==='eth_chainId'?'0x1237':{number:'0x20',hash,timestamp:'0x'+Math.floor(now/1000).toString(16)};
+ const r=await readWalletActivity('robinhood',addresses,rpc,{now:()=>now,maxAddresses:239,rpcBatch:async requests=>{batches++;peak=Math.max(peak,++active);assert(requests.length<=50);await new Promise(resolve=>setTimeout(resolve,1));active--;return requests.map(q=>q.params[0]===addresses[110]?{status:'rejected' as const,reason:Error('unavailable')}:{status:'fulfilled' as const,value:q.method==='eth_getCode'?'0x':'0x1'});}});
+ assert.equal(r.wallets.length,239);assert.equal(r.truncated,false);assert.equal(r.wallets.filter(w=>w.count===1).length,238);assert.equal(r.wallets[110].count,null);assert.equal(batches,10);assert(peak<=2);assert(r.wallets.every(w=>w.fresh===null));
+});
 const evm=async(method:string,params:unknown[])=>method==='eth_chainId'?'0x1':method==='eth_getBlockByNumber'?{number:'0x20',hash}:method==='eth_getCode'?'0x':params[0]===a?'0xa':'0xb';
+test('expanded activity options do not expand other chains or unbatched Robinhood reads',async()=>{const addresses=Array.from({length:120},(_,i)=>'0x'+(i+1).toString(16).padStart(40,'0'));let batches=0;const r=await readWalletActivity('ethereum',addresses,evm,{maxAddresses:120,rpcBatch:async()=>{batches++;return [];}});assert.equal(r.wallets.length,100);assert.equal(r.truncated,true);assert.equal(batches,0);});
+test('batched activity stops dispatch at deadline and rechecks the canonical anchor',async()=>{
+ const addresses=Array.from({length:239},(_,i)=>'0x'+(i+1).toString(16).padStart(40,'0')),now=Date.parse('2026-11-04T02:00:00Z');let calls=0,headers=0;
+ const rpc=async(m:string)=>m==='eth_chainId'?'0x1237':{number:'0x20',hash:++headers>2?'0x'+'2'.repeat(64):hash,timestamp:'0x'+Math.floor(now/1000).toString(16)};
+ const r=await readWalletActivity('robinhood',addresses,rpc,{now:()=>now,maxAddresses:239,rpcBatch:async requests=>{if(++calls>1)throw new WalletActivityRpcError('deadline');return requests.map(q=>({status:'fulfilled',value:q.method==='eth_getCode'?'0x':'0x1'}));}});
+ assert(calls<=3);assert.equal(headers,3);assert(r.wallets.every(w=>w.count===null));assert.match(r.wallets[0].reason,/anchor changed/i);
+});
 test('EVM account nonce is measured at a fixed anchor but never proves lifetime freshness',async()=>{
  const result=await readWalletActivity('ethereum',[a,b,a],evm);
  assert.equal(result.wallets.length,2); assert.equal(result.wallets[0].fresh,null);assert.equal(result.wallets[1].fresh,null);assert.equal(result.wallets[0].count,10);assert.equal(result.wallets[0].exact,true);assert.equal(result.wallets[0].basis,'evm-account-nonce');assert.equal(result.blockRef,'0x20:'+hash);

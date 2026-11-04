@@ -9,7 +9,7 @@ export type CurrentHolderGraph={nodes:InvestigatedWallet[];edges:Relationship[];
 export function buildCurrentHolderGraph(report:InvestigationReport,options:{limit?:number}={}):CurrentHolderGraph{
  const normalize=(a:string)=>report.chain==='solana'?a:a.toLowerCase();
  const scope=holderScope(report),infra=new Set(scope.infrastructureAddresses);
- const requested=options.limit??100,limit=Number.isFinite(requested)?Math.max(0,Math.min(1000,Math.floor(requested))):100;
+ const requested=options.limit??100,limit=Number.isFinite(requested)?Math.max(0,Math.min(10000,Math.floor(requested))):100;
  const existing=new Map(report.investigation.wallets.map(w=>[normalize(w.address),w]));
  const sorted=[...scope.holders].sort((a,b)=>(Number.isFinite(b.share)?b.share:-1)-(Number.isFinite(a.share)?a.share:-1)||normalize(a.address).localeCompare(normalize(b.address)));
  const nodes:InvestigatedWallet[]=sorted.slice(0,limit).map(h=>{

@@ -13,6 +13,11 @@ test('an unsupported inferred shared-funder warning cannot manufacture a stop ru
  const r=report(),before=trustRating(r);r.investigation.findings=[{id:'funder:a',title:'Shared funding',description:'',level:'warning',certainty:'inferred',wallets:['outside-a','outside-b'],evidenceIds:['missing']}];const after=trustRating(r);
  assert.deepEqual(after.range,before.range);assert.deepEqual(after.soft,[]);assert.deepEqual(after.hard,[]);
 });
+test('documented groups beyond the first thousand ranked holders still trigger the group rule',()=>{
+ const r=report();r.holders=Array.from({length:1003},(_,i)=>({address:`wallet${i.toString().padStart(4,'0')}`,share:i<1000?.09:.01,contract:false,locked:null,tag:''}));r.investigation.wallets=r.holders.map(h=>({address:h.address,share:h.share,categories:[],evidenceIds:[]}));
+ for(let i=1000;i<1002;i++){const from=r.holders[i].address,to=r.holders[i+1].address,id=`tail:${i}`;r.investigation.evidence.push({id,kind:'transfer',from,to,amount:1,token:r.token,transaction:`tx${i}`,timestamp:at,source:'RPC',description:'Canonical transfer'});r.investigation.relationships.push({id,kind:'transfer',from,to,evidenceIds:[id],description:'Documented transfer'});}
+ assert(trustRating(r).soft?.some(reason=>reason.includes('at least three current holders')));
+});
 test('a current source-qualified critical control overrides unknown factor measurements',()=>{
  const r=report();r.checks[1]={...r.checks[1],status:'critical',value:'Active'};assert.equal(trustRating(r).decision,'AVOID');assert.equal(trustRating(r).score,null);assert.deepEqual(trustRating(r).range,{lower:0,upper:85});
  for(const patch of [{source:'Unrelated provider'},{fetchedAt:'2026-11-02T00:00:00Z'}]){const unqualified=structuredClone(r);Object.assign(unqualified.checks[1],patch);assert.equal(trustRating(unqualified).score,null);assert.notEqual(trustRating(unqualified).decision,'AVOID');}

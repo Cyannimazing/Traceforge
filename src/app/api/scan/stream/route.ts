@@ -3,13 +3,13 @@ import { investigationService } from '@/lib/investigation-server';
 import { parseScanRequest } from '@/lib/scan-request';
 import type { ScanEvent } from '@/lib/investigation-types';
 export const runtime='nodejs';
-export const maxDuration=90;
+export const maxDuration=120;
 
 export async function GET(request: NextRequest) {
   const {chain,token,error,options}=parseScanRequest(request.nextUrl);
   if(error)return NextResponse.json({error},{status:400});
   const cancellation=new AbortController();
-  const signal=AbortSignal.any([request.signal,cancellation.signal,AbortSignal.timeout(80_000)]);
+  const signal=AbortSignal.any([request.signal,cancellation.signal,AbortSignal.timeout(110_000)]);
   const encoder=new TextEncoder();
   let closed=false;
   const stream=new ReadableStream<Uint8Array>({

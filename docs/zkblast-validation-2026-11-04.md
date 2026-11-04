@@ -1,5 +1,7 @@
 # ZKBLAST end-to-end validation - 2026-11-04
 
+This is the initial bounded comparison. The later [full-holder follow-up](all-holder-validation-2026-11-04.md) verifies 242 balances, 239 ordinary holders, top-50 presentation and a newly calculated score.
+
 Token: Robinhood Chain `0x3f9ff9f1d40369f99c281375bd19d6ecbebfecd7`.
 
 Fresh public comparison: [Swarm ZKBLAST](https://swarmengine.tech/t/robinhood/0x3f9ff9f1d40369f99c281375bd19d6ecbebfecd7). TraceForge runs its independent evidence and calculation pipeline. No Swarm score, holder list or judge result is imported into its report; no LLM is enabled.

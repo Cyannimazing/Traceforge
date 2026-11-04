@@ -11,6 +11,13 @@ const at='2026-01-02T12:00:00Z';
 const wallet=(address:string,share:number|null,balance?:number):InvestigatedWallet=>({address,share,balance,categories:['unclassified'],evidenceIds:[]});
 function report():InvestigationReport {const r=structuredClone(fixtureReport);r.fixture=false;r.sources=[{name:'Bitquery Holders',status:'available',detail:'Snapshot',fetchedAt:r.fetchedAt},{name:'Bitquery Recent trades',status:'available',detail:'Historical sample',fetchedAt:r.fetchedAt}];return r;}
 function fresh(old:InvestigationReport):InvestigationReport {const r=structuredClone(old);r.fetchedAt=at;r.holders=[];r.investigation.wallets=[];r.investigation.evidence=[];r.investigation.timeline=[];r.investigation.relationships=[];r.investigation.findings=[];r.sources=[{name:'Bitquery Holders',status:'available',detail:'Fresh snapshot',fetchedAt:at}];return r;}
+test('holder enumeration metadata follows the retained snapshot and is cleared by a replacement without qualification',()=>{
+ const old=report();old.holderEnumeration={kind:'pons-creation-ledger',recordedAccounts:239,verifiedAccounts:239,complete:true};
+ for(const merge of [(a:InvestigationReport,b:InvestigationReport)=>mergeReportRefresh(a,b,'holders'),mergeDeepReport]){
+  const next=fresh(old);delete next.holderEnumeration;next.sources=[{name:'EVM RPC holder balances',status:'unavailable',detail:'Unavailable'}];assert.deepEqual(merge(old,next).holderEnumeration,old.holderEnumeration);
+  next.sources=[{name:'EVM RPC holder balances',status:'available',detail:'New sampled balances',fetchedAt:at}];assert.equal(merge(old,next).holderEnumeration,undefined);
+ }
+});
 
 test('independent EVM RPC holder snapshots replace current holdings and preserve outage provenance',()=>{
  const old=report();old.chain='base';const next=fresh(old),address='0x'+'b'.repeat(40);next.sources=[{name:'EVM RPC holder balances',status:'available',fetchedAt:at,detail:'Base safe sampled snapshot'}];next.holders=[{address,share:5,contract:null,locked:null,tag:''}];next.investigation.wallets=[wallet(address,5,50)];

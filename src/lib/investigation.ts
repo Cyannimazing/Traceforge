@@ -12,6 +12,8 @@ export type LabelRecord = { timestampBasis?:'local-observation'|'provider-event'
 export type InvestigationInput = {
   chain: Chain; token: string;
   holders: { address: string; share: number | null; balance?: number }[];
+  /** Server-attested current RPC inventory bound. Does not widen historical queries or buyer sampling. */
+  currentHolderLimit?:number;
   earlyBuyerAddresses?: string[];
   trades: TradeRecord[]; transfers: TransferRecord[]; identities: IdentityRecord[]; labels: LabelRecord[];
   launchVerified: boolean; curveTiming?:CurveTimingProof; poolTiming?:PoolTimingProof; poolTimings?:PoolTimingProof[]; clock?:EvidenceClock; earliestTradeAt?: string; complete: boolean; reasons: string[]; fetchedAt: string;
@@ -75,7 +77,10 @@ export function analyzeInvestigation(input: InvestigationInput): Investigation {
     identities: input.identities.filter(r=>acceptRecord(r,r.timestampBasis==='local-observation')), labels: input.labels.filter(r=>acceptRecord(r,r.timestampBasis==='local-observation'))};
   for (const [source, count] of rejected) reasons.push(`${count} record(s) from ${source} withheld: timestamps are invalid or conflict with the scan validation clock (more than 120 seconds ahead). This is a coverage gap, not evidence of no activity. Provider and server clocks require reconciliation; timestamps were not corrected.`);
   const address = (value: string) => input.chain === 'solana' ? value : value.toLowerCase();
-  const sampledHolders=new Set(input.holders.slice(0,input.holderLimit).map(holder=>address(holder.address)));
+  const currentLimit=Number.isSafeInteger(input.currentHolderLimit)&&input.currentHolderLimit!>=0?Math.min(10000,input.currentHolderLimit!):input.holderLimit;
+  const currentHolders=input.holders.slice(0,currentLimit);
+  if(input.currentHolderLimit!==undefined&&currentHolders.length<input.holders.length){input.truncated=true;reasons.push('The verified current-holder inventory exceeds the configured in-memory bound; some current holders are outside this analysis. Historical query limits are separate.');}
+  const sampledHolders=new Set(currentHolders.map(holder=>address(holder.address)));
   const holderContext=(addresses:string[])=>{
     const count=addresses.filter(a=>sampledHolders.has(a)).length;
     return `${count} of ${addresses.length} wallets appear in the current holder snapshot.${count<addresses.length?' Current balances for wallets outside that snapshot are unknown, not zero.':''}`;
@@ -120,7 +125,7 @@ export function analyzeInvestigation(input: InvestigationInput): Investigation {
       if (!w.evidenceIds.includes(item.id)) w.evidenceIds.push(item.id);
     }
   };
-  for (const h of input.holders.slice(0, input.holderLimit)) Object.assign(wallet(h.address), { share: h.share, balance: h.balance });
+  for (const h of currentHolders) Object.assign(wallet(h.address), { share: h.share, balance: h.balance });
   for (const l of input.labels) {
     if (!l.address || !l.source) continue;
     category(l.address, l.category); wallet(l.address).label = l.label;

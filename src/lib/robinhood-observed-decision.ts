@@ -39,7 +39,7 @@ export function robinhoodObservedDecision(report:InvestigationReport,strict:Trus
  });
  const creators=new Set(initiators.map(i=>norm(i.address)));if(creators.size!==1)return null;
  const supply=report.totalSupply;if(!positive(supply))return null;
- const scope=holderScope(report),graph=buildCurrentHolderGraph(report,{limit:1000});if(!scope.holders.length||graph.truncated)return null;
+ const scope=holderScope(report),graph=buildCurrentHolderGraph(report,{limit:10000});if(!scope.holders.length||graph.truncated)return null;
  let decimals:number|undefined;const amounts=new Map<string,number>();
  function balance(address:string):number|null{
   const key=norm(address),e=evidence.get(`holding:evm:${key}`),n=raw(e?.amountRaw);
@@ -64,7 +64,7 @@ export function robinhoodObservedDecision(report:InvestigationReport,strict:Trus
  const activity=report.walletActivity;if(!activity||activity.source!=='EVM RPC wallet activity'||!source(activity.source)||!fresh(activity.observedAt)||activity.finality!=='finalized'||!activity.blockRef?.trim()||!dated(activity.blockTimestamp))return null;
  const rows=new Map(activity.wallets.map(w=>[norm(w.address),w])),eligible=[...scope.holders].filter(h=>!creators.has(norm(h.address))).sort((a,b)=>b.share-a.share||norm(a.address).localeCompare(norm(b.address)));
  const readable=eligible.filter(h=>{const w=rows.get(norm(h.address));return w&&['evm-outgoing-count','evm-account-nonce'].includes(w.basis)&&w.exact===true&&fresh(w.observedAt||activity.observedAt)&&Number.isSafeInteger(w.count)&&w.count!>=0;});
- const selected=readable.slice(0,15);if(!selected.length)return null;
+ const selected=readable;if(!selected.length)return null;
  const low=selected.filter(h=>rows.get(norm(h.address))!.count!<=10).length,unread=eligible.length-readable.length,outside=readable.length-selected.length;
  const transfers=[...evidence.values()].filter(e=>e.kind==='transfer'&&hash(e.transaction)&&!!e.from&&!!e.to&&(positive(e.amount)||(raw(e.amountRaw)!==null&&raw(e.amountRaw)!>0n)));
  const nativeProofs=new Set(report.investigation.relationships.filter(r=>r.kind==='funding'&&r.attribution!=='provider-reported').flatMap(r=>r.evidenceIds.filter(id=>{const e=evidence.get(id);return e?.from&&e.to&&norm(e.from)===norm(r.from)&&norm(e.to)===norm(r.to);})));
@@ -75,7 +75,7 @@ export function robinhoodObservedDecision(report:InvestigationReport,strict:Trus
  const exposure=(id:'insiders'|'snipers'|'dev',value:number,detail:string):ObservedFactor=>({id,value,basis:value>0?'observed-exposure':'observed-none',detail:`${detail} ${value===0?'No matches were recorded in the returned scope; this is not verified zero lifetime exposure. ':''}Unread transfers, earlier venues and other controlled wallets remain outside this point model.`});
  const factors:ObservedFactor[]=[
   {id:'swarm',value:impact,basis:'conditional-scenario',detail:`Nominal balanced pool x=L/(2P)=${x} token units from selected DEX liquidity $${liquidity} and price $${price}; largest documented group q=${q} token units. Impact=1-(x/(x+q))². Assumes equal-value sides, zero fees, successful sales and constant-product updates. This is not an executable V4 quote or verified V4 reserve measurement; shared manager custody is not used as reserves.`},
-  {id:'fresh',value:low/selected.length,basis:'account-nonce-proxy',detail:`${low}/${selected.length} of the top ${selected.length} readable non-creator EOAs by current holdings have account nonce at most ten. This low-account-nonce proxy is not verified lifetime freshness: nonces include outgoing transactions and, for EIP-7702 delegated EOAs, authorization increments. Incoming and internal history are omitted. ${unread} unread/contract rows and ${outside} readable rows outside the 15-wallet cap are excluded from this denominator.`},
+  {id:'fresh',value:low/selected.length,basis:'account-nonce-proxy',detail:`${low}/${selected.length} of all ${selected.length} readable non-creator EOAs in the analyzed current holder snapshot have account nonce at most ten. This low-account-nonce proxy is not verified lifetime freshness: nonces include outgoing transactions and, for EIP-7702 delegated EOAs, authorization increments. Incoming and internal history are omitted. ${unread} unread/contract rows and ${outside} readable rows outside the analyzed snapshot are excluded from this denominator.`},
   exposure('insiders',insiders,'Observed creator-origin recipients and any verified prelaunch token recipients, unioned once.'),
   {id:'concentration',value:concentration,basis:'observed-holdings',detail:`Top ten documented current-holder groups in the sample divided by ${denominator}% of total supply after subtracting measured infrastructure. Unobserved holders and relationships are excluded; connections do not prove common ownership.`},
   exposure('snipers',sniper,'Current holdings with transaction-backed buys in verified first-minute intervals only. Recent sample start is not launch time.'),
@@ -86,10 +86,10 @@ export function robinhoodObservedDecision(report:InvestigationReport,strict:Trus
  // Preserve the strict control audit's unresolved-security state as well as its
  // hard/soft rules. The point's historical assumptions cannot clear a control.
  const security=context.guard.critical?null:strict.judgeInputs?.security??null,judge=decisionModel({score:{lower:scored.score,upper:scored.score},danger:hard.length>0,security,memoryHits:0,dumpImpact:{lower:impact,upper:impact},hard});
- return {score:scored.score,scoreBand:scored.decision,judge,factors,impact,largestShare:share(largest),scope:{holderCount:scope.holders.length,readableFreshWallets:selected.length,unreadFreshWallets:unread+outside,activityProxy:{kind:'low-account-nonce',limit:15,readable:selected.length,lowNonce:low,unread,outsideLimit:outside},notes:[
+ return {score:scored.score,scoreBand:scored.decision,judge,factors,impact,largestShare:share(largest),scope:{holderCount:scope.holders.length,readableFreshWallets:selected.length,unreadFreshWallets:unread+outside,activityProxy:{kind:'low-account-nonce',limit:eligible.length,readable:selected.length,lowNonce:low,unread,outsideLimit:outside},notes:[
   'Conditional observed-scope point model of the returned sample. Strict evidence bounds remain separate; this score is not a safety probability or a complete audit.',
   `${returnedTrades.length} source-attributed selected-pool trade observations establish a returned activity subset, not complete launch history. No recorded insider/sniper match does not prove absence.`,
-  'Low account nonce is not verified lifetime-fresh status; EIP-7702 authorization increments are not transactions sent by the account. Unknown wallets and readable wallets beyond the stated cap are excluded from that proxy, not assigned favorable counts.',
+  'Low account nonce is not verified lifetime-fresh status; EIP-7702 authorization increments are not transactions sent by the account. Unknown wallets are excluded from that proxy, not assigned favorable counts.',
   'The USD-derived balanced constant-product pool is counterfactual for V4: concentrated ranges, hooks, token taxes, fees, routing and execution are not modeled.',
   'No cross-token group search was performed. This conditional point assumes no additional memory hit, without establishing that none exists.',
   `Snapshot float subtracts only ${100-denominator}% measured infrastructure. Omitted holders and unidentified services can change both concentration and observed exposure.`,

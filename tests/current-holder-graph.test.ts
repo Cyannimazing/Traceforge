@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import type {InvestigationReport,Evidence,Relationship} from '../src/lib/investigation-types';
 import {buildCurrentHolderGraph} from '../src/lib/current-holder-graph';
+import {HOLDER_DISPLAY_LIMIT} from '../src/lib/holder-count-summary';
 
 const at='2026-11-03T06:00:00Z';
 function report(chain:InvestigationReport['chain']='solana'):InvestigationReport{
@@ -63,4 +64,14 @@ test('normalization is chain-specific and uses the same evidence-backed infrastr
 
 test('a transfer only connecting an unrelated endpoint cannot act as shared funding proof',()=>{
  const r=report();shared(r);r.investigation.evidence[1].from='another-funder';assert.equal(buildCurrentHolderGraph(r).edges.length,0);
+});
+
+test('top fifty display leaves later holder relationships available to the full investigation',()=>{
+ const r=report();r.holders=Array.from({length:239},(_,i)=>({address:'wallet-'+i.toString().padStart(3,'0'),share:(239-i)/1000,contract:false,locked:false,tag:''}));
+ r.investigation.wallets=r.holders.map(h=>({address:h.address,share:h.share,categories:['unclassified'],evidenceIds:[]}));
+ transfer(r,'tail-link','wallet-150','wallet-200');
+ const displayed=buildCurrentHolderGraph(r,{limit:HOLDER_DISPLAY_LIMIT}),all=buildCurrentHolderGraph(r,{limit:r.holders.length});
+ assert.equal(displayed.shown,50);assert.equal(displayed.total,239);assert.equal(displayed.edges.length,0);
+ assert.equal(all.shown,239);assert.equal(all.edges.length,1);assert.equal(all.documentedGroups,1);
+ assert.equal(r.holders.length,239);assert.equal(displayed.nodes[0].share,r.holders[0].share);
 });
