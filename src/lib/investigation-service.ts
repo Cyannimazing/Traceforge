@@ -20,9 +20,11 @@ import type {EvmReserveChain,EvmPoolReserveResult} from './evm-pool-reserves';
 import {EVM_HOLDER_SOURCE,type EvmHolderResult,type EvmHolderOptions} from './evm-holder-fallback';
 import {PONS_FACTORY,PONS_DEPLOYER,type PonsLaunchRecordResult,type PonsLaunchOptions} from './pons-launch-record';
 import {qualifiedEvmEoas} from './qualified-evm-eoa';
+import type {CrossTokenMemory} from './cross-token-memory';
+import {crossTokenMemoryEvidence} from './cross-token-memory-evidence';
 
 export type ScanOptions = { mode?: 'deep' | 'market' | 'holders'; expanded?: boolean; fresh?: boolean; signal?: AbortSignal; onEvent?: (event: ScanEvent) => void };
-type Dependencies = { evmPoolReserves?:(chain:EvmReserveChain,pool:string,token:string,options:{holders?:string[];signal?:AbortSignal})=>Promise<EvmPoolReserveResult>; bscHolders?:(report:Report,options:{signal?:AbortSignal;history?:boolean;candidateAddresses?:string[]})=>Promise<BscHolderFallbackResult>; enrichSnapshot?:(report:Report,options:SnapshotEnrichmentOptions)=>Promise<SnapshotEnrichment>; publicScan: (chain: Chain, token: string, options: {mode?: 'deep' | 'market' | 'holders'; signal?: AbortSignal}) => Promise<Report>; makeClient: (signal?: AbortSignal) => BitqueryClient; publicHistory?: (chain: Chain, token: string, options: PublicHistoryOptions) => Promise<PublicHistoryResult>; historicalEvidence?: (chain:Chain,token:string,options:PublicHistoryOptions)=>Promise<PublicHistoryResult|undefined>; solanaPublic?: (token:string,options:{signal?:AbortSignal})=>Promise<SolanaPublicResult>; poolLaunch?:(chain:Chain,token:string,pool:string,options:{signal?:AbortSignal;validationTime?:number;creationTimeHint?:number})=>Promise<PoolLaunchResult>; poolReserves?:(pool:string,token:string,options:{signal?:AbortSignal})=>Promise<SolanaPoolReserveResult>; resolveClock?:(options:{signal?:AbortSignal})=>Promise<EvidenceClock>; now?: () => number };
+type Dependencies = { crossTokenMemory?:(report:InvestigationReport,options:{signal?:AbortSignal;deadlineMs?:number;onProgress?:(detail:string)=>void})=>Promise<CrossTokenMemory>; evmPoolReserves?:(chain:EvmReserveChain,pool:string,token:string,options:{holders?:string[];signal?:AbortSignal})=>Promise<EvmPoolReserveResult>; bscHolders?:(report:Report,options:{signal?:AbortSignal;history?:boolean;candidateAddresses?:string[]})=>Promise<BscHolderFallbackResult>; enrichSnapshot?:(report:Report,options:SnapshotEnrichmentOptions)=>Promise<SnapshotEnrichment>; publicScan: (chain: Chain, token: string, options: {mode?: 'deep' | 'market' | 'holders'; signal?: AbortSignal}) => Promise<Report>; makeClient: (signal?: AbortSignal) => BitqueryClient; publicHistory?: (chain: Chain, token: string, options: PublicHistoryOptions) => Promise<PublicHistoryResult>; historicalEvidence?: (chain:Chain,token:string,options:PublicHistoryOptions)=>Promise<PublicHistoryResult|undefined>; solanaPublic?: (token:string,options:{signal?:AbortSignal})=>Promise<SolanaPublicResult>; poolLaunch?:(chain:Chain,token:string,pool:string,options:{signal?:AbortSignal;validationTime?:number;creationTimeHint?:number})=>Promise<PoolLaunchResult>; poolReserves?:(pool:string,token:string,options:{signal?:AbortSignal})=>Promise<SolanaPoolReserveResult>; resolveClock?:(options:{signal?:AbortSignal})=>Promise<EvidenceClock>; now?: () => number };
 type Cached = { expires: number; report: InvestigationReport };
 type HolderDependencies={evmHolders?:(report:Report,options:EvmHolderOptions)=>Promise<EvmHolderResult>;ponsLaunch?:(chain:Chain,token:string,options:PonsLaunchOptions)=>Promise<PonsLaunchRecordResult>};
 const batch = <T>(items: T[], size: number) => Array.from({length:Math.ceil(items.length/size)},(_,i)=>items.slice(i*size,(i+1)*size));
@@ -83,6 +85,7 @@ export function createInvestigationService(deps: Dependencies & HolderDependenci
     },
     async scan(chain: Chain, token: string, options: ScanOptions = {}): Promise<InvestigationReport> {
       options.signal?.throwIfAborted();
+      const scanStarted=Date.now();
       const mode = options.mode || 'deep', limit = options.expanded ? 200 : 100;
       const key = `${chain}:${chain === 'solana' ? token : token.toLowerCase()}:${limit}`;
       // A fresh scan bypasses reuse below, but retains a saved baseline if providers fail.
@@ -148,7 +151,7 @@ export function createInvestigationService(deps: Dependencies & HolderDependenci
           const holderReport=snapshot?.holders?{...publicReport,holders:snapshot.holders.flatMap(h=>h.share===null?[]:[{address:h.address,share:h.share,contract:null,locked:null,tag:''}])}:publicReport;
           stage('wallet-activity','running',`Checking activity for ${holderReport.holders.length} returned holder addresses; no exhaustive history crawl.`);
           const enumeration=chain==='robinhood'?evmSnapshot?.snapshot?.holderEnumeration:undefined;
-          const enriched=await deps.enrichSnapshot!(holderReport,{signal:options.signal,...(enumeration?.kind==='pons-creation-ledger'?{activityScope:{kind:'pons-creation-ledger' as const,maxAddresses:Math.min(10000,holderReport.holders.length)}}:{})});
+          const enriched=await deps.enrichSnapshot!(holderReport,{signal:options.signal,timeoutMs:Math.max(1,103_000-(Date.now()-scanStarted)),...(enumeration?.kind==='pons-creation-ledger'?{activityScope:{kind:'pons-creation-ledger' as const,maxAddresses:Math.min(10000,holderReport.holders.length)}}:{})});
           const wallets=enriched.walletActivity?.wallets||[];
           stage('wallet-activity',wallets.some(w=>w.count!==null)?'complete':'unavailable',`${wallets.filter(w=>w.count!==null).length} of ${wallets.length} selected wallet activity responses verified. Short histories remain unresolved.`);
           if(enriched.controlProbes)stage('control-probes',enriched.controlProbes.status==='unavailable'?'unavailable':'complete',`${enriched.controlProbes.observations.filter(o=>o.status==='observed').length} direct RPC control observations at one block. Transfer simulation is not a sellability test.`);
@@ -291,6 +294,7 @@ export function createInvestigationService(deps: Dependencies & HolderDependenci
           // This bound applies only to already-verified current balances. The
           // historical holder/buyer query limits remain unchanged.
           const currentSnapshot=evmSnapshot?.snapshot;
+          if(!currentSnapshot&&!sourceTimes.some(source=>source.name===EVM_HOLDER_SOURCE))sourceTimes.push({name:EVM_HOLDER_SOURCE,status:'unavailable',detail:'Independent holder balances could not be refreshed. Security-provider rows do not replace the last verified inventory.'});
           if(chain==='robinhood'&&currentSnapshot?.chain===chain&&currentSnapshot.holderEnumeration?.kind==='pons-creation-ledger'&&evmSnapshot?.holders){
             const positives=new Set(currentSnapshot.balances.filter(b=>b.status==='observed'&&typeof b.amountRaw==='string'&&/^[1-9]\d{0,77}$/.test(b.amountRaw)).map(b=>b.address.toLowerCase()));
             if(evmSnapshot.holders.every(h=>!validateToken(chain,h.address)&&typeof h.share==='number'&&Number.isFinite(h.share)&&h.share>0&&positives.has(h.address.toLowerCase())))input.currentHolderLimit=Math.min(10000,evmSnapshot.holders.length);
@@ -334,6 +338,14 @@ export function createInvestigationService(deps: Dependencies & HolderDependenci
           input.transfers=[...input.transfers.filter(t=>!observed.has(transferKey(t))),...historical.transfers];
           input.earliestTradeAt=input.trades.map(t=>t.timestamp).sort()[0]||input.earliestTradeAt;
         }
+        // Discover prior relationships while the independent activity/control
+        // reads finish. This provisional view is nomination input only: the final
+        // matcher rechecks membership against the finished current-holder cohort.
+        const memoryTask=mode==='deep'&&deps.crossTokenMemory?(async()=>{
+          stage('cross-token-memory','running','Searching prior-token relationships and verifying their transactions.');
+          try{return await deps.crossTokenMemory!({...publicReport,sources:[...publicReport.sources,...sourceTimes],investigation:analyzeInvestigation(input)},{signal:options.signal,deadlineMs:Math.min(45_000,Math.max(1,103_000-(Date.now()-scanStarted))),onProgress:detail=>stage('cross-token-memory','running',detail)});}
+          catch{options.signal?.throwIfAborted();return {version:1 as const,chain,token,observedAt:new Date(now()).toISOString(),status:'unavailable' as const,records:[],scope:{selectedWallets:0,queriedWallets:0,candidateTokens:0,verifiedTransactions:0,truncated:true},reasons:['Independent cross-token verification was unavailable. No previous memory claim is carried into this scan.']};}
+        })().catch(()=>undefined):Promise.resolve(undefined);
         const poolWindow=await poolTask;
         options.signal?.throwIfAborted();
         if(poolWindow){
@@ -453,6 +465,19 @@ export function createInvestigationService(deps: Dependencies & HolderDependenci
           if(activity)result.sources.push({name:activity.source,status:activity.wallets.some(w=>w.count!==null)?'available':'unavailable',fetchedAt:activity.observedAt,detail:'Bounded wallet activity predicate. See chain-specific count semantics and unknown histories.'});
           if(probes){result.sources.push({name:probes.source,status:probes.status==='unavailable'?'unavailable':'available',fetchedAt:probes.fetchedAt,detail:probes.limitations.join(' ')});result.investigation.evidence.push(...probes.evidence);}
         }
+        const memory=await memoryTask;
+        options.signal?.throwIfAborted();
+        if(mode==='deep'){
+          // A fresh failure must not inherit a prior scan's positive matches.
+          result.crossTokenMemory=memory;
+          if(memory){
+            result.sources=result.sources.filter(source=>source.name!=='Independent cross-token memory');
+            result.sources.push({name:'Independent cross-token memory',status:memory.status==='partial'?'available':'unavailable',fetchedAt:memory.observedAt,detail:`${memory.scope.queriedWallets} selected wallet histories queried; ${memory.scope.candidateTokens} prior token candidates; ${memory.scope.verifiedTransactions} canonical transactions checked. ${memory.reasons.join(' ')}`});
+            stage('cross-token-memory',memory.status==='partial'?'complete':'unavailable','Bounded prior-token search finished. Only independently qualified relationships affect the verdict.');
+          }
+        }
+        result.investigation.evidence=result.investigation.evidence.filter(e=>e.source!=='Independent cross-token memory');
+        result.investigation.evidence.push(...crossTokenMemoryEvidence(result));
         result.riskMetrics=computeRiskMetrics(result);
         result.investigation.assessment=getDisplayAssessment(result);
         result.trustRating=trustRating(result);

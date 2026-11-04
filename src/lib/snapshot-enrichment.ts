@@ -2,7 +2,7 @@ import {validateToken,type Chain,type Report} from './analysis';
 import {readWalletActivity,WalletActivityRpcError,type WalletActivitySnapshot,type WalletActivity,type WalletActivityBatch} from './wallet-activity';
 import {runEvmControlProbes,type EvmControlProbeResult} from './evm-control-probes';
 export type SnapshotEnrichment={walletActivity?:WalletActivitySnapshot;controlProbes?:EvmControlProbeResult};
-export type SnapshotEnrichmentOptions={signal?:AbortSignal;activityScope?:{kind:'pons-creation-ledger';maxAddresses:number}};
+export type SnapshotEnrichmentOptions={signal?:AbortSignal;timeoutMs?:number;activityScope?:{kind:'pons-creation-ledger';maxAddresses:number}};
 /** Server-only URLs are injected at the server boundary; never returned in evidence. */
 export function createSnapshotEnrichment(deps:{rpcUrls?:Partial<Record<Chain,string|undefined>>;fetcher?:typeof fetch;now?:()=>number;timeoutMs?:number;activityScheduler?:{now:()=>number;wait:(ms:number,signal:AbortSignal)=>Promise<void>}}={}){
  const fetcher=deps.fetcher||fetch;
@@ -19,7 +19,7 @@ export function createSnapshotEnrichment(deps:{rpcUrls?:Partial<Record<Chain,str
   options.signal?.throwIfAborted();
   const url=deps.rpcUrls?.[report.chain];if(!url)return {};
   const expanded=report.chain==='robinhood'&&options.activityScope?.kind==='pons-creation-ledger';
-  const timeoutMs=deps.timeoutMs??(expanded?60000:10000),deadline=AbortSignal.timeout(timeoutMs),signal=options.signal?AbortSignal.any([options.signal,deadline]):deadline;
+  const timeoutMs=Math.min(deps.timeoutMs??(expanded?60000:10000),Math.max(1,options.timeoutMs??60_000)),deadline=AbortSignal.timeout(timeoutMs),signal=options.signal?AbortSignal.any([options.signal,deadline]):deadline;
   const pacingNow=deps.activityScheduler?.now||(()=>performance.now()),pacingWait=deps.activityScheduler?.wait||wait;
   // Code and nonce each cost20 throughput CU. A qualified full snapshot
   // shares a conservative250CU/s lane with its control/header reads.

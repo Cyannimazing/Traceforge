@@ -1,3 +1,4 @@
+import {qualifyCrossTokenMemory} from './cross-token-memory';
 import type {InvestigationReport} from './investigation-types';
 import {agentEvidenceContext} from './agent-evidence-context';
 import {buildScoringInputs} from './scoring-inputs';
@@ -38,12 +39,14 @@ export function trustRating(report:InvestigationReport):TrustRating{
  const seen=new Set<string>();let largeGroup=false;
  for(const start of adj.keys()){if(seen.has(start))continue;const pending=[start];let size=0;while(pending.length){const a=pending.pop()!;if(seen.has(a))continue;seen.add(a);size++;pending.push(...(adj.get(a)||[]));}if(size>=3)largeGroup=true;}
  if(largeGroup)soft.push('A transaction-backed connected group contains at least three current holders. Common ownership remains an inference.');
+ const memory=qualifyCrossTokenMemory(report);
+ if(memory.count>0)soft.push(`${memory.count} independently verified prior-token group${memory.count===1?'':'s'} include current holders. A prior token relationship caps this assessment at 59; it does not establish common ownership.`);
  const result=scoreFactors(inputs,{hard,soft,missingCore:context.guard.missingCore||extensionCoverageMissing});
  const impact=inputs.find(i=>i.id==='swarm')!;
  const securityIncomplete=report.chain!=='solana'&&['is_honeypot','owner_change_balance','is_mintable','transfer_pausable','is_proxy','is_open_source','hidden_owner','selfdestruct'].some(key=>!controls.some(c=>c.key===key&&c.status!=='unknown')||controls.some(c=>c.key===key&&c.status==='unknown'));
  const judgeInputs:DecisionModelInput={score:result.range,danger:hard.length>0,
   security:context.guard.missingCore||extensionCoverageMissing||securityIncomplete||context.guard.critical||report.chain==='solana'&&warned('solana_freeze_authority')?null:context.guard.warning?1:0,
-  memoryHits:null,dumpImpact:{lower:impact.lower,upper:impact.upper},hard};
+  memoryHits:memory.count,memoryHitsRange:memory.strictRange,dumpImpact:{lower:impact.lower,upper:impact.upper},hard};
  const judge=decisionModel(judgeInputs);
  return {...result,decision:report.providerAnalysis?'UNRATED':result.decision,score:report.providerAnalysis?null:result.score,
   judge:report.providerAnalysis?undefined:judge,

@@ -25,6 +25,9 @@ import RiskMeasurements from './risk-measurements';
 import DecisionOutput from './decision-output';
 import AssessmentHeadline from './assessment-headline';
 import ObservedScoreBreakdown from './observed-score-breakdown';
+import MemoryFindings from './memory-findings';
+import {qualifyCrossTokenMemory} from '@/lib/cross-token-memory';
+import {crossTokenMemoryEvidence} from '@/lib/cross-token-memory-evidence';
 import type { InvestigationReport, WalletCategory } from '@/lib/investigation-types';
 import type { Selection } from './investigation-panels';
 import CheckBreakdown from './check-breakdown';
@@ -157,6 +160,8 @@ export default function ReportOverview({ report, selection, onSelect, onInspect,
   const breakdown = findingBreakdown(inv.findings);
   const reasons = breakdown.risks.filter(finding=>!finding.id.startsWith('funder:'));
   const fundingPatterns = breakdown.risks.filter(finding=>finding.id.startsWith('funder:'));
+  const memory=useMemo(()=>qualifyCrossTokenMemory(report),[report]);
+  const memoryEvidence=useMemo(()=>crossTokenMemoryEvidence(report),[report]);
   const rating=useMemo(()=>trustRating(report),[report]);
   const observedResult=useMemo(()=>observedDecision(report,rating),[report,rating]);
   const verdictOutput=useMemo(()=>buildVerdictOutput({rating,observed:observedResult}),[rating,observedResult]);
@@ -200,6 +205,7 @@ export default function ReportOverview({ report, selection, onSelect, onInspect,
       {!LLM_REVIEW_ENABLED&&verdictOutput.basis!=='uncertainty-allocation'&&<DecisionOutput output={verdictOutput}/>}
       {observed&&<ObservedScoreBreakdown factors={observed.factors}/>}
       {why.length>0&&<section className="ro-plain-reasons" aria-label={`Why ${decisionLabel(decision).toLowerCase()}?`}><h3>Why {decisionLabel(decision).toLowerCase()}?</h3><ul>{why.map((reason,index)=><li key={`${reason.title}:${index}`}><strong>{reason.title}</strong><p>{reason.detail}</p></li>)}</ul></section>}
+      {report.crossTokenMemory?.status==='partial'&&<MemoryFindings hits={memory.hits} scope={report.crossTokenMemory.scope} onInspect={hit=>onSelect({kind:'group',id:hit.id,wallets:hit.wallets,evidenceIds:memoryEvidence.filter(e=>e.token===hit.token&&(hit.wallets.includes(e.from||'')||hit.wallets.includes(e.to||''))).map(e=>e.id)})}/>}
       <details className="ro-analysis-details"><summary>Analysis details</summary><div className="ro-analysis-body">
       {!LLM_REVIEW_ENABLED&&verdictOutput.basis==='uncertainty-allocation'&&<details className="ro-rating-details"><summary>Decision allocation and unresolved inputs</summary><p>This allocation reserves unresolved model support for Watch. It is not a confidence estimate or a measured probability.</p><DecisionOutput output={verdictOutput}/></details>}
       {agentReview&&<section className="ro-decision-weights" aria-label="AI decision weights">

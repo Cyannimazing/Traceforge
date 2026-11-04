@@ -17,7 +17,8 @@ const hasHolderSnapshot=(report:InvestigationReport)=>{
  // A manager-only discovery response is the reason to request the BSC holder
  // fallback, not a replacement for its previously verified holder snapshot.
  const managerOnly=report.chain==='bsc'&&report.holders.length>0&&report.holders.every(holder=>holder.address.toLowerCase()==='0x5c952063c7fc8610ffdb798152d69f0b9550762b');
- return report.sources.some(source=>source.status==='available'&&(/^(Bitquery|Blockscout|Solana RPC) Holders$/i.test(source.name)||(report.chain!=='solana'&&(source.name==='EVM RPC holder balances'||source.name==='BSC RPC finalized holder balances'||source.name==='GoPlus Security'&&report.holders.length>0&&!managerOnly))));
+ const evmFailed=report.sources.some(source=>source.name==='EVM RPC holder balances'&&source.status==='unavailable');
+ return report.sources.some(source=>source.status==='available'&&(/^(Bitquery|Blockscout|Solana RPC) Holders$/i.test(source.name)||(report.chain!=='solana'&&(source.name==='EVM RPC holder balances'||source.name==='BSC RPC finalized holder balances'||source.name==='GoPlus Security'&&report.holders.length>0&&!managerOnly&&!evmFailed))));
 };
 const derive=(report:InvestigationReport,updateAssessment=true):InvestigationReport=>{
  if(report.providerAnalysis)return report;

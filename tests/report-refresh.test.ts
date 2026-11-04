@@ -24,6 +24,17 @@ test('independent EVM RPC holder snapshots replace current holdings and preserve
  for(const merge of [(a:InvestigationReport,b:InvestigationReport)=>mergeReportRefresh(a,b,'holders'),mergeDeepReport]){const result=merge(old,next);assert.deepEqual(result.holders,next.holders);assert.equal(result.investigation.wallets.find(w=>w.address===address)?.share,5);const failed=fresh(next);failed.sources=[{name:'EVM RPC holder balances',status:'unavailable',detail:'Timeout'}];const retained=merge(next,failed);assert.deepEqual(retained.holders,next.holders);assert.equal(retained.sources.find(s=>s.name==='EVM RPC holder balances')?.fetchedAt,at);}
 });
 
+test('failed independent EVM refresh cannot replace verified holders with a smaller security-provider sample',()=>{
+ const old=report();old.chain='robinhood';old.sources=[{name:'EVM RPC holder balances',status:'available',detail:'Verified census',fetchedAt:old.fetchedAt}];
+ old.holderEnumeration={kind:'pons-creation-ledger',recordedAccounts:200,verifiedAccounts:200,complete:true};
+ old.crossTokenMemory={version:1,chain:old.chain,token:old.token,observedAt:old.fetchedAt,status:'partial',records:[],scope:{selectedWallets:47,queriedWallets:2,candidateTokens:2,verifiedTransactions:7,truncated:true},reasons:[]};
+ const next=fresh(old);next.holders=[old.holders[0]];next.investigation.wallets=[structuredClone(old.investigation.wallets[0])];
+ next.sources=[{name:'EVM RPC holder balances',status:'unavailable',detail:'Read deadline'},{name:'GoPlus Security',status:'available',detail:'Ten-row security sample',fetchedAt:at}];
+ const result=mergeReportRefresh(old,next,'holders');
+ assert.deepEqual(result.holders,old.holders);assert.deepEqual(result.holderEnumeration,old.holderEnumeration);assert.deepEqual(result.crossTokenMemory,old.crossTokenMemory);
+ assert(result.investigation.coverage.reasons.some(r=>r.startsWith('Holder snapshot is stale:')));
+});
+
 test('refresh replaces a stale decision allocation with the policy for the current evidence',()=>{
  const old=report();old.decisionOutput={version:'verdict-output-v2',decision:'AVOID',p:{avoid:1,caution:0,ok:0},selectedWeight:1,basis:'rule',score:null,explanation:'Old stop'};
  const next=fresh(old);next.checks=[];next.identities=[];next.sources.push({name:'GoPlus Security',status:'available',detail:'Current checks',fetchedAt:at});

@@ -1,3 +1,4 @@
+import {qualifyCrossTokenMemory} from './cross-token-memory';
 import type {Evidence,InvestigationReport} from './investigation-types';
 import type {TrustRating} from './trust-rating';
 import type {ObservedDecision,ObservedFactor} from './observed-decision';
@@ -100,16 +101,17 @@ export function robinhoodObservedDecision(report:InvestigationReport,strict:Trus
  ];
  if(factors.some(f=>!Number.isFinite(f.value)||f.value<0||f.value>1))return null;
  const hard=[...(strict.hard||[])],soft=[...(strict.soft||[])],scored=scoreFactors(factors.map(f=>({...f,lower:f.value,upper:f.value,evidenceIds:[]})),{hard,soft});if(scored.score===null)return null;
+ const memory=qualifyCrossTokenMemory(report);
  // Preserve the strict control audit's unresolved-security state as well as its
  // hard/soft rules. The point's historical assumptions cannot clear a control.
- const security=context.guard.critical?null:strict.judgeInputs?.security??null,judge=decisionModel({score:{lower:scored.score,upper:scored.score},danger:hard.length>0,security,memoryHits:0,dumpImpact:{lower:impact,upper:impact},hard});
+ const security=context.guard.critical?null:strict.judgeInputs?.security??null,judge=decisionModel({score:{lower:scored.score,upper:scored.score},danger:hard.length>0,security,memoryHits:memory.count,dumpImpact:{lower:impact,upper:impact},hard});
  return {score:scored.score,scoreBand:scored.decision,judge,factors,impact,largestShare:share(largest),scope:{holderCount:cohort.holders.length,readableFreshWallets:selected.length,unreadFreshWallets:unread+outside,activityProxy:{kind:'low-account-nonce',limit:cohort.activityCandidates.length,readable:selected.length,lowNonce:low,unread,outsideLimit:outside},topHolders:{rawLimit:cohort.rawLimit,rawCount:cohort.rawRanked.length,selectedCount:cohort.holders.length,infrastructureCount:cohort.infrastructure.length,contractCount:cohort.contracts.length,activityLimit:15,floatDenominator:denominator,allAnalyzedCount:scope.holders.length},notes:[
   'Conditional observed-scope point model of the returned sample. Strict evidence bounds remain separate; this score is not a safety probability or a complete audit.',
   completeInventory?`All ${inventory.recordedAccounts} recorded positive holder balances reconcile at the current anchor.`:`${inventory.indexProvenance?'The exhausted provider token-transfer index':'The complete creation ledger'} identifies the raw top ${ranked!.addresses.length}; every address in that prefix has an independently verified current balance. ${inventory.verifiedAccounts} of ${inventory.recordedAccounts} recorded positive accounts have verified balances. Lower unread ranks remain unknown; this is not a fully checked holder inventory.`,
   `${returnedTrades.length} source-attributed selected-pool trade observations establish a returned activity subset, not complete launch history. No recorded insider/sniper match does not prove absence.`,
   'Low account nonce is not verified lifetime-fresh status; EIP-7702 authorization increments are not transactions sent by the account. Unknown wallets are excluded from that proxy, not assigned favorable counts.',
   'The USD-derived balanced constant-product pool is counterfactual for V4: concentrated ranges, hooks, token taxes, fees, routing and execution are not modeled.',
-  'No cross-token group search was performed. This conditional point assumes no additional memory hit, without establishing that none exists.',
+  `${memory.count} independently qualified prior-token group claim(s) contribute to this observed calculation. Unread prior tokens are excluded from this conditional point; the strict calculation retains their possible contribution. ${memory.notes.join(' ')}`,
   `Top-holder assessment first selects ${cohort.rawLimit} raw balance ranks, then sets aside ${cohort.infrastructure.length} attributed infrastructure and ${cohort.contracts.length} independently code-verified contracts, without backfill. Its float subtracts ${100-denominator}% measured set-aside balances. Every balance and the full strict risk analysis remain in the report. Contract code does not establish a custody role.`,
  ]}};
 }

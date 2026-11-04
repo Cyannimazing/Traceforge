@@ -1,0 +1,13 @@
+# Independent cross-token memory
+
+The engine will discover prior-token relationships from configured blockchain indexes and verify the nominated events against successful transactions, receipts and canonical block headers. Swarm is a comparison source only. Its token lists, scores and verdicts never enter the collector.
+
+1. Add a shared proof contract and matcher. Intersect prior connected components with all eligible current top holders, including current isolates. Deduplicate by chain, prior token and component. Require at least two current participants, voluntary prior-token activity, material historical balances and documented direct-transfer or native-funding evidence. Exclude services, dust, airdrop-only membership, current-token records and changed anchors.
+2. Add a bounded configured-RPC collector and optional bounded proof cache. Discover independently on cold instances, preserve pagination/search limits, cancel superseded work and stop on denied access. Revalidate cached canonical anchors before admission. No endpoint derivation or credential forwarding.
+3. Apply the existing reconstructed memory rule through one shared helper: an evidenced prior pair caps the score at 59; normalized decision mass uses the observed qualifying claim count and saturates after two claims. Preserve uncertainty bounds for incomplete searches and all critical overrides. No token-specific score or percentage constants.
+4. Expose dated historical relationship evidence separately from current graph edges. The table, bubble map and current group count must not merge wallets solely because of a prior relationship.
+5. Run adversarial regressions, the complete test suite, type checking, production build and live independent case checks. Compare the same tokens with Swarm, publish only verified differences, push and verify the deployed result.
+
+Admission policy v1 uses a minimum historical holding of one basis point of the prior token's same-block total supply. This is a disclosed anti-dust threshold, not an ownership conclusion. A native donor must have its own signed prior-token participation; funding must precede the recipient's participation. Shared routers or a third-party bundled transaction alone do not qualify. A bounded search never certifies that no additional past relationships exist.
+
+Scope: same-chain EVM identity; Ethereum, Base and Robinhood configured Alchemy indexes. Other chains remain explicitly unsupported until an independent discovery and canonical-proof adapter is available. No cross-chain address identity is assumed. This release does not claim a complete global token corpus.

@@ -1,5 +1,7 @@
 # Holder retrieval and matched-token validation - 4 November 2026
 
+Follow-up: [independent cross-token memory validation](cross-token-memory-validation-2026-11-04.md) closes the previously missing memory input for supported configured EVM chains and records newer live snapshots. Earlier counts and prices below remain dated observations.
+
 ## Result
 
 Robinhood token `0x72bfcf23b089403a1056fd9719c577966b941f57` now produces the same 47 top-wallet addresses and adjusted shares as the captured Swarm report. Both Swarm-displayed links have independent transaction evidence in TraceForge. An additional shared-funder relationship is also observed. No address, target count, provider score or example percentage was hardcoded into the engine.

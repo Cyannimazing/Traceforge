@@ -22,6 +22,24 @@ function rankedPartial():InvestigationReport{
  const r=report();for(let i=100;i<195;i++){const address=a(i),id=`holding:evm:${address}`;r.holders.push({address,share:.1,contract:false,locked:null,tag:''});r.investigation.wallets.push({address,share:.1,categories:['unclassified'],evidenceIds:[id]});r.investigation.evidence.push({id,kind:'holding',to:address,token,amountRaw:'1',decimals:0,source:'EVM RPC holder balances',timestamp:at,description:'Independent current balance'});r.walletActivity!.wallets.push({address,count:20,exact:true,fresh:null,basis:'evm-account-nonce',reason:'Current account nonce'});}reconcileFixture(r);
  const ranked=[...r.holders].sort((x,y)=>y.share-x.share||x.address.localeCompare(y.address)).slice(0,50).map(h=>h.address);r.holders=r.holders.slice(0,60);const retained=new Set(r.holders.map(h=>h.address));r.investigation.evidence=r.investigation.evidence.filter(e=>e.kind!=='holding'||e.to===creator||retained.has(e.to||''));r.investigation.wallets=r.investigation.wallets.filter(w=>w.address===creator||retained.has(w.address));r.walletActivity!.wallets=r.walletActivity!.wallets.filter(w=>retained.has(w.address));r.holderEnumeration={kind:'pons-creation-ledger',recordedAccounts:100,verifiedAccounts:60,complete:false,ranked:{rawLimit:50,addresses:ranked,verified:true}};return r;
 }
+function priorMemory(r:InvestigationReport){
+ const prior=a(900),block={number:'0x1',hash:'0x'+'b'.repeat(64),timestamp:'2026-11-03T01:00:00Z'};
+ const event=(from:string,to:string,id:number)=>({kind:'erc20' as const,token:prior,from,to,amountRaw:'100',transaction:'0x'+id.toString(16).padStart(64,'0'),block,logIndex:0,initiator:from});
+ const connection=(from:string,to:string,id:number)=>({event:event(from,to,id),participants:[from,to].map((address,i)=>({address,activity:event(address,a(99),id+10+i),holding:{block,balanceRaw:'100',totalSupplyRaw:'1000000',decimals:0},code:'0x'})),senderFanout:{recipients:1,complete:true}});
+ r.crossTokenMemory={version:1,chain:r.chain,token:r.token,observedAt:at,status:'partial',records:[{chain:r.chain,chainId:'4663',token:prior,anchor:{...block,number:'0x2'},verifiedAt:at,source:'configured-rpc',connections:[connection(alice,bob,100)]}],scope:{selectedWallets:3,queriedWallets:3,candidateTokens:1,verifiedTransactions:3,truncated:true},reasons:['Bounded search']};
+ return {connection,prior,block};
+}
+test('independent prior pair caps observed scoring without creating a current relationship or fixed confidence',()=>{
+ const r=report(),baseline=observedDecision(r);assert(baseline);priorMemory(r);const rating=trustRating(r),out=observedDecision(r,rating);assert(out);
+ assert.equal(rating.ceiling,59);assert(rating.soft?.some(reason=>reason.includes('prior token')));assert.equal(out.score,Math.min(59,baseline.score));assert.deepEqual(rating.judgeInputs?.memoryHitsRange,{lower:1,upper:2});
+ assert(out.judge.mass&&baseline.judge.mass);assert.equal(r.investigation.relationships.length,0);assert(out.scope.notes.some(note=>/1.*prior-token/.test(note)));assert(!out.scope.notes.some(note=>note.includes('No cross-token group search')));
+ const first=out.judge.p;r.crossTokenMemory!.records=[];const removed=observedDecision(r);assert(removed);assert.notDeepEqual(first,removed.judge.p);assert.deepEqual(trustRating(r).soft,[]);
+});
+test('two disjoint historical components saturate memory mass while preserving factor arithmetic',()=>{
+ const r=rankedPartial(),{connection}=priorMemory(r);r.crossTokenMemory!.records[0].connections.push(connection(carol,a(100),500));
+ const rating=trustRating(r),out=observedDecision(r,rating);assert(out);assert.deepEqual(rating.judgeInputs?.memoryHitsRange,{lower:2,upper:2});assert.equal(out.judge.total,1.62);
+ const unchanged=structuredClone(r);delete unchanged.crossTokenMemory;assert.deepEqual(out.factors,observedDecision(unchanged)!.factors);assert.equal(out.score,59);assert.equal(out.judge.p?.caution,0.538);assert.equal(out.judge.p?.avoid,0.415);assert.equal(out.judge.p?.ok,0.047);
+});
 test('verified complete raw top prefix permits a conditional point while lower ranked balances remain unread',()=>{
  const r=rankedPartial(),before=JSON.stringify(r),out=observedDecision(r);assert(out);assert.equal(r.holderCount,100);assert.equal(r.holders.length,60);assert.equal(r.holderEnumeration!.complete,false);assert.equal(out.scope.topHolders?.rawCount,50);assert.equal(out.scope.topHolders?.selectedCount,48);assert.equal(out.scope.activityProxy?.readable,15);assert.equal(r.investigation.coverage.launchVerified,false);assert.equal(JSON.stringify(r),before);assert(out.scope.notes.some(n=>n.includes('60 of 100')&&n.includes('not a fully checked')));
  const hard=rankedPartial();hard.checks[0].status='critical';assert.equal(observedDecision(hard)?.scoreBand,'AVOID');

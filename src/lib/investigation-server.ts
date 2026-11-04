@@ -17,6 +17,9 @@ import {createSearchCoordinator} from './search-coordinator';
 import {createSnapshotEnrichment} from './snapshot-enrichment';
 import {ReportCache} from './report-cache';
 import {LaunchProofStore} from './launch-proof-store';
+import {CrossTokenMemoryStore} from './cross-token-memory-store';
+import {createEvmCrossTokenMemory} from './evm-cross-token-memory';
+import {createAlchemyReadLane} from './alchemy-read-lane';
 import {createBscHolderFallback} from './bsc-holder-fallback';
 import {createEvmHolderFallback} from './evm-holder-fallback';
 import {createEvmPoolReserves} from './evm-pool-reserves';
@@ -27,14 +30,20 @@ function savedReports(){return reportCacheScope.traceforgeReportCache??=new Repo
 const launchProofScope=globalThis as typeof globalThis&{traceforgeLaunchProofs?:LaunchProofStore};
 function savedLaunchProofs(){return launchProofScope.traceforgeLaunchProofs??=new LaunchProofStore(resolve(/* turbopackIgnore: true */ process.env.TRACEFORGE_DATA_DIR||'.data','launch-proofs.sqlite'));}
 
+const memoryCacheScope=globalThis as typeof globalThis&{traceforgeMemoryProofs?:CrossTokenMemoryStore};
+function memoryProofs(){return memoryCacheScope.traceforgeMemoryProofs??=new CrossTokenMemoryStore(resolve(/* turbopackIgnore: true */ process.env.TRACEFORGE_DATA_DIR||'.data','cross-token-memory.sqlite'));}
+
+// All automatic EVM reads share one account lane, including simultaneous scans.
+// Adapter-local pacing alone cannot bound their combined provider throughput.
+const alchemyReads=createAlchemyReadLane();
 const rpcUrls={ethereum:process.env.ETHEREUM_RPC_URL,base:process.env.BASE_RPC_URL};
 const robinhoodRpc=process.env.ROBINHOOD_RPC_URL||'https://rpc.mainnet.chain.robinhood.com';
 const publicHistory=createPublicHistory();
-const solanaHistory=createAlchemySolanaHistory();
-const evmHistory=createAlchemyEvmHistory({rpcUrls});
+const solanaHistory=createAlchemySolanaHistory({fetcher:alchemyReads});
+const evmHistory=createAlchemyEvmHistory({rpcUrls,fetcher:alchemyReads});
 // Reuse the exact authorized configured endpoint; never derive or forward its key.
 const robinhoodAlchemyUrl=(()=>{try{const value=process.env.ROBINHOOD_RPC_URL;if(!value)return undefined;const url=new URL(value);return url.protocol==='https:'&&(url.hostname==='alchemy.com'||url.hostname.endsWith('.alchemy.com'))?value:undefined;}catch{return undefined;}})();
-const robinhoodHistory=createAlchemyEvmHistory({rpcUrls:{robinhood:robinhoodAlchemyUrl},fundingWalletLimit:15,maxRequests:72,deadlineMs:15000,pagesPerQuery:2,fundingTransfersPerWallet:1});
+const robinhoodHistory=createAlchemyEvmHistory({fetcher:alchemyReads,rpcUrls:{robinhood:robinhoodAlchemyUrl},fundingWalletLimit:15,maxRequests:72,deadlineMs:15000,pagesPerQuery:2,fundingTransfersPerWallet:1});
 async function extendedEvmHistory(chain:'ethereum'|'base',token:string,options:PublicHistoryOptions):Promise<PublicHistoryResult>{
  const current=await evmHistory(chain,token,options);
  try{
@@ -54,12 +63,13 @@ async function extendedSolanaHistory(options:PublicHistoryOptions):Promise<Publi
 // Only this server boundary reads secrets. Neither fixture nor UI imports it.
 export const independentInvestigationService = createInvestigationService({
   persistentCache:{get:(chain,token,limit)=>savedReports().get(chain,token,limit),set:(chain,token,limit,entry)=>savedReports().set(chain,token,limit,entry)},
+  crossTokenMemory:createEvmCrossTokenMemory({fetcher:alchemyReads,rpcUrls:{...rpcUrls,robinhood:robinhoodAlchemyUrl},cache:{get:(chain,addresses)=>memoryProofs().get(chain,addresses),set:records=>memoryProofs().set(records)}}),
   publicScan: scanToken,
-  ponsLaunch:createPonsLaunchRecord({rpcUrl:robinhoodRpc}),
-  evmHolders:createEvmHolderFallback({rpcUrls:{...rpcUrls,robinhood:robinhoodRpc}}),
-  bscHolders:createBscHolderFallback({rpcUrl:process.env.BSC_RPC_URL,proofStore:{get:(chain,token)=>savedLaunchProofs().get(chain,token),set:proof=>savedLaunchProofs().set(proof),delete:(chain,token)=>savedLaunchProofs().delete(chain,token)}}),
-  evmPoolReserves:(chain,pool,token,options)=>createEvmPoolReserves({rpcUrl:chain==='bsc'?process.env.BSC_RPC_URL:rpcUrls[chain]})(chain,pool,token,options),
-  enrichSnapshot:createSnapshotEnrichment({rpcUrls:{...rpcUrls,robinhood:robinhoodRpc,solana:process.env.SOLANA_RPC_URL,bsc:process.env.BSC_RPC_URL||'https://bsc-rpc.publicnode.com'}}),
+  ponsLaunch:createPonsLaunchRecord({fetcher:alchemyReads,rpcUrl:robinhoodRpc}),
+  evmHolders:createEvmHolderFallback({fetcher:alchemyReads,rpcUrls:{...rpcUrls,robinhood:robinhoodRpc}}),
+  bscHolders:createBscHolderFallback({fetcher:alchemyReads,rpcUrl:process.env.BSC_RPC_URL,proofStore:{get:(chain,token)=>savedLaunchProofs().get(chain,token),set:proof=>savedLaunchProofs().set(proof),delete:(chain,token)=>savedLaunchProofs().delete(chain,token)}}),
+  evmPoolReserves:(chain,pool,token,options)=>createEvmPoolReserves({fetcher:alchemyReads,rpcUrl:chain==='bsc'?process.env.BSC_RPC_URL:rpcUrls[chain]})(chain,pool,token,options),
+  enrichSnapshot:createSnapshotEnrichment({fetcher:alchemyReads,rpcUrls:{...rpcUrls,robinhood:robinhoodRpc,solana:process.env.SOLANA_RPC_URL,bsc:process.env.BSC_RPC_URL||'https://bsc-rpc.publicnode.com'}}),
   poolReserves:createSolanaPoolReserves({rpcUrl:process.env.SOLANA_RPC_URL}),
   resolveClock:createEvidenceClock(),
   publicHistory:(chain,token,options)=>publicHistory(chain,token,{...options,skipFunding:chain==='robinhood'||(chain==='ethereum'||chain==='base')&&!!rpcUrls[chain]}),
@@ -67,7 +77,7 @@ export const independentInvestigationService = createInvestigationService({
   // metadata reads intentionally skip Robinhood funding to avoid stale seeds.
   historicalEvidence:(chain,token,options)=>chain==='robinhood'?(robinhoodAlchemyUrl?robinhoodHistory(chain,token,options):publicHistory(chain,token,{...options,fundingOnly:true,skipFunding:false})):chain==='solana'&&process.env.SOLANA_RPC_URL?extendedSolanaHistory(options):(chain==='ethereum'||chain==='base')&&rpcUrls[chain]?extendedEvmHistory(chain,token,options):Promise.resolve(undefined),
   solanaPublic:createSolanaPublic({rpcUrl:process.env.SOLANA_RPC_URL}),
-  poolLaunch:createPoolLaunch({rpcUrls:{ethereum:process.env.ETHEREUM_RPC_URL,base:process.env.BASE_RPC_URL}}),
+  poolLaunch:createPoolLaunch({fetcher:alchemyReads,rpcUrls:{ethereum:process.env.ETHEREUM_RPC_URL,base:process.env.BASE_RPC_URL}}),
   makeClient: (signal) => createBitqueryClient({token:process.env.BITQUERY_ACCESS_TOKEN || '',signal,maxRequests:18}),
 });
 

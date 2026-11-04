@@ -1,3 +1,4 @@
+import {qualifyCrossTokenMemory} from './cross-token-memory';
 import type {InvestigationReport,Evidence} from './investigation-types';
 import {trustRating,type TrustRating} from './trust-rating';
 import {agentEvidenceContext} from './agent-evidence-context';
@@ -92,11 +93,12 @@ export function observedDecision(report:InvestigationReport,strictRating:TrustRa
  const scored=scoreFactors(factors.map(f=>({...f,lower:f.value,upper:f.value,evidenceIds:[]})),{hard,soft});
  if(scored.score===null)return null;
  const security=context.guard.critical||hard.some(h=>h.includes('freeze authority'))?null:context.guard.warning?1:0;
- const judge=decisionModel({score:{lower:scored.score,upper:scored.score},danger:hard.length>0,security,memoryHits:0,dumpImpact:{lower:impact,upper:impact},hard});
+ const memory=qualifyCrossTokenMemory(report);
+ const judge=decisionModel({score:{lower:scored.score,upper:scored.score},danger:hard.length>0,security,memoryHits:memory.count,dumpImpact:{lower:impact,upper:impact},hard});
  const notes=[
   'Conditional observed-scope model. Historical gaps and unread wallets are excluded from this point calculation; the independent strict evidence bounds remain separate.',
   `${canonicalHistory.length} source-attributed canonical trade record(s) establish a usable returned history subset, not complete launch coverage. Zero early/sniper findings mean no documented matches in the analyzed subset.`,
-  'Cross-token group search has not been performed. This conditional calculation assumes no additional cross-token memory hit; it does not establish that such hits are absent.',
+  `${memory.count} independently qualified prior-token group claim(s) contribute to this observed calculation. Unread prior tokens are excluded from this conditional point; the strict calculation retains their possible contribution. ${memory.notes.join(' ')}`,
   'The nominal pool scenario assumes zero fees, successful transfers, constant-product reserve updates and no hook side effects. Quote-token extensions and dynamic behavior are not verified by this scenario.',
   ...(!pool.constantProductEligible?pool.limitations:[]),
   'Connected groups describe documented relationships, not established common ownership. Holder shares cover the supplied current account snapshot.',

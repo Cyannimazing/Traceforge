@@ -125,6 +125,13 @@ test('persistent rate limiting stops at the scan deadline and retains an explici
  const result=await run(report);assert.equal(calls,1);assert.equal(result.walletActivity?.wallets[0].count,null);assert.match(result.walletActivity!.wallets[0].reason,/rate limit|deadline/i);
 });
 
+test('remaining scan budget shortens activity work without clearing unfinished observations',async()=>{
+ let calls=0;const report={...fixtureReport,chain:'solana' as const,holders:[{address:'So11111111111111111111111111111111111111112',share:5,tag:'',locked:null,contract:false}]};
+ const run=createSnapshotEnrichment({timeoutMs:10000,rpcUrls:{solana:'https://rpc.example.test'},fetcher:async()=>{calls++;return new Response('Rate limit',{status:429,headers:{'retry-after':'10'}});}});
+ const start=Date.now(),result=await run(report,{timeoutMs:30});
+ assert(Date.now()-start<1000);assert.equal(calls,1);assert.equal(result.walletActivity?.wallets[0].count,null);assert.match(result.walletActivity!.wallets[0].reason,/rate limit|deadline/i);
+});
+
 test('finalized nonfresh proofs cache for five minutes with original timestamps and no mutable leaks',async()=>{
  let now=Date.parse('2026-11-03T00:00:00Z'),calls=0;
  const report={...fixtureReport,chain:'solana' as const,holders:[{address:'So11111111111111111111111111111111111111112',share:5,tag:'',locked:null,contract:false}]};

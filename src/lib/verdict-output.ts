@@ -1,6 +1,6 @@
 import type {TrustRating} from './trust-rating';
 import type {ObservedDecision} from './observed-decision';
-import {decisionModel,type DecisionKey,type DecisionModelResult,type DecisionModelInput} from './decision-model';
+import {decisionModel,decisionMemoryBounds,type DecisionKey,type DecisionModelResult,type DecisionModelInput} from './decision-model';
 
 type Mass=Record<DecisionKey,number>;
 export type VerdictBounds=Record<DecisionKey,{lower:number;upper:number}>;
@@ -23,13 +23,15 @@ function validBounds(bounds:VerdictBounds|null|undefined):bounds is VerdictBound
  return !!bounds&&keys.every(key=>validInterval(bounds[key],1))&&keys.reduce((sum,key)=>sum+bounds[key].lower,0)<=1+1e-10&&keys.reduce((sum,key)=>sum+bounds[key].upper,0)>=1-1e-10;
 }
 function validInputs(input:DecisionModelInput|undefined):input is DecisionModelInput{
- return !!input&&validInterval(input.score,100)&&Number.isInteger(input.score.lower)&&Number.isInteger(input.score.upper)&&validInterval(input.dumpImpact,1)&&typeof input.danger==='boolean'&&(input.security===null||input.security===0||input.security===1)&&(input.memoryHits===null||Number.isSafeInteger(input.memoryHits)&&input.memoryHits>=0)&&(input.hard===undefined||Array.isArray(input.hard)&&input.hard.every(reason=>typeof reason==='string'));
+ return !!input&&validInterval(input.score,100)&&Number.isInteger(input.score.lower)&&Number.isInteger(input.score.upper)&&validInterval(input.dumpImpact,1)&&typeof input.danger==='boolean'&&(input.security===null||input.security===0||input.security===1)&&decisionMemoryBounds(input)!==null&&(input.hard===undefined||Array.isArray(input.hard)&&input.hard.every(reason=>typeof reason==='string'));
 }
 const scoreCeiling=(rating:TrustRating)=>Number.isInteger(rating.ceiling)&&rating.ceiling!>=0&&rating.ceiling!<=100?rating.ceiling!:100;
 function envelope(rating:TrustRating):{bounds:VerdictBounds;inputBasis:NonNullable<VerdictOutput['inputBasis']>}{
  const known=validInputs(rating.judgeInputs),ceiling=scoreCeiling(rating);
  const mustCap=ceiling<100&&(known?rating.judgeInputs!.score.upper>ceiling:!validInterval(rating.range,ceiling));
- if(!mustCap&&validBounds(rating.judge?.ranges))return {bounds:structuredClone(rating.judge.ranges),inputBasis:'validated-ranges'};
+ // New memory bounds must be evaluated, not hidden behind a prior cached
+ // vector that assumed zero hits. Legacy reports retain their existing path.
+ if(rating.judgeInputs?.memoryHitsRange===undefined&&!mustCap&&validBounds(rating.judge?.ranges))return {bounds:structuredClone(rating.judge.ranges),inputBasis:'validated-ranges'};
  const input:DecisionModelInput=known?{...rating.judgeInputs!,score:{lower:Math.min(ceiling,rating.judgeInputs!.score.lower),upper:Math.min(ceiling,rating.judgeInputs!.score.upper)}}:{score:{lower:0,upper:ceiling},danger:false,security:null,memoryHits:null,dumpImpact:{lower:0,upper:1}};
  // Only endpoints of the existing supported additive security term are needed.
  // No likelihood is assigned to either endpoint or to any missing risk input.
@@ -49,7 +51,10 @@ function exact(judge:DecisionModelResult|undefined):judge is DecisionModelResult
  */
 export function buildVerdictOutput({rating,observed,critical=false}:VerdictOutputInput):VerdictOutput{
  const ceiling=scoreCeiling(rating);
- const candidate=rating.coreVerified!==true?undefined:validScore(observed?.score)&&observed.score<=ceiling&&exact(observed.judge)?{judge:observed.judge,scope:'observed' as const,score:observed.score}:validScore(rating.score)&&rating.score<=ceiling&&exact(rating.judge)?{judge:rating.judge,scope:'strict' as const,score:rating.score}:undefined;
+ const hasMemoryRange=rating.judgeInputs?.memoryHitsRange!==undefined,memory=hasMemoryRange?decisionMemoryBounds(rating.judgeInputs!):undefined;
+ // Observed points may explicitly condition on the count found so far. A
+ // strict exact vector cannot replace a non-exact strict memory envelope.
+ const candidate=rating.coreVerified!==true||hasMemoryRange&&!memory?undefined:validScore(observed?.score)&&observed.score<=ceiling&&exact(observed.judge)?{judge:observed.judge,scope:'observed' as const,score:observed.score}:(!hasMemoryRange||memory!.lower===memory!.upper)&&validScore(rating.score)&&rating.score<=ceiling&&exact(rating.judge)?{judge:rating.judge,scope:'strict' as const,score:rating.score}:undefined;
  const score=validScore(candidate?.score)?candidate.score:validScore(rating.score)&&rating.score<=ceiling?rating.score:null;
  const base={version:'verdict-output-v2' as const,score};
  if(critical||rating.hard?.length)return {...base,decision:'AVOID',p:{avoid:1,caution:0,ok:0},selectedWeight:1,basis:'rule',explanation:'A source-qualified critical rule takes precedence. The 100/0/0 allocation expresses that decision rule; it is not a probability of loss or a confidence measurement.'};

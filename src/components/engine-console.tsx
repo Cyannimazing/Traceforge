@@ -15,7 +15,7 @@ type NodeDefinition={key:NodeKey;title:string;description:string;matches:(name:s
 const NODES:NodeDefinition[]=[
  {key:'market',title:'Market',description:'Price, liquidity and trading activity from the returned market snapshot. One pool does not describe every trading venue.',matches:name=>['resolve','public-data','market-context','pool-reserves'].includes(name)},
  {key:'holders',title:'Holders',description:'Holder balances, supply shares and wallet roles, with snapshot times and source records.',matches:name=>['Holders','holder-rpc','solana-snapshot','public-history','wallet-activity'].includes(name)},
- {key:'funding',title:'Funding',description:'Available funding and transfer relationships. Shared funding does not establish common ownership.',matches:name=>name.startsWith('Funding batch')||name==='public-history'},
+ {key:'funding',title:'Funding',description:'Available funding and transfer relationships. Shared funding does not establish common ownership.',matches:name=>name.startsWith('Funding batch')||name==='public-history'||name==='cross-token-memory'},
  {key:'trades',title:'Trades',description:'Timestamped entries, buys and sells from the available sources. First observed activity is not automatically token launch.',matches:name=>['Earliest buys','Recent trades','Trading start','public-history','pool-first-minute','rpc-history','history'].includes(name)},
  {key:'contract',title:'Contract',description:'Reported contract findings, creator and current authority. Missing checks stay unassessed.',matches:name=>name==='public-data'||name==='solana-snapshot'||name==='control-probes'},
  {key:'assessment',title:'Assessment',description:'The findings behind the assessment: contract controls, holder concentration and wallet connections.',matches:name=>name==='assessment'},
@@ -25,7 +25,7 @@ const stageTitle=(stage:string)=>(({
  'resolve':'Identifying token network','provider-report':'Reading provider analysis','clock-check':'Checking source timestamps','public-data':'Reading market and contract data',
  'public-history':'Tracing public wallet history','history':'Loading indexed history','market-context':'Refreshing market data',
  'pool-first-minute':'Verifying first-minute trades','assessment':'Building the assessment','solana-snapshot':'Verifying token accounts',
- 'wallet-activity':'Checking holder activity','control-probes':'Verifying contract controls','rpc-history':'Reading bounded wallet history',
+ 'cross-token-memory':'Verifying prior token connections','wallet-activity':'Checking holder activity','control-probes':'Verifying contract controls','rpc-history':'Reading bounded wallet history',
  'holder-rpc':'Verifying holder balances','pool-reserves':'Inspecting pool reserves',
  'independent-scan':'Independent sources selected','cache':'Loading a previous investigation',
  } as Record<string,string>)[stage]||stage.replaceAll('-',' ').replace(/^./,letter=>letter.toUpperCase()));
