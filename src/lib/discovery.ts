@@ -1,8 +1,8 @@
-import {validateToken,type Chain} from './analysis';
+import {validateToken,isMarketPairId,type Chain} from './analysis';
 import {latestDiscoveryProfiles} from './discovery-order';
 
 const ORIGIN='https://api.dexscreener.com',TTL=30_000,STALE_LIMIT=10*60_000,MAX_BYTES=2*1024*1024;
-const GECKO_ORIGIN='https://api.geckoterminal.com',NETWORKS={ethereum:'eth',base:'base',bsc:'bsc',solana:'solana'} as const;
+const GECKO_ORIGIN='https://api.geckoterminal.com',NETWORKS={ethereum:'eth',base:'base',bsc:'bsc',solana:'solana',robinhood:'robinhood'} as const;
 const CHAINS=Object.keys(NETWORKS) as Chain[];
 // Address identities, never user-controlled symbols. Deployment references:
 // developers.circle.com/stablecoins/usdc-contract-addresses,
@@ -15,6 +15,7 @@ const COMMON_QUOTES:Record<Chain,Set<string>>={
  base:new Set(['0x0000000000000000000000000000000000000000','0x4200000000000000000000000000000000000006','0x833589fcd6edb6e08f4c7c32d4f71b54bda02913']),
  bsc:new Set(['0x0000000000000000000000000000000000000000','0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c']),
  solana:new Set(['So11111111111111111111111111111111111111112','EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v']),
+ robinhood:new Set(['0x0000000000000000000000000000000000000000']),
 };
 type Row=Record<string,unknown>;
 const object=(value:unknown):Row=>value&&typeof value==='object'&&!Array.isArray(value)?value as Row:{};
@@ -73,7 +74,7 @@ export function enrichDiscoveryProfile(profile:DiscoveryProfile,value:unknown,fe
  const pair=value.slice(0,1000).map(object).filter(row=>row.chainId===profile.chain&&typeof object(row.baseToken).address==='string'&&addressKey(profile.chain,String(object(row.baseToken).address))===addressKey(profile.chain,profile.address)).sort((a,b)=>(positive(object(b.liquidity).usd)??-1)-(positive(object(a.liquidity).usd)??-1))[0];
  if(!pair)return profile;
  const base=object(pair.baseToken),created=finite(pair.pairCreatedAt),validCreated=created!==null&&Number.isSafeInteger(created)&&created>=Date.UTC(2009,0,1)&&created<=now?created:null;
- return {...profile,name:text(base.name,100),symbol:text(base.symbol,32),priceUsd:positive(pair.priceUsd),liquidityUsd:positive(object(pair.liquidity).usd),volume24hUsd:positive(object(pair.volume).h24),priceChange24h:finite(object(pair.priceChange).h24),pairAddress:typeof pair.pairAddress==='string'&&!validateToken(profile.chain,pair.pairAddress)?pair.pairAddress:null,pairCreatedAt:validCreated===null?null:new Date(validCreated).toISOString(),pairAgeSeconds:validCreated===null?null:Math.floor((now-validCreated)/1000),marketFetchedAt:fetchedAt,marketStatus:'available',marketSource:'DEX Screener'};
+ return {...profile,name:text(base.name,100),symbol:text(base.symbol,32),priceUsd:positive(pair.priceUsd),liquidityUsd:positive(object(pair.liquidity).usd),volume24hUsd:positive(object(pair.volume).h24),priceChange24h:finite(object(pair.priceChange).h24),pairAddress:isMarketPairId(profile.chain,pair.pairAddress)?pair.pairAddress:null,pairCreatedAt:validCreated===null?null:new Date(validCreated).toISOString(),pairAgeSeconds:validCreated===null?null:Math.floor((now-validCreated)/1000),marketFetchedAt:fetchedAt,marketStatus:'available',marketSource:'DEX Screener'};
 }
 
 async function boundedJson(response:Response):Promise<unknown>{

@@ -10,6 +10,17 @@ const at='2026-01-01T00:00:00Z';
 const trade={id:'event-1',attributes:{tx_hash:'hash',tx_from_address:buyer,block_timestamp:at,kind:'buy',from_token_address:token,to_token_address:funder,from_token_amount:'7',to_token_amount:'2'}};
 const report:Report={chain:'ethereum',token,name:'Test',symbol:'T',fetchedAt:at,market:{chainId:'ethereum',pairAddress:funder,baseToken:{address:token}},holders:[],holderCount:null,checks:[],sources:[]};
 
+test('Robinhood opaque pool IDs retrieve bounded trades while explorer failures remain explicit',async()=>{
+ const poolId='0x'+'a'.repeat(64),urls:string[]=[];
+ const read=createPublicHistory({now:()=>Date.parse(at),fetcher:async(input)=>{const url=String(input);urls.push(url);return url.includes('geckoterminal')?Response.json({data:[{...trade,attributes:{...trade.attributes,from_token_address:funder,to_token_address:token}}]}):new Response('',{status:403});}});
+ const result=await read('robinhood',token,{report:{...report,chain:'robinhood',market:{chainId:'robinhood',pairAddress:poolId,baseToken:{address:token}}},mode:'deep',limit:100,skipFunding:true});
+ assert.equal(result.trades.length,1);assert.equal(result.trades[0].side,'buy');
+ assert(urls.some(url=>url.includes('/networks/robinhood/pools/'+poolId+'/trades')));
+ assert(result.sources.some(source=>source.name==='GeckoTerminal trades'&&source.status==='available'));
+ assert(result.sources.some(source=>source.name==='Blockscout Holders'&&source.status==='unavailable'));
+ assert.equal(result.holders,undefined);
+});
+
 test('pool trade direction and amount follow scanned-token leg rather than pool kind',()=>{
   const result=parsePoolTrades({data:[trade,{...trade,id:'event-2',attributes:{...trade.attributes,from_token_address:funder,to_token_address:token,to_token_amount:'4'}}]},'ethereum',token);
   assert.deepEqual(result.map(t=>[t.side,t.amount]),[['sell',7],['buy',4]]);

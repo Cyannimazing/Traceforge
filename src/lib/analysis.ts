@@ -3,6 +3,7 @@ export const CHAINS = {
   base: { name: "Base", id: "8453", explorer: "https://basescan.org" },
   bsc: { name: "BNB Chain", id: "56", explorer: "https://bscscan.com" },
   solana: { name: "Solana", id: null, explorer: "https://solscan.io" },
+  robinhood: { name: "Robinhood Chain", id: "4663", explorer: "https://robinhoodchain.blockscout.com" },
 } as const;
 export type Chain = keyof typeof CHAINS;
 export type Check = {
@@ -36,6 +37,7 @@ export type Pair = {
   dexId?: string;
   url?: string;
   txns?: { h24?: { buys: number; sells: number } };
+  info?: {imageUrl?:string;websites?:{label?:string;url:string}[];socials?:{type:string;url:string}[]};
 };
 export type Report = {
   chain: Chain;
@@ -65,6 +67,11 @@ export function validateToken(chain: string, token: string): string | null {
   return /^0x[a-fA-F0-9]{40}$/.test(token)
     ? null
     : "Enter a 42-character EVM token contract address.";
+}
+/** DEX IDs can identify a pool inside a shared contract. They are never token
+ * addresses, contract-call targets or proof of an independent pool deployment. */
+export function isMarketPairId(chain:string,value:unknown):value is string {
+  return typeof value==='string'&&Object.hasOwn(CHAINS,chain)&&(!validateToken(chain,value)||(chain!=='solana'&&/^0x[\da-f]{64}$/i.test(value)&&!/^0x0{64}$/i.test(value)));
 }
 const rules: [string, string, string, boolean, boolean][] = [
   [

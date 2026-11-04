@@ -9,7 +9,7 @@ import type {DiscoveryProfile} from './discovery-radar';
 import './discovery-instrument.css';
 
 type Props={profiles:DiscoveryProfile[];active:DiscoveryProfile|undefined;loading:boolean;initialLoading?:boolean;animate:boolean;now:number;fetchedAt?:string;onSelect:(id:string)=>void};
-const networks:Chain[]=['ethereum','base','bsc','solana'];
+const networks=Object.keys(CHAINS) as Chain[];
 const profileId=(p:DiscoveryProfile)=>`${p.chain}:${p.address}`;
 const finite=(v:unknown):v is number=>typeof v==='number'&&Number.isFinite(v)&&v>=0;
 const money=(v:number|null|undefined)=>finite(v)?formatMoney(v):'Unavailable';

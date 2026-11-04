@@ -125,7 +125,8 @@ export function createInvestigationService(deps: Dependencies & HolderDependenci
           if (category) input.labels.push({timestampBasis:'local-observation',address:h.address,category,label:h.tag || 'Provider-reported contract',source:'GoPlus Security',timestamp:publicReport.sources.find(s=>s.name==='GoPlus Security')?.fetchedAt || publicReport.fetchedAt});
         }
         const selectedPool=publicReport.market?.pairAddress&&!validateToken(chain,publicReport.market.pairAddress)?publicReport.market.pairAddress:undefined;
-        if(publicReport.market?.pairAddress&&!selectedPool)input.reasons.push('The selected launchpad market uses a provider identifier, not an on-chain pool address. V2 reserve and pool timing probes are not applicable; bonding-curve impact remains unevaluated.');
+        if(publicReport.market?.pairAddress&&!selectedPool)input.reasons.push('The selected market uses a pool identifier, not an on-chain pool address. Address-based V2 reserve and pool timing probes are not applicable; selected-pool impact remains unevaluated.');
+        if(chain==='robinhood')input.reasons.push('Robinhood V4 first-minute pool history and selected-pool reserves are not supported by the current verifier. Recent trades and shared manager custody do not establish launch coverage or pool reserves.');
         if (selectedPool) input.labels.push({timestampBasis:'local-observation',address:selectedPool,category:'pool',label:'Market pair address',source:'DEX Screener',timestamp:publicReport.sources.find(s=>s.name==='DEX Screener')?.fetchedAt || publicReport.fetchedAt});
         if (mode === 'market') {
           input.reasons.push('Market-only refresh. No wallet investigation was requested.');
@@ -151,7 +152,7 @@ export function createInvestigationService(deps: Dependencies & HolderDependenci
         // Public market time nominates a creation search range only; the adapter
         // must still verify factory events, receipts and complete swap coverage.
         const creationTimeHint=publicReport.market?.chainId===chain&&publicReport.market.baseToken.address.toLowerCase()===token.toLowerCase()&&typeof candidateTime==='number'&&Number.isSafeInteger(candidateTime)&&candidateTime>0&&candidateTime<=comparisonTime+120000?candidateTime:undefined;
-        const poolTask=mode==='deep'&&selectedPool&&deps.poolLaunch?deps.poolLaunch(chain,token,selectedPool,{signal:options.signal,validationTime:comparisonTime,creationTimeHint}).catch(()=>undefined):Promise.resolve(undefined);
+        const poolTask=mode==='deep'&&chain!=='robinhood'&&selectedPool&&deps.poolLaunch?deps.poolLaunch(chain,token,selectedPool,{signal:options.signal,validationTime:comparisonTime,creationTimeHint}).catch(()=>undefined):Promise.resolve(undefined);
         const reserveTask=mode==='deep'&&chain==='solana'&&selectedPool&&deps.poolReserves?deps.poolReserves(selectedPool,token,{signal:options.signal}).catch(()=>undefined):Promise.resolve(undefined);
         const startHistorical=()=>mode==='deep'&&deps.historicalEvidence?(async()=>{
           const snapshot=chain==='solana'?await solanaTask:undefined;
@@ -169,7 +170,8 @@ export function createInvestigationService(deps: Dependencies & HolderDependenci
         let historicalTask=chain==='solana'?startHistorical():undefined;
         const client = deps.makeClient(options.signal);
         if(!client.configured&&!deps.historicalEvidence)input.reasons.push('Historical access is not configured. Available public snapshots and bounded explorer records are used.');
-        if (client.configured) {
+        if(chain==='robinhood')sourceTimes.push({name:'Bitquery history',status:'unavailable',fetchedAt:new Date(now()).toISOString(),detail:'Robinhood Chain is not supported by the configured Bitquery query adapter; no query was sent.'});
+        if (client.configured&&chain!=='robinhood') {
           const run = async <T>(name: string, operation: () => Promise<T>): Promise<T | undefined> => {
             stage(name,'running',`Requesting bounded ${name.toLowerCase()} evidence.`);
             try {
@@ -231,7 +233,7 @@ export function createInvestigationService(deps: Dependencies & HolderDependenci
             }
           } else input.reasons.push('Holder snapshot only. No launch, trade or funding queries were run.');
         }
-        if(deps.publicHistory && (!client.configured || !input.trades.length)){
+        if(deps.publicHistory && (chain==='robinhood'||!client.configured || !input.trades.length)){
           stage('public-history','running','Loading bounded public holder, deployment, pool-trade and incoming-transfer evidence.');
           try {
             const fallback=await deps.publicHistory(chain,token,{report:publicReport,mode,limit,signal:options.signal});
@@ -257,12 +259,12 @@ export function createInvestigationService(deps: Dependencies & HolderDependenci
           }
         }
         let evmSnapshot:EvmHolderResult|undefined;
-        if((chain==='base'||chain==='ethereum')&&!input.holders.some(h=>h.share!==null&&h.share>0)&&deps.evmHolders){
-          stage('holder-rpc','running',`Verifying ${chain==='base'?'Base safe':'Ethereum finalized'} candidate balances at one block.`);
+        if((chain==='robinhood'||(chain==='base'||chain==='ethereum')&&!input.holders.some(h=>h.share!==null&&h.share>0))&&deps.evmHolders){
+          stage('holder-rpc','running',`Verifying ${chain==='robinhood'?'Robinhood safe':chain==='base'?'Base safe':'Ethereum finalized'} candidate balances at one block.`);
           const candidateAddresses=[...new Set([...input.holders.map(h=>h.address),...(prior?.report.holders||[]).map(h=>h.address),...input.trades.map(t=>t.wallet),...input.transfers.filter(t=>!t.native&&t.token.toLowerCase()===token.toLowerCase()).flatMap(t=>[t.from,t.to])])].slice(0,100);
           try{evmSnapshot=await deps.evmHolders({...publicReport,market:publicReport.market??prior?.report.market??null},{signal:options.signal,candidateAddresses});}catch{options.signal?.throwIfAborted();}
-          if(evmSnapshot){sourceTimes.push(...evmSnapshot.sources);input.reasons.push(...evmSnapshot.reasons);input.truncated=true;
-            if(evmSnapshot.snapshot&&evmSnapshot.holders){input.holders=evmSnapshot.holders;publicReport={...publicReport,holderCount:null,totalSupply:evmSnapshot.totalSupply??publicReport.totalSupply,holders:evmSnapshot.holders.flatMap(h=>h.share===null?[]:[{address:h.address,share:h.share,contract:h.address===selectedPool?.toLowerCase()?true:null,locked:null,tag:h.address===selectedPool?.toLowerCase()?'pool':''}])};}
+          if(evmSnapshot){sourceTimes.push(...evmSnapshot.sources);input.reasons.push(...evmSnapshot.reasons);input.labels.push(...evmSnapshot.labels);input.truncated=true;
+            if(evmSnapshot.snapshot&&evmSnapshot.holders){const knownPools=new Set(evmSnapshot.labels.filter(l=>l.category==='pool').map(l=>l.address.toLowerCase()));if(selectedPool)knownPools.add(selectedPool.toLowerCase());input.holders=evmSnapshot.holders;publicReport={...publicReport,holderCount:null,totalSupply:evmSnapshot.totalSupply??publicReport.totalSupply,holders:evmSnapshot.holders.flatMap(h=>h.share===null?[]:[{address:h.address,share:h.share,contract:knownPools.has(h.address.toLowerCase())?true:null,locked:null,tag:knownPools.has(h.address.toLowerCase())?'pool':''}])};}
           }
           stage('holder-rpc',evmSnapshot?.snapshot?'complete':'unavailable',evmSnapshot?.snapshot?`${evmSnapshot.holders?.length||0} positive candidate balances verified at ${evmSnapshot.snapshot.finality} block ${evmSnapshot.snapshot.blockNumber}. Full holder count remains unknown.`:'Candidate balances could not be verified; missing values remain unknown.');
         }
@@ -286,7 +288,7 @@ export function createInvestigationService(deps: Dependencies & HolderDependenci
         historicalTask ||= startHistorical();
         const candidatePool=publicReport.market?.pairAddress||prior?.report.market?.pairAddress;
         const evmPool=candidatePool&&!validateToken(chain,candidatePool)?candidatePool:undefined;
-        const evmReserveTask=chain!=='solana'&&evmPool&&deps.evmPoolReserves?deps.evmPoolReserves(chain,evmPool,token,{holders:publicReport.holders.map(h=>h.address),signal:options.signal}).catch(()=>undefined):Promise.resolve(undefined);
+        const evmReserveTask=(chain==='ethereum'||chain==='base'||chain==='bsc')&&evmPool&&deps.evmPoolReserves?deps.evmPoolReserves(chain,evmPool,token,{holders:publicReport.holders.map(h=>h.address),signal:options.signal}).catch(()=>undefined):Promise.resolve(undefined);
         const historical=await historicalTask;
         options.signal?.throwIfAborted();
         if(historical){

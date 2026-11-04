@@ -19,6 +19,7 @@ const network = { ethereum: 'eth', base: 'base', bsc: 'bsc', solana: 'solana' };
 export type QueryKind = 'holders' | 'early' | 'recent' | 'transfers' | 'labels' | 'launch';
 
 export function buildQuery(kind: QueryKind, chain: Chain, token: string, limit: number, wallets: string[] = []): string {
+  if(chain==='robinhood')throw new Error('Robinhood historical Bitquery queries are not supported by this adapter. Use the attributed RPC and public sources.');
   const cap = Math.min(200, Math.max(1, Math.floor(limit)));
   const solana = chain === 'solana';
   const root = solana ? 'Solana(dataset: combined)' : `EVM(network: ${network[chain]}, dataset: combined)`;

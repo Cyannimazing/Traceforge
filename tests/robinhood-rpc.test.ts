@@ -1,0 +1,36 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {createEvmHolderFallback} from '../src/lib/evm-holder-fallback';
+import {runEvmControlProbes} from '../src/lib/evm-control-probes';
+import {readWalletActivity} from '../src/lib/wallet-activity';
+import {createInvestigationService} from '../src/lib/investigation-service';
+import {holderScope} from '../src/lib/holder-scope';
+const token='0x'+'1'.repeat(40),buyer='0x'+'2'.repeat(40),sold='0x'+'3'.repeat(40),hash='0x'+'a'.repeat(64),now=1700000000000,transfer='0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
+const word=(n:bigint)=>'0x'+n.toString(16).padStart(64,'0'),topic=(a:string)=>'0x'+a.slice(2).padStart(64,'0');
+const manager='0x8366a39cc670b4001a1121b8f6a443a643e40951';
+function setup(options:{wrong?:boolean;safeMissing?:boolean;gap?:boolean;reorg?:boolean;stale?:boolean;manager?:'verified'|'no-code'}={}){
+ const calls:{method:string;params:any[]}[]=[];
+ const rpc=async(method:string,params:any[]):Promise<any>=>{calls.push({method,params});if(method==='eth_chainId')return options.wrong?'0xb626':'0x1237';
+ if(method==='eth_getBlockByNumber'){if(params[0]==='safe'&&options.safeMissing)return undefined;const latest=params[0]==='latest',number=latest?21010:params[0]==='finalized'?20000:params[0].startsWith('0x')?parseInt(params[0],16):21000;return {number:'0x'+number.toString(16),hash:options.reorg&&params[0]==='0x5208'?'0x'+'b'.repeat(64):hash,timestamp:'0x'+(1700000000-(options.stale?1000:latest?0:600)).toString(16)};}
+ if(method==='eth_getLogs'){if(options.gap)return undefined;const f=params[0];return parseInt(f.fromBlock,16)<=20999&&parseInt(f.toBlock,16)>=20999?[{address:token,topics:[transfer,topic(sold),topic(buyer)],data:word(99n),transactionHash:hash,blockHash:hash,blockNumber:'0x5207',logIndex:'0x1',removed:false}]:[];}
+ if(method==='eth_getCode')return params[0]===token||options.manager==='verified'&&params[0]===manager?'0x6001':'0x';
+ if(method==='eth_getTransactionCount')return '0x14';
+ if(method==='eth_getStorageAt')return word(0n);
+ if(method==='eth_call'){const data=params[0].data;return data==='0x18160ddd'?word(1000n):data==='0x313ce567'?word(0n):data==='0x8da5cb5b'?topic(buyer):data.startsWith('0x70a08231')?word(data.endsWith(buyer.slice(2))?(options.manager?600n:1000n):options.manager&&data.endsWith(manager.slice(2))?400n:0n):word(1n);}return undefined;};
+ const fetcher:typeof fetch=async(_,init)=>{const raw=JSON.parse(String(init?.body)),req=Array.isArray(raw)?raw:[raw],out=[];for(const r of req)out.push({jsonrpc:'2.0',id:r.id,result:await rpc(r.method,r.params)});return Response.json(Array.isArray(raw)?out:out[0]);};
+ const report={chain:'robinhood',token,holders:[],identities:[],market:{pairAddress:'0x'+'f'.repeat(64)}} as any;
+ return {calls,rpc,fetcher,report,now:()=>now};
+}
+test('Robinhood safe holders use standard bounded logs, exact chain identity and same-block balances',async()=>{
+ const m=setup(),r=await createEvmHolderFallback({...m,rpcUrls:{robinhood:'https://rpc.invalid'}})(m.report);assert.equal(r.snapshot?.chain,'robinhood');assert.equal(r.snapshot?.finality,'safe');assert.equal(r.holders?.find(h=>h.address===buyer)?.share,100);assert(!r.holders?.some(h=>h.address===sold));assert.equal(r.holderCount,null);assert.equal(m.calls.filter(c=>c.method==='eth_getLogs').length,4);assert(m.calls.filter(c=>c.method==='eth_getLogs').every(c=>parseInt(c.params[0].toBlock,16)-parseInt(c.params[0].fromBlock,16)<5000));assert(!m.calls.some(c=>c.method.startsWith('alchemy_')));assert(m.calls.filter(c=>c.method==='eth_call').every(c=>c.params[1]==='0x5208'));assert(!m.calls.some(c=>JSON.stringify(c.params).includes('f'.repeat(64))));
+});
+test('Robinhood rejects testnet, unavailable safe tag, stale provider and changed canonical anchor',async()=>{for(const options of [{wrong:true},{safeMissing:true},{stale:true},{reorg:true}]){const m=setup(options),r=await createEvmHolderFallback({...m,rpcUrls:{robinhood:'https://rpc.invalid'}})(m.report);assert.equal(r.snapshot,undefined);assert.equal(r.holders,undefined);}});
+test('Robinhood log gaps retain supplied candidate verification and never imply complete holder coverage',async()=>{const m=setup({gap:true}),r=await createEvmHolderFallback({...m,rpcUrls:{robinhood:'https://rpc.invalid'}})(m.report,{candidateAddresses:[buyer]});assert(r.snapshot);assert.equal(r.holders?.length,1);assert.match(r.reasons.join(' '),/unknown|unavailable/);assert.equal(r.truncated,true);});
+test('Robinhood finalized controls and activity independently verify chain and current provider head',async()=>{const m=setup(),controls=await runEvmControlProbes({chain:'robinhood',token,recipient:buyer,holders:[{address:buyer}],now:m.now},m.rpc);assert.equal(controls.anchor?.finality,'finalized');assert(controls.observations.some(o=>o.key==='owner'&&o.address===buyer));const activity=await readWalletActivity('robinhood',[buyer],m.rpc,{now:m.now});assert.equal(activity.wallets[0].count,20);assert.equal(activity.wallets[0].fresh,false);assert(m.calls.some(c=>c.method==='eth_getBlockByNumber'&&c.params[0]==='latest'));const wrong=setup({wrong:true});assert.equal((await runEvmControlProbes({chain:'robinhood',token,recipient:buyer,holders:[],now:m.now},wrong.rpc)).anchor,null);});
+
+test('Robinhood canonical V4 manager needs same-block code and positive balance; custody is not pool reserves',async()=>{for(const mode of ['verified','no-code'] as const){const m=setup({manager:mode}),r=await createEvmHolderFallback({...m,rpcUrls:{robinhood:'https://rpc.invalid'}})(m.report);assert.equal(r.holders?.find(h=>h.address===manager)?.share,40);assert.equal(r.labels.some(l=>l.address===manager&&l.category==='pool'),mode==='verified');if(mode==='verified'){assert.match(r.labels[0].label,/aggregate|shared/i);assert.match(r.sources.map(s=>s.detail).join(' '),/not.*pool reserves/i);}}});
+test('Robinhood service verifies existing provider holders, retains shared custody attribution and skips unsupported adapters',async()=>{
+ const m=setup({manager:'verified'});let query=0,pool=0,reserve=0,enriched:string[]=[];
+ const report={...m.report,name:'Test',symbol:'TEST',fetchedAt:new Date(now).toISOString(),holders:[{address:buyer,share:90,contract:false,locked:null,tag:''}],holderCount:239,checks:[],sources:[]};
+ const service=createInvestigationService({now:m.now,publicScan:async()=>report,makeClient:()=>({configured:true,request:async()=>{query++;throw Error('unsupported');}}),evmHolders:createEvmHolderFallback({...m,rpcUrls:{robinhood:'https://rpc.invalid'}}),poolLaunch:async()=>{pool++;throw Error('unsupported');},evmPoolReserves:async()=>{reserve++;throw Error('unsupported');},enrichSnapshot:async(r)=>{enriched=r.holders.map(h=>h.address);return {};}});
+ const r=await service.scan('robinhood',token);assert.equal(query+pool+reserve,0);assert.equal(r.holders.find(h=>h.address===buyer)?.share,60);assert.equal(r.holderCount,null);assert(enriched.includes(manager));assert.equal(holderScope(r).infrastructure[0]?.address,manager);assert.equal(r.investigation.coverage.launchVerified,false);assert(r.sources.some(s=>s.name==='Bitquery history'&&s.status==='unavailable'));assert(r.investigation.evidence.some(e=>e.id===`label:${manager}:pool`));
+});

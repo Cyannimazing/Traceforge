@@ -21,7 +21,7 @@ export type DiscoveryProfile={chain:Chain;address:string;description:string;name
 
 export type DiscoveryMeta={fetchedAt?:string;servedAt?:string;source?:string;sourcePublishedAt?:string|null;cache?:{status:'fresh'|'cached'|'stale';ageSeconds:number;ttlSeconds:number};partial?:boolean;warnings?:string[]};
 
-const chainOrder:Chain[]=['ethereum','base','bsc','solana'];
+const chainOrder=Object.keys(CHAINS) as Chain[];
 
 
 

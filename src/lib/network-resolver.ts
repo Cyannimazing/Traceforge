@@ -1,4 +1,4 @@
-import {CHAINS,type Chain} from './analysis';
+import {CHAINS,isMarketPairId,type Chain} from './analysis';
 import {tokenRouteTarget} from './token-route';
 import {publicJson} from './providers';
 
@@ -8,10 +8,10 @@ export type NetworkResolution={token:string;chain:Chain;method:'address-format'|
 export class NetworkResolutionError extends Error {
  constructor(message:string,public status:number,public candidates:NetworkCandidate[]=[]){super(message);this.name='NetworkResolutionError';}
 }
-const EVM:EvmChain[]=['ethereum','base','bsc'];
-const IDS:Record<EvmChain,string>={ethereum:'0x1',base:'0x2105',bsc:'0x38'};
-const PUBLIC_RPC:Record<EvmChain,string>={ethereum:'https://ethereum-rpc.publicnode.com',base:'https://mainnet.base.org',bsc:'https://bsc-dataseed-public.bnbchain.org'};
-const aliases:Record<string,Chain>={ethereum:'ethereum',eth:'ethereum',base:'base',bsc:'bsc',bnb:'bsc','binance-smart-chain':'bsc',solana:'solana',sol:'solana'};
+const EVM:EvmChain[]=['ethereum','base','bsc','robinhood'];
+const IDS:Record<EvmChain,string>={ethereum:'0x1',base:'0x2105',bsc:'0x38',robinhood:'0x1237'};
+const PUBLIC_RPC:Record<EvmChain,string>={ethereum:'https://ethereum-rpc.publicnode.com',base:'https://mainnet.base.org',bsc:'https://bsc-dataseed-public.bnbchain.org',robinhood:'https://rpc.mainnet.chain.robinhood.com'};
+const aliases:Record<string,Chain>={ethereum:'ethereum',eth:'ethereum',base:'base',bsc:'bsc',bnb:'bsc','binance-smart-chain':'bsc',solana:'solana',sol:'solana',robinhood:'robinhood','robinhood-chain':'robinhood'};
 const object=(v:unknown):Record<string,unknown>=>v!==null&&typeof v==='object'&&!Array.isArray(v)?v as Record<string,unknown>:{};
 async function bounded<T>(task:Promise<T>,signal:AbortSignal):Promise<T>{
  signal.throwIfAborted();let rejectAbort:()=>void=()=>{};
@@ -28,7 +28,7 @@ export function marketNetworkCandidates(payload:unknown,token:string):NetworkCan
   if(!chain||chain==='solana')continue;
   const base=object(row.baseToken).address,quote=object(row.quoteToken).address;
   if(![base,quote].some(address=>typeof address==='string'&&address.toLowerCase()===token))continue;
-  if(typeof row.pairAddress!=='string'||!/^0x[\da-f]{40}$/i.test(row.pairAddress))continue;
+  if(!isMarketPairId(chain,row.pairAddress))continue;
   const value=object(row.liquidity).usd,liquidity=typeof value==='number'&&Number.isFinite(value)&&value>=0?value:null;
   const key=`${chain}:${row.pairAddress.toLowerCase()}`,old=pairs.get(key);
   if(!old||liquidity!==null&&(old.liquidity===null||liquidity>old.liquidity))pairs.set(key,{chain,liquidity});

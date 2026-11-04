@@ -27,6 +27,7 @@ const launchProofScope=globalThis as typeof globalThis&{traceforgeLaunchProofs?:
 function savedLaunchProofs(){return launchProofScope.traceforgeLaunchProofs??=new LaunchProofStore(resolve(/* turbopackIgnore: true */ process.env.TRACEFORGE_DATA_DIR||'.data','launch-proofs.sqlite'));}
 
 const rpcUrls={ethereum:process.env.ETHEREUM_RPC_URL,base:process.env.BASE_RPC_URL};
+const robinhoodRpc=process.env.ROBINHOOD_RPC_URL||'https://rpc.mainnet.chain.robinhood.com';
 const publicHistory=createPublicHistory();
 const solanaHistory=createAlchemySolanaHistory();
 const evmHistory=createAlchemyEvmHistory({rpcUrls});
@@ -50,13 +51,13 @@ async function extendedSolanaHistory(options:PublicHistoryOptions):Promise<Publi
 export const independentInvestigationService = createInvestigationService({
   persistentCache:{get:(chain,token,limit)=>savedReports().get(chain,token,limit),set:(chain,token,limit,entry)=>savedReports().set(chain,token,limit,entry)},
   publicScan: scanToken,
-  evmHolders:createEvmHolderFallback({rpcUrls}),
+  evmHolders:createEvmHolderFallback({rpcUrls:{...rpcUrls,robinhood:robinhoodRpc}}),
   bscHolders:createBscHolderFallback({rpcUrl:process.env.BSC_RPC_URL,proofStore:{get:(chain,token)=>savedLaunchProofs().get(chain,token),set:proof=>savedLaunchProofs().set(proof),delete:(chain,token)=>savedLaunchProofs().delete(chain,token)}}),
   evmPoolReserves:(chain,pool,token,options)=>createEvmPoolReserves({rpcUrl:chain==='bsc'?process.env.BSC_RPC_URL:rpcUrls[chain]})(chain,pool,token,options),
-  enrichSnapshot:createSnapshotEnrichment({rpcUrls:{...rpcUrls,solana:process.env.SOLANA_RPC_URL,bsc:process.env.BSC_RPC_URL||'https://bsc-rpc.publicnode.com'}}),
+  enrichSnapshot:createSnapshotEnrichment({rpcUrls:{...rpcUrls,robinhood:robinhoodRpc,solana:process.env.SOLANA_RPC_URL,bsc:process.env.BSC_RPC_URL||'https://bsc-rpc.publicnode.com'}}),
   poolReserves:createSolanaPoolReserves({rpcUrl:process.env.SOLANA_RPC_URL}),
   resolveClock:createEvidenceClock(),
-  publicHistory:(chain,token,options)=>publicHistory(chain,token,{...options,skipFunding:(chain==='ethereum'||chain==='base')&&!!rpcUrls[chain]}),
+  publicHistory:(chain,token,options)=>publicHistory(chain,token,{...options,skipFunding:chain==='robinhood'||(chain==='ethereum'||chain==='base')&&!!rpcUrls[chain]}),
   historicalEvidence:(chain,token,options)=>chain==='solana'&&process.env.SOLANA_RPC_URL?extendedSolanaHistory(options):(chain==='ethereum'||chain==='base')&&rpcUrls[chain]?extendedEvmHistory(chain,token,options):Promise.resolve(undefined),
   solanaPublic:createSolanaPublic({rpcUrl:process.env.SOLANA_RPC_URL}),
   poolLaunch:createPoolLaunch({rpcUrls:{ethereum:process.env.ETHEREUM_RPC_URL,base:process.env.BASE_RPC_URL}}),

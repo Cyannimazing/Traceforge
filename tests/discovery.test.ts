@@ -1,4 +1,6 @@
 import {test} from 'node:test';
+import {CHAINS} from '../src/lib/analysis';
+const networkCount=Object.keys(CHAINS).length;
 import assert from 'node:assert/strict';
 import {createDiscoveryService,DiscoveryUnavailable,parseDiscoveryProfiles,parseDiscoveryPools,enrichDiscoveryProfile} from '../src/lib/discovery';
 
@@ -14,10 +16,10 @@ test('network pool parser binds included identity and preserves pool-only age an
  const future=poolFeed();future.data[0].attributes.pool_created_at=new Date(start+1000).toISOString();assert.equal(parseDiscoveryPools(future,'ethereum','capture',start)[0].pairCreatedAt,null);
 });
 
-test('network feeds supplement a Solana-only profile list with all four chains and bounded concurrency',async()=>{
+test('network feeds supplement a Solana-only profile list with all supported chains and bounded concurrency',async()=>{
  let active=0,peak=0;const urls:string[]=[];
  const service=createDiscoveryService({now:()=>start,fetcher:async url=>{const u=String(url);urls.push(u);peak=Math.max(peak,++active);await new Promise(resolve=>setTimeout(resolve,5));active--;if(u.includes('token-profiles'))return Response.json([{chainId:'solana',tokenAddress:'A'.repeat(32)}]);if(u.includes('geckoterminal')){const network=u.split('/networks/')[1].split('/')[0];return Response.json(network==='solana'?{data:[],included:[]}:poolFeed(network));}return Response.json([]);}});
- const result=await service.get();assert.equal(peak,2);assert.deepEqual(new Set(result.tokens.map(t=>t.chain)),new Set(['ethereum','base','bsc','solana']));assert.equal(urls.filter(u=>u.includes('new_pools')).length,4);assert(result.sources?.some(s=>s.name==='GeckoTerminal new pools'&&s.chain==='ethereum'));
+ const result=await service.get();assert.equal(peak,2);assert.deepEqual(new Set(result.tokens.map(t=>t.chain)),new Set(['ethereum','base','bsc','solana','robinhood']));assert.equal(urls.filter(u=>u.includes('new_pools')).length,5);assert(result.sources?.some(s=>s.name==='GeckoTerminal new pools'&&s.chain==='robinhood'));
 });
 
 test('known wrapped native base selects the genuine quote candidate without copying base price changes',()=>{
@@ -42,7 +44,7 @@ test('DEX outage still serves network pools while per-network failures retain da
 test('one provider cooldown does not suppress the other provider refresh',async()=>{
  let now=start,dexCalls=0,geckoCalls=0;
  const service=createDiscoveryService({now:()=>now,fetcher:async url=>{if(String(url).includes('dexscreener')){dexCalls++;return new Response('',{status:429,headers:{'retry-after':'90'}});}geckoCalls++;return Response.json(poolFeed(String(url).split('/networks/')[1].split('/')[0]));}});
- await service.get();now+=31000;await service.get();assert.equal(dexCalls,1);assert.equal(geckoCalls,8);
+ await service.get();now+=31000;await service.get();assert.equal(dexCalls,1);assert.equal(geckoCalls,networkCount*2);
 });
 
 test('profile parser bounds and deduplicates chain addresses without treating profiles as new launches',()=>{
@@ -64,25 +66,25 @@ test('future, malformed and second-unit creation timestamps remain unavailable i
 test('one profile request and one bounded market batch per chain produce deterministic time-tied ordering',async()=>{
  const urls:string[]=[];
  const service=createDiscoveryService({now:()=>start,fetcher:async(url,options)=>{urls.push(String(url));assert.equal(options?.cache,'no-store');assert.equal(options?.redirect,'error');if(String(url).includes('token-profiles'))return Response.json([...profiles(),{chainId:'ethereum',tokenAddress:second},{chainId:'base',tokenAddress:token}]);return Response.json(String(url).includes('/ethereum/')?[market(),market({baseToken:{address:second,name:'Second',symbol:'SEC'}})]:[market({chainId:'base'})]);}});
- const result=await service.get();assert.equal(urls.length,7);assert(urls.some(url=>url.endsWith(`/ethereum/${token},${second}`)));assert.deepEqual(result.tokens.map(t=>t.chain),['base','ethereum','ethereum']);assert.equal(result.cache.status,'fresh');assert.equal(result.sourcePublishedAt,null);
+ const result=await service.get();assert.equal(urls.length,networkCount+3);assert(urls.some(url=>url.endsWith(`/ethereum/${token},${second}`)));assert.deepEqual(result.tokens.map(t=>t.chain),['base','ethereum','ethereum']);assert.equal(result.cache.status,'fresh');assert.equal(result.sourcePublishedAt,null);
 });
 test('cached responses preserve source capture time, update served age, and fetch again after thirty seconds',async()=>{
  let time=start,calls=0;
  const service=createDiscoveryService({now:()=>time,fetcher:async url=>{calls++;return Response.json(String(url).includes('token-profiles')?profiles():[market()],{headers:{date:new Date(start-10000).toUTCString(),age:'10'}});}});
  const first=await service.get();assert.equal(first.providerResponseAt,new Date(start-10000).toISOString());assert.equal(first.providerCacheAgeSeconds,10);
- time+=15000;const cached=await service.get();assert.equal(calls,6);assert.equal(cached.fetchedAt,first.fetchedAt);assert.notEqual(cached.servedAt,first.servedAt);assert.equal(cached.cache.status,'cached');assert.equal(cached.cache.ageSeconds,15);assert.equal(cached.tokens[0].pairAgeSeconds,75);
- time+=15001;const fresh=await service.get();assert.equal(calls,12);assert.equal(fresh.cache.status,'fresh');assert.notEqual(fresh.fetchedAt,first.fetchedAt);
+ time+=15000;const cached=await service.get();assert.equal(calls,networkCount+2);assert.equal(cached.fetchedAt,first.fetchedAt);assert.notEqual(cached.servedAt,first.servedAt);assert.equal(cached.cache.status,'cached');assert.equal(cached.cache.ageSeconds,15);assert.equal(cached.tokens[0].pairAgeSeconds,75);
+ time+=15001;const fresh=await service.get();assert.equal(calls,(networkCount+2)*2);assert.equal(fresh.cache.status,'fresh');assert.notEqual(fresh.fetchedAt,first.fetchedAt);
 });
 test('simultaneous consumers share one upstream fetch and cancelling one does not cancel the other',async()=>{
  let resolve!:()=>void,calls=0;const gate=new Promise<void>(done=>{resolve=done;});
  const service=createDiscoveryService({now:()=>start,fetcher:async url=>{calls++;if(String(url).includes('token-profiles')){await gate;return Response.json(profiles());}return Response.json([market()]);}});
- const controller=new AbortController(),a=service.get({signal:controller.signal}),b=service.get();controller.abort(Error('Cancelled'));await assert.rejects(a,/Cancelled/);resolve();const result=await b;assert.equal(calls,6);assert.equal(result.tokens[0].symbol,'EX');
+ const controller=new AbortController(),a=service.get({signal:controller.signal}),b=service.get();controller.abort(Error('Cancelled'));await assert.rejects(a,/Cancelled/);resolve();const result=await b;assert.equal(calls,networkCount+2);assert.equal(result.tokens[0].symbol,'EX');
 });
 test('profile failure returns last successful snapshot with original timestamp and stale status',async()=>{
  let time=start,fail=false,calls=0;
  const service=createDiscoveryService({now:()=>time,fetcher:async url=>{calls++;if(fail)throw Error('private diagnostics');return Response.json(String(url).includes('token-profiles')?profiles():[market()]);}});
  const first=await service.get();time+=31000;fail=true;const stale=await service.get();assert.equal(stale.fetchedAt,first.fetchedAt);assert.equal(stale.cache.status,'stale');assert.equal(stale.partial,true);assert.equal(stale.tokens[0].name,'Example token');assert(!JSON.stringify(stale).includes('private diagnostics'));
- await service.get();assert.equal(calls,11,'Failed refresh must not immediately repeat');time+=600001;await assert.rejects(service.get(),DiscoveryUnavailable);
+ await service.get();assert.equal(calls,(networkCount+2)+(networkCount+1),'Failed refresh must not immediately repeat');time+=600001;await assert.rejects(service.get(),DiscoveryUnavailable);
 });
 test('partial market failure preserves fresh profiles and labels older enrichment as stale',async()=>{
  let time=start,fail=false;
@@ -100,7 +102,7 @@ test('invalid or oversized profile responses fail closed while valid empty feed 
  for(const response of [()=>Response.json({error:'upstream'}),()=>new Response('x'.repeat(2*1024*1024+1))]){
   const service=createDiscoveryService({fetcher:async()=>response()});await assert.rejects(service.get(),DiscoveryUnavailable);
  }
- let calls=0;const empty=createDiscoveryService({fetcher:async url=>{calls++;return Response.json(String(url).includes('geckoterminal')?{data:[],included:[]}:[]);}});const result=await empty.get();assert.equal(result.tokens.length,0);assert.equal(result.partial,false);assert.equal(calls,5);
+ let calls=0;const empty=createDiscoveryService({fetcher:async url=>{calls++;return Response.json(String(url).includes('geckoterminal')?{data:[],included:[]}:[]);}});const result=await empty.get();assert.equal(result.tokens.length,0);assert.equal(result.partial,false);assert.equal(calls,networkCount+1);
 });
 test('pre-cancelled consumer performs no upstream requests',async()=>{
  let calls=0;const service=createDiscoveryService({fetcher:async()=>{calls++;return Response.json([]);}}),controller=new AbortController();controller.abort(Error('Cancel'));await assert.rejects(service.get({signal:controller.signal}),/Cancel/);assert.equal(calls,0);

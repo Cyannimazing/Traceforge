@@ -6,7 +6,7 @@ export const runtime='nodejs';export const maxDuration=60;
 const json=(value:unknown,status=200)=>NextResponse.json(value,{status,headers:{'Cache-Control':'no-store'}});
 function input(request:NextRequest){
  const chain=request.nextUrl.searchParams.get('chain'),token=(request.nextUrl.searchParams.get('token')||'').trim().toLowerCase();
- if(chain!=='ethereum'&&chain!=='base')return {error:'Continuous ERC20 index pagination supports configured Ethereum and Base only. No compatible BNB Chain archive is configured.',status:501} as const;
+ if(chain!=='ethereum'&&chain!=='base')return {error:'Continuous ERC20 index pagination supports configured Ethereum and Base only. A compatible archive is not configured for the requested network.',status:501} as const;
  const error=validateToken(chain,token);return error?{error,status:400} as const:{chain,token} as const;
 }
 export async function GET(request:NextRequest){

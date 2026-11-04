@@ -1,4 +1,4 @@
-import { parseCount, sameToken, validateToken, type Chain, type Report } from './analysis';
+import { parseCount, sameToken, validateToken, isMarketPairId, type Chain, type Report } from './analysis';
 import type { IdentityRecord, InvestigationInput, LabelRecord, TradeRecord, TransferRecord } from './investigation';
 
 type Row = Record<string, unknown>;
@@ -170,15 +170,15 @@ export function createPublicHistory(deps: {fetcher?: typeof fetch; now?: () => n
       }
     };
     const pool = options.report.market?.pairAddress;
-    const tradesTask = options.mode === 'deep' && pool && !validateToken(chain,pool)
+    const tradesTask = options.mode === 'deep' && isMarketPairId(chain,pool)
       ? run('GeckoTerminal trades','Up to 300 recent trades from one selected market pool; sender attribution, not a complete wallet or launch history.',async()=>{
-          const networks = {ethereum:'eth',base:'base',bsc:'bsc',solana:'solana'};
+          const networks = {ethereum:'eth',base:'base',bsc:'bsc',solana:'solana',robinhood:'robinhood'};
           const payload = await get(`https://api.geckoterminal.com/api/v2/networks/${networks[chain]}/pools/${encodeURIComponent(pool)}/trades`);
           const trades = parsePoolTrades(payload,chain,token);
           if (Array.isArray(obj(payload).data) && (obj(payload).data as unknown[]).length >= 300) result.truncated=true;
           return trades;
         }) : Promise.resolve(undefined);
-    const explorer = chain === 'ethereum' ? 'https://eth.blockscout.com' : chain === 'base' ? 'https://base.blockscout.com' : undefined;
+    const explorer = chain === 'ethereum' ? 'https://eth.blockscout.com' : chain === 'base' ? 'https://base.blockscout.com' : chain === 'robinhood' ? 'https://robinhoodchain.blockscout.com' : undefined;
     if (explorer) {
       const base = `${explorer}/api/v2`, path = encodeURIComponent(token.toLowerCase());
       const [metadata, firstPage, creation, publicTrades] = await Promise.all([
@@ -272,7 +272,7 @@ export function createPublicHistory(deps: {fetcher?: typeof fetch; now?: () => n
       }
     } else {
       result.trades=await tradesTask||[];
-      result.reasons.push('Public explorer holder, creator and funding fallback currently supports Ethereum and Base. Other chains retain available public snapshots and pool trades.');
+      result.reasons.push('Public explorer holder, creator and funding fallback currently supports Ethereum, Base and Robinhood Chain. Other chains retain available public snapshots and pool trades.');
     }
     if(options.mode==='deep')result.reasons.push('Public trade scope: at most 300 recent trades from one selected pool, normally within 24 hours. Transaction sender may be a relayer or shared service. Sample net buying is not current holdings; no complete launch or first-buyer history is established.');
     return result;

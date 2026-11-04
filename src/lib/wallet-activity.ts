@@ -1,6 +1,6 @@
 import {CHAINS,validateToken,type Chain} from './analysis';
 export type WalletActivity={address:string;count:number|null;exact:boolean;fresh:boolean|null;basis:'evm-outgoing-count'|'solana-address-signatures';reason:string;observedAt?:string};
-export type WalletActivitySnapshot={source:string;observedAt:string;blockRef?:string;wallets:WalletActivity[];truncated:boolean};
+export type WalletActivitySnapshot={source:string;observedAt:string;blockRef?:string;blockTimestamp?:string;finality?:'finalized';wallets:WalletActivity[];truncated:boolean};
 /** Fixed diagnostic codes only. Never expose a provider error message or URL. */
 export class WalletActivityRpcError extends Error {
  constructor(readonly code:'rate-limit'|'deadline'|'unavailable'){super(code);this.name='WalletActivityRpcError';}
@@ -23,6 +23,11 @@ export async function readWalletActivity(chain:Chain,addresses:string[],rpc:Rpc,
   try{const id=await call('eth_chainId',[]);if(!hex(id)||BigInt(id as string)!==BigInt(CHAINS[chain].id!))return result;
    const anchor=obj(await call('eth_getBlockByNumber',['finalized',false]));
    if(!hex(anchor.number)||typeof anchor.hash!=='string'||!/^0x[0-9a-f]{64}$/i.test(anchor.hash))return result;
+   if(chain==='robinhood'){
+    const head=obj(await call('eth_getBlockByNumber',['latest',false])),timestamp=hex(head.timestamp)?Number(BigInt(head.timestamp as string))*1000:NaN,anchorTime=hex(anchor.timestamp)?Number(BigInt(anchor.timestamp as string))*1000:NaN,age=(options.now||Date.now)()-timestamp;
+    if(!hex(head.number)||typeof head.hash!=='string'||!/^0x[0-9a-f]{64}$/i.test(head.hash)||!Number.isSafeInteger(timestamp)||!Number.isSafeInteger(anchorTime)||age < -120000||age>900000||anchorTime>timestamp||BigInt(anchor.number as string)>BigInt(head.number as string))return result;
+    result.blockTimestamp=new Date(anchorTime).toISOString();result.finality='finalized';
+   }
    block=anchor.number as string;hash=anchor.hash;result.blockRef=block+':'+hash;
   }catch{options.signal?.throwIfAborted();return result;}
  }

@@ -1,7 +1,7 @@
 import {encodeFunctionData,keccak256,stringToHex,toHex} from 'viem';
 import type {Evidence} from './investigation-types';
 
-export type EvmProbeChain='ethereum'|'base'|'bsc';
+export type EvmProbeChain='ethereum'|'base'|'bsc'|'robinhood';
 export type EvmProbeRpc=(method:string,params:unknown[],signal:AbortSignal)=>Promise<unknown>;
 export type EvmControlObservation={
  key:string;status:'observed'|'unknown';outcome:'code-present'|'no-code'|'address-present'|'zero-address'|'empty-slot'|'returned-true'|'returned-false'|'empty-return'|'zero-balance'|'unavailable'|'malformed-return';
@@ -13,7 +13,7 @@ export type EvmControlProbeResult={
  observations:EvmControlObservation[];evidence:Evidence[];limitations:string[];
 };
 export type EvmControlProbeInput={chain:EvmProbeChain;token:string;recipient:string;holders:{address:string;balanceRaw?:string}[];blockTag?:'finalized'|'latest';signal?:AbortSignal;now?:()=>number;timeoutMs?:number};
-const chainIds={ethereum:1n,base:8453n,bsc:56n};
+const chainIds={ethereum:1n,base:8453n,bsc:56n,robinhood:4663n};
 const addressPattern=/^0x[0-9a-fA-F]{40}$/;
 const zero='0x'+'0'.repeat(40);
 const uint=(value:unknown)=>typeof value==='string'&&/^0x[0-9a-fA-F]{1,64}$/.test(value)?BigInt(value):null;
@@ -40,7 +40,7 @@ export async function runEvmControlProbes(input:EvmControlProbeInput,rpc:EvmProb
  ]};
  const timeout=AbortSignal.timeout(Math.max(50,Math.min(15_000,input.timeoutMs??8_000))),signal=input.signal?AbortSignal.any([input.signal,timeout]):timeout;
  async function call(method:string,params:unknown[]){
-  signal.throwIfAborted();if(result.requests>=14)throw Error('Read budget exhausted.');result.requests++;
+  signal.throwIfAborted();if(result.requests>=(input.chain==='robinhood'?15:14))throw Error('Read budget exhausted.');result.requests++;
   return new Promise<unknown>((resolve,reject)=>{
    const abort=()=>reject(signal.reason);signal.addEventListener('abort',abort,{once:true});
    Promise.resolve().then(()=>{signal.throwIfAborted();return rpc(method,params,signal);}).then(resolve,reject).finally(()=>signal.removeEventListener('abort',abort));
@@ -51,10 +51,17 @@ export async function runEvmControlProbes(input:EvmControlProbeInput,rpc:EvmProb
  }
  const chain=await read('eth_chainId',[]);
  if(!chain.ok||uint(chain.value)!==chainIds[input.chain]){result.limitations.push('RPC chain identity could not be matched to the requested network.');return result;}
+ let currentHead:{number:bigint;timestamp:bigint}|undefined;
+ if(input.chain==='robinhood'){
+  const readHead=await read('eth_getBlockByNumber',['latest',false]),head=readHead.ok&&readHead.value&&typeof readHead.value==='object'?readHead.value as Record<string,unknown>:null,number=uint(head?.number),timestamp=uint(head?.timestamp),age=timestamp===null?Infinity:now()-Number(timestamp)*1000;
+  if(number===null||timestamp===null||!word(head?.hash)||!Number.isFinite(age)||age < -120000||age>900000){result.limitations.push('Current Robinhood RPC head was unavailable, future or stale; no control observations were retained.');return result;}
+  currentHead={number,timestamp};
+ }
  const requestedTag=input.blockTag||'finalized',header=await read('eth_getBlockByNumber',[requestedTag,false]);
  const b=header.ok&&header.value&&typeof header.value==='object'?header.value as Record<string,unknown>:null;
  const bn=uint(b?.number),ts=uint(b?.timestamp),hash=word(b?.hash);
  if(!b||bn===null||ts===null||!hash||ts>BigInt(Math.floor(now()/1000)+120)||ts>BigInt(Math.floor(Number.MAX_SAFE_INTEGER/1000))){result.limitations.push('A valid dated block anchor was unavailable.');return result;}
+ if(currentHead&&(bn>currentHead.number||ts>currentHead.timestamp)){result.limitations.push('Requested finality anchor is inconsistent with the current provider head.');return result;}
  const blockNumber=toHex(bn);
  result.anchor={number:blockNumber,hash,timestamp:new Date(Number(ts)*1000).toISOString(),finality:requestedTag==='finalized'?'finalized':'provisional'};
  if(requestedTag==='latest')result.limitations.push('This recent block is provisional, not finalized. Its observations can change after a reorganization.');
