@@ -9,7 +9,7 @@ export function seoSettings(env:SeoEnvironment=process.env){
 }
 export function createPageMetadata(path:string,env:SeoEnvironment=process.env):Metadata{
  const site=seoSettings(env),page=pageSeoForPath(path),canonical=new URL(page.path,site.origin).href,image={url:`${site.origin}/opengraph-image`,width:1200,height:630,alt:'TraceForge Engine - public blockchain token investigation'};
- return {title:page.title,description:page.description,alternates:{canonical},robots:{index:site.indexable&&page.indexable,follow:true,'max-image-preview':'large'},openGraph:{type:'website',locale:'en_US',siteName:SITE_NAME,title:page.title,description:page.description,url:canonical,images:[image]},twitter:{card:'summary_large_image',title:page.title,description:page.description,images:[image]}};
+ return {title:page.title,description:page.description,alternates:{canonical},robots:{index:site.indexable&&page.indexable,follow:true,'max-image-preview':'large'},openGraph:{type:'website',locale:'en_US',siteName:SITE_NAME,title:page.title,description:page.description,url:canonical,images:[image]},twitter:{card:'summary_large_image',site:'@traceengine17',title:page.title,description:page.description,images:[image]}};
 }
 export function createRootMetadata(env:SeoEnvironment=process.env):Metadata{
  return {...createPageMetadata('/',env),metadataBase:new URL(`${seoSettings(env).origin}/`),applicationName:SITE_NAME,category:'finance',verification:env.GOOGLE_SITE_VERIFICATION?.trim()?{google:env.GOOGLE_SITE_VERIFICATION.trim()}:undefined,icons:{icon:[{url:'/brand/traceforge-icon.svg?v=tf2',type:'image/svg+xml'},{url:'/brand/favicon-32.png?v=tf2',sizes:'32x32',type:'image/png'}],apple:'/brand/apple-touch-icon.png?v=tf2'}};
@@ -23,7 +23,7 @@ export function siteRobots(env:SeoEnvironment=process.env):MetadataRoute.Robots{
 export function structuredSiteData(env:SeoEnvironment=process.env):Record<string,unknown>{
  const {origin}=seoSettings(env),description=pageSeoForPath('/').description;
  return {'@context':'https://schema.org','@graph':[
-  {'@type':'WebSite','@id':`${origin}/#website`,url:`${origin}/`,name:SITE_NAME,alternateName:'TraceForge',description,inLanguage:'en'},
+  {'@type':'WebSite','@id':`${origin}/#website`,url:`${origin}/`,name:SITE_NAME,alternateName:'TraceForge',sameAs:['https://x.com/traceengine17'],description,inLanguage:'en'},
   {'@type':'WebApplication','@id':`${origin}/#application`,url:`${origin}/`,name:SITE_NAME,description,applicationCategory:'FinanceApplication',operatingSystem:'Web browser',featureList:['Token holder analysis and supply-share maps','Wallet funding and transaction connections','Creator, Owner, Dev and Sniper evidence flags','Token contract and authority checks','Source-linked token assessments','Recent token and DEX pool discovery'],isPartOf:{'@id':`${origin}/#website`}},
  ]};
 }
