@@ -3,6 +3,7 @@ import type {InvestigationReport} from './investigation-types';
 import {getDisplayAssessment} from './verdict-summary';
 import {trustRating} from './trust-rating';
 import {observedDecision} from './observed-decision';
+import {browserStorage,reportHistoryEnabled,type BrowserStorage} from './browser-storage';
 
 export type FeedItem={chain:Chain;token:string;name:string;symbol:string;status:'critical'|'caution'|'insufficient'|'clear';title:string;reason:string;fetchedAt:string;source:string;score?:number|null;providerTimestamp?:string|null};
 export const FEED_KEY='traceforge.report-feed.v9';
@@ -27,7 +28,12 @@ export function mergeFeed(items:FeedItem[],next:FeedItem):FeedItem[]{
  if(existing&&Date.parse(existing.fetchedAt)>Date.parse(next.fetchedAt))return items;
  return [next,...items.filter(item=>item.chain!==next.chain||!sameToken(next.chain,item.token,next.token))].slice(0,12);
 }
-export function rememberReport(report:InvestigationReport){
+export function readRememberedReports(storage=browserStorage()):FeedItem[]{
+ if(!storage||!reportHistoryEnabled(storage))return [];
+ try{return parseFeed(storage.getItem(FEED_KEY)||'[]');}catch{return [];}
+}
+export function rememberReport(report:InvestigationReport,storage:BrowserStorage|undefined=browserStorage()){
+ if(!storage||!reportHistoryEnabled(storage))return;
  const next=feedItem(report);if(!next)return;
- try{const items=mergeFeed(parseFeed(localStorage.getItem(FEED_KEY)||'[]'),next);localStorage.setItem(FEED_KEY,JSON.stringify(items));window.dispatchEvent(new Event(FEED_EVENT));}catch{/* Storage failure must never interrupt a successful scan. */}
+ try{const items=mergeFeed(readRememberedReports(storage),next);storage.setItem(FEED_KEY,JSON.stringify(items));if(typeof window!=='undefined')window.dispatchEvent(new Event(FEED_EVENT));}catch{/* Storage failure must never interrupt a successful scan. */}
 }

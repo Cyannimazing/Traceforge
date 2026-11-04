@@ -9,3 +9,7 @@ traceforge-icon.svg and traceforge-logo.svg are independently authored geometric
 
 ## Replacement identity
 The insect concept was retired at the user's request. Active mark: custom authored geometric TF monogram with cut corners, solid off-white and muted green. No gradients. The wordmark and favicon assets now use this monogram. The earlier generated beetle PNG is retained only as a historical concept asset and is not referenced by the interface.
+
+## Creative social preview - 2026-11-04
+
+`traceforge-creative-logo.png` uses the supplied `TraceForge-Creative-Logo.png` artwork. The original 2172 by 724 PNG was cropped to its wordmark area (left 105, top 180, width 1978, height 376), resized to 1100 by 209, and encoded as an optimized PNG. No lettering or mark was redrawn. The Open Graph card embeds this local asset and the existing local Space Grotesk font, with no remote asset requests or generated token scores. The card is shared by Open Graph and Twitter metadata.

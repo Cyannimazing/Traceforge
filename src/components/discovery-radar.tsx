@@ -9,7 +9,8 @@ import {gsap} from 'gsap';
 
 import {CHAINS,short,formatMoney,sameToken,type Chain} from '@/lib/analysis';
 
-import {FEED_KEY,FEED_EVENT,parseFeed,type FeedItem} from '../lib/report-feed';
+import {FEED_EVENT,parseFeed,readRememberedReports,type FeedItem} from '../lib/report-feed';
+import {BROWSER_STORAGE_EVENT} from '../lib/browser-storage';
 import './discovery-radar.css';
 import DiscoveryInstrument,{DiscoverySkeleton} from './discovery-instrument';
 import {latestDiscoveryProfiles} from '@/lib/discovery-order';
@@ -42,7 +43,7 @@ export default function DiscoveryRadar({profiles,loading,error,meta,paused,onRef
   return latestDiscoveryProfiles(matches).slice(0,16);
  },[profiles,chain,query]);
  const profileKey=visible.map(p=>`${p.chain}:${p.address}`).join('|');
- useEffect(()=>{const read=()=>{try{setSavedReports(parseFeed(localStorage.getItem(FEED_KEY)||'[]'));}catch{setSavedReports([]);}};read();window.addEventListener(FEED_EVENT,read);window.addEventListener('storage',read);return()=>{window.removeEventListener(FEED_EVENT,read);window.removeEventListener('storage',read);};},[]);
+ useEffect(()=>{const read=()=>setSavedReports(readRememberedReports());read();window.addEventListener(FEED_EVENT,read);window.addEventListener(BROWSER_STORAGE_EVENT,read);window.addEventListener('storage',read);return()=>{window.removeEventListener(FEED_EVENT,read);window.removeEventListener(BROWSER_STORAGE_EVENT,read);window.removeEventListener('storage',read);};},[]);
  useEffect(()=>{
   if(!onscreen||!documentVisible||document.hidden)return;
   const controller=new AbortController();let cancelled=false,cursor=0,retryTimer:ReturnType<typeof setTimeout>|undefined;

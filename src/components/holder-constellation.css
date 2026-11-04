@@ -1,16 +1,21 @@
 .ro-map-designed .ro-canvas{background:#050505}
 .ro-map-designed .ro-board-grid,.ro-map-designed .ro-board-marks,.ro-map-designed .ro-board-boundary,.ro-map-designed .ro-board-signal,.ro-map-designed .ro-map-registration{display:none}
 .ro-field-orbits{fill:none;stroke:#282828;stroke-width:.65;pointer-events:none}
-.ro-field-orbits .ro-field-axis{stroke:#242424;stroke-dasharray:1 9}
 .ro-field-orbits .ro-field-rim{stroke:#454545;stroke-dasharray:1 8}
 .ro-field-revolve{stroke:#727272;stroke-dasharray:56 1126;transform-origin:350px 200px;animation:roFieldRevolve 28s linear infinite}
 .report-overview[data-paused=true] .ro-field-revolve{animation-play-state:paused}
 .ro-map-designed .ro-node{fill:#272727;stroke:#808080;stroke-width:.75}
+.ro-map-designed .ro-wallet.is-major .ro-node{fill:#bcbcbc;stroke:#ededed}
+.ro-map-designed .ro-wallet.is-major .ro-node-label,.ro-map-designed .ro-wallet.is-major .ro-node-core{fill:#101010}
+.ro-map-designed .ro-wallet.is-major .ro-node-rank{fill:#292929}
 .ro-map-designed .ro-node-inner{display:none}
 .ro-map-designed .ro-node-label{font-size:13px;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
 .ro-map-designed .ro-node-label.ro-label-compact{font-size:10px}
 .ro-map-designed .ro-node-rank{font-size:7px;letter-spacing:.02em}
 .ro-map-designed .ro-wallet:hover .ro-node,.ro-map-designed .ro-wallet:focus-visible .ro-node,.ro-map-designed .ro-wallet.is-selected .ro-node{fill:#414141;stroke:#f5f5f5}
+.ro-map-designed .ro-wallet.is-major:hover .ro-node,.ro-map-designed .ro-wallet.is-major:focus-visible .ro-node,.ro-map-designed .ro-wallet.is-major.is-selected .ro-node{fill:#eeeeee;stroke:#fff}
+.ro-map-designed .ro-wallet .ro-node.is-unknown{fill:#050505;stroke:#a4a4a4;stroke-dasharray:3 4}
+.ro-map-designed .ro-wallet:hover .ro-node.is-unknown,.ro-map-designed .ro-wallet:focus-visible .ro-node.is-unknown,.ro-map-designed .ro-wallet.is-selected .ro-node.is-unknown{fill:#050505;stroke:#fff}
 @keyframes roFieldRevolve{to{transform:rotate(360deg)}}
 @media(prefers-reduced-motion:reduce){.ro-field-revolve{animation:none}}
 

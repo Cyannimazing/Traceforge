@@ -10,7 +10,7 @@ import ReportFeed from './report-feed';
 import {rememberReport} from '../lib/report-feed';
 import {parseTokenPath,tokenReportPath,tokenRouteTarget,parseWorkspacePath,workspacePath,type WorkspaceView,type TokenRouteTarget} from '../lib/token-route';
 import { gsap } from 'gsap';
-import {createPortal} from 'react-dom';
+import EvidenceModal from './evidence-modal';
 import HolderWorkspace from './holder-workspace';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {usePathname} from 'next/navigation';
@@ -23,7 +23,8 @@ import type {MapShareBasis} from '@/lib/holder-map-basis';
 import {searchRequestUrl} from '@/lib/search-coordinator';
 import { getDisplayAssessment } from '@/lib/verdict-summary';
 import type { InvestigationReport, ScanEvent } from '@/lib/investigation-types';
-import { ForgeMark } from './brand';
+import SiteFooter from './site-footer';
+import {BROWSER_STORAGE_EVENT,WATCHLIST_KEY} from '../lib/browser-storage';
 import ChainPicker from './chain-picker';
 import { EvidencePanel, count, label, type Selection } from './investigation-panels';
 import './console.css';
@@ -42,26 +43,15 @@ export default function Workbench({initialTarget,initialView='scanner'}:{initial
  const discoveryRequest=useRef(0),discoveryAbort=useRef<AbortController|null>(null);
  const [editToken,setEditToken]=useState(true),[chain,setChain]=useState<Chain>(initialTarget?.chain||'ethereum'),[token,setToken]=useState(initialTarget?.token||''),[report,setReport]=useState<InvestigationReport|null>(null),[loading,setLoading]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState(''),[view,setView]=useState<WorkspaceView>(initialView),[saved,setSaved]=useState<Saved[]>([]),[profiles,setProfiles]=useState<Profile[]>([]),[profilesLoading,setProfilesLoading]=useState(true),[profileError,setProfileError]=useState(''),[selection,setSelection]=useState<Selection|null>(null),[stages,setStages]=useState<Stage[]>([]),[visible,setVisible]=useState(true),[reduced,setReduced]=useState(false),[refreshing,setRefreshing]=useState(''),[evidenceOpen,setEvidenceOpen]=useState(false);
  const reportVisible=!!report&&!loading,scanBusy=loading;
- const evidenceReturnFocus=useRef<HTMLElement|SVGElement|null>(null);
- const openEvidence=useCallback(()=>{if(!evidenceOpen)evidenceReturnFocus.current=document.activeElement as HTMLElement|SVGElement;setEvidenceOpen(true);},[evidenceOpen]);
- const closeEvidence=useCallback(()=>{setEvidenceOpen(false);setSelection(null);requestAnimationFrame(()=>{const target=evidenceReturnFocus.current; if(target?.isConnected&&target.getClientRects().length)target.focus();else document.querySelector<HTMLButtonElement>('.ro-inspect')?.focus();});},[]);
- useEffect(()=>{if(evidenceOpen)document.querySelector<HTMLButtonElement>('[aria-label="Close evidence panel"]')?.focus();},[evidenceOpen,selection?.id]);
- useEffect(()=>{
-  if(!evidenceOpen)return;
-  const dialog=document.querySelector<HTMLElement>('.evidence-overlay');if(!dialog)return;
-  const overflow=document.body.style.overflow;document.body.style.overflow='hidden';
-  const surrounding=Array.from(document.querySelectorAll<HTMLElement>('.workspace>.topbar, .console-shell main>*')).filter(element=>element!==dialog&&!element.contains(dialog));
-  const previous=surrounding.map(element=>[element,element.inert] as const);surrounding.forEach(element=>{element.inert=true;});
-  const trap=(event:KeyboardEvent)=>{if(event.key!=='Tab')return;const items=Array.from(dialog.querySelectorAll<HTMLElement>('button:not(:disabled),a[href],input:not(:disabled),select:not(:disabled),[tabindex="0"],summary')).filter(element=>element.getClientRects().length>0);if(!items.length){event.preventDefault();return;}const first=items[0],last=items[items.length-1];if(event.shiftKey&&(document.activeElement===first||!dialog.contains(document.activeElement))){event.preventDefault();last.focus();}else if(!event.shiftKey&&(document.activeElement===last||!dialog.contains(document.activeElement))){event.preventDefault();first.focus();}};
-  document.addEventListener('keydown',trap);return()=>{document.body.style.overflow=overflow;previous.forEach(([element,inert])=>{element.inert=inert;});document.removeEventListener('keydown',trap);};
- },[evidenceOpen]);
+ const openEvidence=useCallback(()=>{setEvidenceOpen(true);},[]);
+ const closeEvidence=useCallback(()=>{setEvidenceOpen(false);},[]);
  const [scanRun,setScanRun]=useState(0);
  const reportFocus=useRef<'heading'|'refresh'|null>(null);
  const lastScan=useRef<{chain:Chain;token:string;fresh:boolean;navigation:'push'|'none';detectNetwork:boolean}|null>(null);
  const input=useRef<HTMLInputElement>(null),abort=useRef<AbortController|null>(null),requestId=useRef(0),reportRef=useRef(report),loadingRef=useRef(false),completedReport=useRef<InvestigationReport|null>(null);
  reportRef.current=report;loadingRef.current=loading;
  useEffect(()=>{if(report&&!report.fixture&&!loading)completedReport.current=report;},[report,loading]);
- useEffect(()=>{try{const data=JSON.parse(localStorage.getItem('traceforge.watchlist.v1')||'[]');if(Array.isArray(data))setSaved(data.filter(x=>x&&typeof x.token==='string'&&typeof x.chain==='string'&&!validateToken(x.chain,x.token)&&typeof x.name==='string'&&typeof x.symbol==='string'));}catch{setNotice('Saved preferences could not be read.');}const media=matchMedia('(prefers-reduced-motion: reduce)');setReduced(media.matches);const change=()=>setReduced(media.matches),visibility=()=>setVisible(!document.hidden);media.addEventListener('change',change);document.addEventListener('visibilitychange',visibility);visibility();return()=>{media.removeEventListener('change',change);document.removeEventListener('visibilitychange',visibility);abort.current?.abort();};},[]);
+ useEffect(()=>{const readSaved=()=>{try{const data=JSON.parse(localStorage.getItem(WATCHLIST_KEY)||'[]');setSaved(Array.isArray(data)?data.filter(x=>x&&typeof x.token==='string'&&typeof x.chain==='string'&&!validateToken(x.chain,x.token)&&typeof x.name==='string'&&typeof x.symbol==='string'):[]);}catch{setSaved([]);setNotice('Saved preferences could not be read.');}};const storage=(event:StorageEvent)=>{if(event.key===null||event.key===WATCHLIST_KEY)readSaved();};readSaved();window.addEventListener(BROWSER_STORAGE_EVENT,readSaved);window.addEventListener('storage',storage);const media=matchMedia('(prefers-reduced-motion: reduce)');setReduced(media.matches);const change=()=>setReduced(media.matches),visibility=()=>setVisible(!document.hidden);media.addEventListener('change',change);document.addEventListener('visibilitychange',visibility);visibility();return()=>{window.removeEventListener(BROWSER_STORAGE_EVENT,readSaved);window.removeEventListener('storage',storage);media.removeEventListener('change',change);document.removeEventListener('visibilitychange',visibility);abort.current?.abort();};},[]);
  const discover=useCallback(async()=>{discoveryAbort.current?.abort();const controller=new AbortController();discoveryAbort.current=controller;const generation=++discoveryRequest.current;setProfilesLoading(true);try{const response=await fetch('/api/discover',{signal:controller.signal,cache:'no-store'});const data=await response.json();if(!response.ok)throw new Error(data.error||'Discovery is temporarily unavailable.');if(generation!==discoveryRequest.current)return;setProfiles(Array.isArray(data.tokens)?data.tokens:[]);setDiscoveryMeta(data);setProfileError(data.cache?.status==='stale'?'The source could not refresh. Showing its last available snapshot.':'');}catch(e){if(generation===discoveryRequest.current&&e instanceof Error&&e.name!=='AbortError')setProfileError(e.message);}finally{if(generation===discoveryRequest.current)setProfilesLoading(false);}},[]);
  useEffect(()=>{if(!visible||view!=='discover')return;void discover();const timer=setInterval(()=>void discover(),30000);return()=>{clearInterval(timer);discoveryAbort.current?.abort();++discoveryRequest.current;};},[discover,visible,view]);
  useEffect(()=>{const key=(e:KeyboardEvent)=>{if((e.ctrlKey||e.metaKey)&&e.key==='k'){e.preventDefault();setEvidenceOpen(false);setSelection(null);showView('scanner',true,false);setTimeout(()=>input.current?.focus(),0);}if(e.key==='Escape'){if(evidenceOpen)closeEvidence();}};window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key);},[evidenceOpen,closeEvidence,scanBusy]);
@@ -126,12 +116,12 @@ export default function Workbench({initialTarget,initialView='scanner'}:{initial
   return()=>{clearTimeout(initial);window.removeEventListener('popstate',followLocation);};
  },[]);
  async function copyReportLink(){if(!report||report.fixture)return;const path=tokenReportPath(report.chain,report.token);if(!path)return;try{await navigator.clipboard.writeText(new URL(path,window.location.origin).href);setNotice('Report link copied. Opening it retrieves the latest available report.');}catch{setNotice('Clipboard unavailable. Copy the report URL from your address bar.');}}
- function persist(next:Saved[]){try{localStorage.setItem('traceforge.watchlist.v1',JSON.stringify(next));setSaved(next);setNotice('Watchlist updated on this device.');}catch{setNotice('Browser storage is unavailable. Your watchlist was not saved.');}}
+ function persist(next:Saved[]){try{localStorage.setItem(WATCHLIST_KEY,JSON.stringify(next));setSaved(next);setNotice('Watchlist updated on this device.');}catch{setNotice('Browser storage is unavailable. Your watchlist was not saved.');}}
  const watched=!!report&&saved.some(x=>x.chain===report.chain&&sameToken(report.chain,x.token,report.token));
  function toggleWatch(){if(!report||report.fixture)return;persist(watched?saved.filter(x=>!(x.chain===report.chain&&sameToken(report.chain,x.token,report.token))):[...saved,{chain:report.chain,token:report.token,name:report.name,symbol:report.symbol}]);}
  async function copy(text:string){try{await navigator.clipboard.writeText(text);setNotice('Address copied.');}catch{setNotice('Clipboard unavailable. Select the address to copy it.');}}
  function download(){if(!report)return;const url=URL.createObjectURL(new Blob([JSON.stringify(report,null,2)],{type:'application/json'}));const link=document.createElement('a');link.href=url;link.download=`traceforge-${report.fixture?'example-':''}${report.chain}-${report.token}.json`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
- const select=useCallback((value:Selection)=>{if(!evidenceOpen)evidenceReturnFocus.current=document.activeElement as HTMLElement|SVGElement;setSelection(value);setEvidenceOpen(true);},[evidenceOpen]);
+ const select=useCallback((value:Selection)=>{setSelection(value);setEvidenceOpen(true);},[]);
  useEffect(()=>{
   const page=pageSeoForPath(pathname,report??undefined);document.title=page.title;
   const setMeta=(selector:string,value:string)=>document.querySelector<HTMLMetaElement>(selector)?.setAttribute('content',value);
@@ -144,7 +134,6 @@ export default function Workbench({initialTarget,initialView='scanner'}:{initial
  const assessment=report?getDisplayAssessment(report):null;
  useEffect(()=>{if(!reportVisible||!reportFocus.current)return;const target=reportFocus.current==='refresh'?'.rh-refresh':'.rh-name h1';reportFocus.current=null;requestAnimationFrame(()=>document.querySelector<HTMLElement>(target)?.focus({preventScroll:true}));},[reportVisible,scanRun]);
  useEffect(()=>{if(loading&&view==='scanner'){document.querySelector<HTMLButtonElement>('.source-scan-controls button')?.focus({preventScroll:true});}},[loading,view]);
- useEffect(()=>{if(!evidenceOpen||paused)return;const context=gsap.context(()=>{const mobile=matchMedia('(max-width:760px)').matches;gsap.fromTo('.evidence-scrim',{opacity:0},{opacity:1,duration:.25,ease:'power2.out',clearProps:'opacity'});gsap.fromTo('.evidence-overlay',{x:mobile?0:44,y:mobile?36:0,opacity:.65},{x:0,y:0,opacity:1,duration:.42,ease:'expo.out',clearProps:'transform,opacity'});});return()=>context.revert();},[evidenceOpen,paused]);
  useEffect(()=>{if(paused)return;const main=document.querySelector('.console-shell main');if(!main)return;const targets=Array.from(main.children).filter(element=>element.matches('.console-intro,.token-context,.report-overview,.discovery-radar,.utility-view,.methodology-view'));if(!targets.length)return;const context=gsap.context(()=>{gsap.fromTo(targets,{y:view==='discover'?0:12,opacity:.65},{y:0,opacity:1,duration:.55,stagger:.06,ease:'power3.out',clearProps:'transform,opacity'});});return()=>context.revert();},[view,report?.token,paused]);
 
  function cancelScan(){abort.current?.abort();++requestId.current;setLoading(false);const earlier=completedReport.current;const retained=earlier&&earlier.chain===chain&&sameToken(chain,earlier.token,token)?earlier:null;reportFocus.current=retained?'refresh':null;setReport(retained);setNotice(retained?'Scan canceled. The last completed report is preserved.':'Scan canceled.');if(!retained)setTimeout(()=>input.current?.focus({preventScroll:true}),0);}
@@ -169,8 +158,8 @@ export default function Workbench({initialTarget,initialView='scanner'}:{initial
   <ReportOverview shareBasis={shareBasis} onShareBasisChange={setShareBasis} key={`overview:${report.chain}:${report.token}:${!!report.fixture}`} selection={selection} report={report} paused={paused || evidenceOpen} onSelect={select} onInspect={()=>{setSelection(null);openEvidence();}}/>
  <HolderWorkspace shareBasis={shareBasis} onShareBasisChange={setShareBasis} key={`${report.chain}:${report.token}:${!!report.fixture}`} report={report} selection={selection} onSelect={select} loading={loading} paused={paused}/>
  <ReportFeed paused={paused} onScan={(c,t)=>void scan(c,t)}/>
- {evidenceOpen&&createPortal(<div className="evidence-modal"><button type="button" className="evidence-scrim" tabIndex={-1} aria-hidden="true" onClick={closeEvidence}/><div className="evidence-overlay" role="dialog" aria-modal="true" aria-label="Investigation evidence panel"><EvidencePanel report={report} selection={selection} onSelect={select} onClose={closeEvidence} copy={value=>void copy(value)}/></div></div>,document.body)}
+ <EvidenceModal open={evidenceOpen} reducedMotion={paused} onClose={closeEvidence} onExited={()=>setSelection(null)}><EvidencePanel report={report} selection={selection} onSelect={select} onClose={closeEvidence} copy={value=>void copy(value)}/></EvidenceModal>
  </>:<><EngineConsole runId={scanRun} entry={scanEntry} onCancel={cancelScan} report={null} stages={stages} loading={scanBusy} paused={paused} onExample={()=>void example()} onInspect={()=>showView('methodology')}/></>}
  </>:view==='watchlist'?<section className="utility-view"><div className="page-heading"><div><h1>Your investigation watchlist.</h1><p>Stored on this device. Open a token to fetch fresh public evidence.</p></div><Bookmark size={23}/></div>{saved.length?saved.map(s=><div className="watch-row" key={`${s.chain}-${s.token}`}><span className="saved-symbol">{s.symbol.slice(0,3)}</span><div><h2>{s.name}<span>{s.symbol}</span></h2><p>{CHAINS[s.chain].name} - {short(s.token)}</p></div><button className="secondary" onClick={()=>void scan(s.chain,s.token)}>Investigate<ArrowUpRight size={14}/></button><button className="icon-button" aria-label={`Remove ${s.name} from watchlist`} onClick={()=>persist(saved.filter(x=>x!==s))}><X size={16}/></button></div>):<div className="utility-empty"><Bookmark size={31}/><h2>Keep a token in your sights.</h2><p>Investigate a token, then select Watch to save it here.</p><button className="primary" onClick={()=>{showView('scanner',true,false);setTimeout(()=>input.current?.focus(),0);}}>Start an investigation<ArrowRight size={15}/></button></div>}</section>:view==='discover'?<DiscoveryRadar profiles={profiles} loading={profilesLoading} error={profileError} meta={discoveryMeta} paused={paused} onRefresh={()=>void discover()} onScan={(c,t)=>void scan(c,t)}/>:<MethodologyPage paused={paused}/>}
- {(view!=='scanner'||reportVisible)&&<footer><span><ForgeMark size={20}/>TraceForge Engine</span><span>Public evidence. Explicit limits.</span><button onClick={()=>showView('methodology')}>Methodology<ArrowUpRight size={12}/></button></footer>}</main></div>{notice&&<div className="toast" role="status">{notice}</div>}</div>;
+ </main><SiteFooter/></div>{notice&&<div className="toast" role="status">{notice}</div>}</div>;
 }

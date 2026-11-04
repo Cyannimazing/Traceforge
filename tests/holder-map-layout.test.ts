@@ -23,3 +23,35 @@ test('a long-tail holder distribution forms a circular constellation instead of 
  for(const node of nodes)assert.ok(Math.hypot(node.x-350,node.y-200)+node.radius<=radius+.001,'wallet must remain inside the circular field');
  const bands=new Map<number,number>();for(const node of nodes.slice(0,12)){const band=Math.round(node.y/2);bands.set(band,(bands.get(band)||0)+1);}assert.ok(Math.max(...bands.values())<=2,'largest wallets must not line up in ranked shelf rows');
 });
+
+test('one holder fills the field without losing its centered position',()=>{
+ const [node]=validate([100]);
+ assert.equal(node.x,350);assert.equal(node.y,200);
+ assert.ok(node.radius>=130,'a lone holder should remain a prominent readable circle');
+});
+
+test('equal holdings have organic clearance rather than a rigid tangent lattice',()=>{
+ const nodes=validate(Array(50).fill(1));
+ const clearances=nodes.map((node,index)=>Math.min(...nodes.filter((_,other)=>other!==index).map(other=>Math.hypot(node.x-other.x,node.y-other.y)-node.radius-other.radius)));
+ assert.ok(Math.max(...clearances)-Math.min(...clearances)>2,'circles must have varied open space while keeping equal areas');
+});
+
+test('dense holder inventories remain bounded without a ranked-row fallback',()=>{
+ for(const count of [120,200,500]){
+  const input=Array.from({length:count},(_,index)=>({share:index%11===0?null:12/(index+1)})),nodes=layoutHolderMap(input);
+  assert.equal(nodes.length,count);
+  for(let index=0;index<nodes.length;index++){
+   const node=nodes[index];assert.ok(node.radius>0);
+   assert.ok(Math.hypot(node.x-350,node.y-200)+node.radius<=164.001);
+   for(const other of nodes.slice(index+1))assert.ok(Math.hypot(node.x-other.x,node.y-other.y)>=node.radius+other.radius+7.999,'dense inventories must retain drift clearance');
+  }
+ }
+});
+
+test('responsive field dimensions retain all holders and proportional areas',()=>{
+ for(const [width,height] of [[320,400],[400,400],[900,500]])for(const count of [1,2,10,50,100]){
+  const nodes=layoutHolderMap(Array.from({length:count},(_,index)=>({share:6/(index+1)})),width,height);
+  assert.equal(nodes.length,count);
+  for(const node of nodes){assert.ok(node.x-node.radius>=32&&node.x+node.radius<=width-32);assert.ok(node.y-node.radius>=32&&node.y+node.radius<=height-32);}
+ }
+});

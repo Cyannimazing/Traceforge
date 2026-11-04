@@ -138,3 +138,28 @@ The separately reconstructed decision model and its production verification are 
 ## BSC zero-holder failure and EVM reserve follow-up
 
 The same-token failure for `0xf4d17f21eb7bd0a678a7450622f3bf8810f6cbee` is documented in [the BSC validation](bsc-holder-gap-validation.md). A contradictory GoPlus zero is now withheld, finalized RPC checks recovered 14 positive balances, and independently verified V2 reserves support the existing high-impact AVOID stop rule. Missing launch history no longer hides that current hazard. Generic contracts are not automatically equated with infrastructure. Current evidence and historical clocks stay distinct through refresh, and old reserve proofs cannot replace newly verified results. This closes that reproduced data/verdict failure; it does not claim universal source availability or exact private-model parity.
+
+## ZKBLAST deployed browser comparison - 4 November 2026
+
+A fresh browser load of the same Robinhood token, `0x3f9ff9f1d40369f99c281375bd19d6ecbebfecd7`, was compared with the public Swarm report. This does not substitute Swarm inputs for independent records.
+
+| Observation | TraceForge | Swarm |
+| --- | --- | --- |
+| Snapshot | Report retrieved 12:27 PM UTC+8; underlying holder proof captured 12:20 PM | Fresh public report opened after the TraceForge check |
+| Holder accounting | 240 recorded positive accounts; 3 platform accounts set aside; 237 holders analyzed | 243 total holders reported; 46 displayed top holders / hands |
+| Display limit | Top 50 in both map and default table | 46 in this report |
+| Largest adjusted share | 5.20% | 5.3% |
+| Sell-impact points | 12.9/30 | 12.9/30 |
+| Wallet-activity points | 15.2/20 | 18.5/20 |
+| Insider points | 15/15, observed matches | 15/15 |
+| Concentration points | 14.5/15 | 14.4/15 |
+| First-minute points | 10/10, observed matches | 10/10 |
+| Creator points | 10/10, observed matches | 10/10 |
+| Rounded score | 78/100 | 81/100 |
+| Selected output weight | Clear 59.0% | OK 68.1% |
+
+The measured score difference is predominantly wallet-activity scope: TraceForge found 67 low-nonce accounts among 220 readable selected wallets, excluding 17 unread; Swarm exposed `fresh=0.2` in its report. An account nonce is an activity proxy, not a verified count of all lifetime transactions. The balance captures and total-holder counts were not at the same block. The provider did not expose an independent complete acquisition/funding history for every displayed wallet. Matching a different sample's percentage is not an accuracy test.
+
+A directly fetched production API report, saved outside Git under `validation/production-gap/zkblast-production.json`, and a fresh production browser load both calculated 78/100 and Clear 59.0%. The user's older open page showed 100 map markers and Not scored / Watch 99.9%; the current deployed bundle displayed 50 and the calculated score. Refreshing report data alone cannot replace an already loaded older JavaScript bundle. A full page reload is required after deployment for that older tab.
+
+This comparison verifies the observed retrieval/presentation paths and explains a reproduced stale-client discrepancy. It does not establish universal scoring parity, full historical coverage or calibrated probabilities of token safety. No component points or output percentages were changed to force agreement.

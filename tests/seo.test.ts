@@ -12,9 +12,9 @@ test('confirmed public origin is canonical; preview and development do not becom
  for(const SITE_URL of ['https://user:secret@example.org','http://example.org','https://localhost','https://127.0.0.1','https://example.org/app','https://example.org/?token=secret','file:///etc/passwd'])assert.throws(()=>seoSettings({...production,SITE_URL}),/SITE_URL must be a public HTTPS origin/);
 });
 
-test('sitemap contains the three indexable pages and no client reports, watchlists, query variants or fabricated modification dates',()=>{
+test('sitemap contains public information and legal notices without client reports, watchlists or fabricated modification dates',()=>{
  const entries=siteSitemap(production);
- assert.deepEqual(entries.map(e=>e.url),['https://www.traceengine.tech/','https://www.traceengine.tech/discover','https://www.traceengine.tech/methodology']);
+ assert.deepEqual(entries.map(e=>e.url),['https://www.traceengine.tech/','https://www.traceengine.tech/discover','https://www.traceengine.tech/methodology','https://www.traceengine.tech/privacy','https://www.traceengine.tech/cookies','https://www.traceengine.tech/terms']);
  assert(entries.every(e=>e.lastModified===undefined));
  assert.deepEqual(siteSitemap({...production,VERCEL_ENV:'preview'}),[]);
  const robots=siteRobots(production);assert.equal(robots.sitemap,'https://www.traceengine.tech/sitemap.xml');
@@ -24,13 +24,13 @@ test('sitemap contains the three indexable pages and no client reports, watchlis
 
 test('public pages have distinct titles, descriptions, canonical links and absolute social URLs',()=>{
  const titles=new Set<string>();
- for(const path of ['/','/discover','/methodology']){
+ for(const path of ['/','/discover','/methodology','/privacy','/cookies','/terms']){
   const metadata=createPageMetadata(path,production);assert.equal(metadata.alternates?.canonical,`https://www.traceengine.tech${path==='/'?'/':path}`);
   assert.equal(metadata.title,pageSeoForPath(path).title);assert.equal(typeof metadata.description,'string');
   const graph=metadata.openGraph as {url:string;siteName:string;images:{url:string}[]};assert.equal(graph.url,metadata.alternates?.canonical);assert.equal(graph.images[0].url,'https://www.traceengine.tech/opengraph-image');
   assert.equal((metadata.robots as {index:boolean}).index,true);titles.add(String(metadata.title));
  }
- assert.equal(titles.size,3);
+ assert.equal(titles.size,6);
  const root=createRootMetadata({...production,GOOGLE_SITE_VERIFICATION:'proof-code'});assert.equal(String(root.metadataBase),'https://www.traceengine.tech/');assert.equal(root.verification?.google,'proof-code');
 });
 

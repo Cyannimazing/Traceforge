@@ -78,10 +78,6 @@
 .ro-wallet.is-selected .ro-selection-orbit,.ro-wallet:focus-visible .ro-selection-orbit{opacity:.8}
 .report-overview[data-paused=false] .ro-selection-orbit{animation-play-state:running}
 .ro-map-designed .ro-connection{stroke:#818181;stroke-width:1;opacity:.62}
-.ro-edge-flow{fill:none;stroke:#ebebeb;stroke-width:1.5;stroke-dasharray:2 30;opacity:.55;pointer-events:none;vector-effect:non-scaling-stroke;animation:ro-link-flow 11s linear infinite;animation-play-state:paused}
-.ro-edge:nth-child(3n) .ro-edge-flow{animation-delay:-3.5s}.ro-edge:nth-child(3n+1) .ro-edge-flow{animation-delay:-7s}
-.report-overview[data-paused=false] .ro-edge-flow{animation-play-state:running}
-.ro-edge.is-muted .ro-edge-flow{opacity:.08}.ro-edge.is-highlighted .ro-edge-flow,.ro-edge:hover .ro-edge-flow{stroke:#fff;opacity:1;stroke-width:2;animation-duration:5s}
 .ro-map-designed .ro-map-controls{bottom:16px;right:16px;background:#101010;border-color:#4c4c4c}
 .ro-map-designed .ro-map-controls button{width:44px;min-height:44px}
 .ro-map-designed .ro-map-tooltip{bottom:17px;left:17px;border-color:#5d5d5d;background:#111111;max-width:calc(100% - 225px);padding:10px 12px}
@@ -93,12 +89,14 @@
 .ro-map-designed .ro-map-caption{border-top:0;padding:16px 22px;min-height:84px;background:#0b0b0b}.ro-map-designed .ro-map-caption strong{font-size:13px}.ro-map-designed .ro-map-caption span{font-size:11px;color:#b2b2b2;line-height:1.6}.ro-map-designed .ro-map-caption button{min-height:44px;color:#e3e3e3}
 .ro-map-designed .ro-legend{padding:0 22px 13px;gap:10px 15px;background:#0b0b0b}.ro-map-designed .ro-legend>span{color:#bebebe;font-size:10px}.ro-map-designed .ro-legend i{background:#383838;border-color:#c4c4c4}.ro-map-designed .ro-legend i.is-hollow{background:none}.ro-map-designed .ro-legend i.is-ring{background:none;border:1px solid #eee;outline:1px solid #949494;outline-offset:2px}.ro-map-designed .ro-legend i.is-authority{border-radius:0;background:#f0f0f0;border:0;width:6px;height:6px}.ro-map-designed .ro-legend i.is-link{height:1px;width:12px;border:0;border-radius:0;background:#b4b4b4}
 .ro-map-designed .ro-map-help{padding:0 22px 18px;background:#0b0b0b;color:#acacac;font-size:11px;line-height:1.65}
+.ro-map-designed .ro-map-quick-help{margin:0;padding:0 22px 10px;background:#0b0b0b;color:#bdbdbd;font-size:11px;line-height:1.65}
+.ro-map-method{background:#0b0b0b;padding-bottom:8px}.ro-map-method>summary{display:flex;align-items:center;gap:9px;min-height:44px;padding:8px 22px;color:#ccc;font-size:12px;cursor:pointer;list-style:none}.ro-map-method>summary::before{content:'+';font:16px var(--font-mono)}.ro-map-method[open]>summary::before{content:'-'}
+.ro-map-method>summary:hover{color:#fff}.ro-map-method>summary:focus-visible{outline:2px solid #eee;outline-offset:-3px}
 .ro-map-designed .ro-map-empty{inset:32% 35px auto;font-size:18px;color:#e7e7e7}.ro-map-designed .ro-map-empty small{max-width:34ch;margin:12px auto 0;font-size:12px;line-height:1.7;color:#b1b1b1}
-@keyframes ro-link-flow{to{stroke-dashoffset:-128}}
 @keyframes ro-selection-track{to{stroke-dashoffset:-100}}
 @media(max-width:980px){.ro-map-designed .ro-canvas{height:440px}}
 @media(max-width:600px){.ro-map-designed .ro-map-heading{padding:17px}.ro-map-designed .ro-map-heading h2{font-size:16px}.ro-map-metrics{padding:15px 17px;gap:8px}.ro-map-metrics strong{font-size:21px}.ro-map-metrics>span{font-size:10px}.ro-map-designed .ro-canvas{height:370px}.ro-holder-rail{grid-template-columns:1fr}.ro-holder-rail>button{min-height:52px;padding:10px 17px}.ro-holder-rail>button+button{border-left:0;border-top:1px solid #333333}.ro-holder-rail>button>span:nth-child(2){flex-direction:row;align-items:center;justify-content:space-between;gap:8px}.ro-holder-rail strong{font-size:12px}.ro-holder-rail small{font-size:11px}.ro-map-designed .ro-map-tooltip{left:12px;right:12px;top:12px;bottom:auto;max-width:none}.ro-map-designed .ro-map-tooltip small{display:none}.ro-map-designed .ro-map-tooltip strong{font-size:12px}.ro-map-designed .ro-map-caption,.ro-map-designed .ro-legend,.ro-map-designed .ro-map-help{padding-left:17px;padding-right:17px}.ro-map-designed .ro-node-label{display:block;font-size:24px}.ro-map-designed .ro-label-compact{display:none}.ro-map-designed .ro-node-rank{font-size:17px}.ro-map-designed .ro-map-controls{bottom:12px;right:12px}}
-@media(prefers-reduced-motion:reduce){.ro-edge-flow,.ro-selection-orbit{animation:none!important}.ro-edge-flow{opacity:.3}.ro-node-arrival{opacity:1!important}}
+@media(prefers-reduced-motion:reduce){.ro-selection-orbit{animation:none!important}.ro-node-arrival{opacity:1!important}}
 /* Selection responds once; it never represents a new on-chain event. */
 .ro-selection-response{fill:none;stroke:#ececec;stroke-width:2;stroke-dasharray:22 3;opacity:0;pointer-events:none;vector-effect:non-scaling-stroke}
 .ro-wallet.is-selected .ro-selection-response{animation:ro-selection-answer .85s ease-out both;animation-play-state:paused}

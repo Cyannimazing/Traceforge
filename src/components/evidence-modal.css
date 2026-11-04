@@ -1,6 +1,7 @@
 .evidence-modal{position:fixed;inset:0;z-index:100;font-family:var(--font-sans);color:#e8e8e8}
 .evidence-scrim{position:absolute;inset:0;width:100%;height:100%;border:0;border-radius:0;padding:0;background:rgb(0 0 0 / .78);cursor:default}
-.evidence-modal .evidence-overlay{position:absolute;inset:16px 16px 16px auto;width:min(520px,calc(100vw - 32px));background:#0a0a0a;border:1px solid #4a4a4a;border-radius:var(--ui-radius);overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#555 #0a0a0a;color:#ddd}
+.evidence-modal .evidence-overlay{position:absolute;inset:16px 16px 16px auto;width:min(520px,calc(100vw - 32px));background:#0a0a0a;border:1px solid #4a4a4a;border-radius:var(--ui-radius);overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#555 #0a0a0a;color:#ddd;box-shadow:-24px 12px 64px rgb(0 0 0 / .5);outline:0}
+.evidence-modal[data-state="closing"] .evidence-overlay{pointer-events:none}
 .evidence-modal .evidence-drawer,.evidence-modal .evidence-drawer.has-selection,.evidence-modal .evidence-drawer:not(.has-selection){position:static;display:block;width:auto;max-height:none;min-height:100%;padding:0;margin:0;background:#0a0a0a;border:0;border-radius:0;overflow:visible;box-shadow:none}
 .evidence-modal .evidence-drawer>.section-heading{position:sticky;top:0;z-index:4;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 20px;background:#121212;border-bottom:1px solid #353535}
 .evidence-modal .section-heading h2{min-width:0;margin:0;font:600 18px/1.3 var(--font-sans);letter-spacing:-.02em;overflow-wrap:anywhere;color:#eee}

@@ -17,7 +17,7 @@ Primary guidance: [Google's technical requirements](https://developers.google.co
 
 ## What this release indexes
 
-- `/`, `/discover`, `/methodology`: index/follow in production and included in the sitemap.
+- `/`, `/discover`, `/methodology`, `/privacy`, `/cookies`, `/terms`: index/follow in production and included in the sitemap. Legal notices have distinct server-rendered metadata and normal footer links.
 - `/watchlist`: noindex/follow, since its useful content lives only on the visitor's device.
 - `/token/{chain}/{address}`: correct token-specific canonical metadata and noindex/follow. These currently load a live investigation on the client, rather than serving a stable, complete report in the initial HTML. Indexing report loading screens as if they contained verified token findings would produce thin or misleading search results. Future indexable report documents should serve real cached evidence, capture times and meaningful content on the server without starting paid scans for crawlers.
 - `/api/*`: excluded from crawling and served with `X-Robots-Tag: noindex, nofollow, nosnippet`.
@@ -32,7 +32,7 @@ The search-content pass targets real user tasks: crypto token analysis, token ho
 There is no meta-keywords tag: [Google does not use it for web ranking](https://developers.google.com/search/blog/2009/09/google-does-not-use-keywords-meta-tag). Search phrases belong in accurate, useful content, descriptive headings, links and summaries. The product remains TraceForge Engine at traceengine.tech; the domain does not establish a separate invented brand. A request to index is not a promise of immediate inclusion or ranking for a competitive name such as "traceengine". [Crawling can take days to weeks](https://developers.google.com/search/docs/crawling-indexing/ask-google-to-recrawl); use URL Inspection to see the actual indexing status.
 
 - Keep methodology accurate and publish useful explanations of holder concentration, Creator/Owner/Dev/Sniper flags, evidence timestamps and coverage. Write for users instead of repeating keywords.
-- Add real About/contact/policy information when available. Do not invent a team, audit, endorsement, performance result or safety guarantee.
+- Keep the published Cyril AI contact and policy information accurate. Follow up the unconfirmed retention, provider and professional-review items in [privacy-launch-checklist.md](privacy-launch-checklist.md). Do not invent a team, audit, endorsement, performance result or safety guarantee.
 - Keep headings, navigation, URLs and page-specific titles consistent. Use the canonical hostname when sharing public links.
 - Measure mobile performance and Core Web Vitals on the deployed site. Reduce animation or JavaScript work where measurements show it harms usability. Do not claim a Lighthouse score without running it.
 - Seek relevant, earned mentions and links. Avoid bought link packages, scraped token pages, fake reviews and bulk low-quality SEO content.
