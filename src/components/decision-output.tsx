@@ -10,7 +10,7 @@ export default function DecisionOutput(props:{result:DecisionModelResult;output?
   const basis=output.basis==='uncertainty-allocation'?'Includes unresolved checks':output.basis==='rule'?'Rule allocation':'Calculated weights';
   const shown=decisionDisplayPercentages(output.p);
   return <section className="ro-decision-weights ro-calculated-judge ro-visible-decision" aria-label="Assessment support percentages">
-   <header><h3>Decision support</h3><span className="ro-output-basis">{basis}</span></header>
+   <header><h3>{output.basis==='calculated'?'Verdict confidence':'Decision weights'}</h3><span className="ro-output-basis">{basis}</span></header>
    <dl>{(['avoid','caution','ok'] as const).map(key=><div key={key} className={output.decision===key.toUpperCase()?'is-selected':''}><dt>{labels[key]}</dt><dd><span className="ro-weight-track" aria-hidden="true"><span style={{width:`${shown[key]}%`}}/></span><span className="ro-weight-value">{shown[key].toFixed(1)}%</span></dd></div>)}</dl>
    <details className="ro-judge-calculation"><summary>How this percentage works</summary><p>{presentationText(output.explanation)}</p>
     {output.basis==='uncertainty-allocation'&&output.bounds&&<dl className="ro-output-arithmetic">

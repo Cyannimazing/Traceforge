@@ -3,6 +3,7 @@ import { createBitqueryClient } from './bitquery';
 import { createInvestigationService } from './investigation-service';
 import { scanToken } from './providers';
 import { createPublicHistory } from './public-history';
+import {createPonsLaunchRecord} from './pons-launch-record';
 import { createSolanaPublic } from './solana-public';
 import { createPoolLaunch } from './pool-launch';
 import { createEvidenceClock } from './evidence-clock';
@@ -51,6 +52,7 @@ async function extendedSolanaHistory(options:PublicHistoryOptions):Promise<Publi
 export const independentInvestigationService = createInvestigationService({
   persistentCache:{get:(chain,token,limit)=>savedReports().get(chain,token,limit),set:(chain,token,limit,entry)=>savedReports().set(chain,token,limit,entry)},
   publicScan: scanToken,
+  ponsLaunch:createPonsLaunchRecord({rpcUrl:robinhoodRpc}),
   evmHolders:createEvmHolderFallback({rpcUrls:{...rpcUrls,robinhood:robinhoodRpc}}),
   bscHolders:createBscHolderFallback({rpcUrl:process.env.BSC_RPC_URL,proofStore:{get:(chain,token)=>savedLaunchProofs().get(chain,token),set:proof=>savedLaunchProofs().set(proof),delete:(chain,token)=>savedLaunchProofs().delete(chain,token)}}),
   evmPoolReserves:(chain,pool,token,options)=>createEvmPoolReserves({rpcUrl:chain==='bsc'?process.env.BSC_RPC_URL:rpcUrls[chain]})(chain,pool,token,options),

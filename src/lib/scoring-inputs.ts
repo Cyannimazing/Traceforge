@@ -61,7 +61,7 @@ export function buildScoringInputs(report:InvestigationReport):FactorMeasurement
  groups.sort((a,b)=>share(b)-share(a)||a[0].localeCompare(b[0]));
  const concentrated=groups.slice(0,10).flat(),lowerConcentration=share(concentrated);
  const groupIds=graph.edges.filter(e=>concentrated.includes(e.from)&&concentrated.includes(e.to)).flatMap(e=>e.evidenceIds);
- result.set('concentration',bounded('concentration',lowerConcentration,graph.truncated?1:lowerConcentration+missingShare/denominator,[...holdingIds(concentrated),...groupIds],`Top ten documented current-holder groups, including singletons, hold ${(lowerConcentration*100).toFixed(4)}% of supply after excluding ${infraShare.toFixed(4)}% observed infrastructure. Connections are not common ownership. The upper bound adds unobserved supply; unidentified relationships can change grouping.`));
+ result.set('concentration',bounded('concentration',lowerConcentration,graph.truncated?1:lowerConcentration+missingShare/denominator,[...holdingIds(concentrated),...groupIds],`Top ten documented current-holder groups, including singletons, hold ${(lowerConcentration*100).toFixed(4)}% of adjusted supply (${(lowerConcentration*denominator).toFixed(4)}% of total supply). The adjusted denominator excludes ${infraShare.toFixed(4)}% measured infrastructure. Connections are not common ownership. The upper bound adds unobserved supply; unidentified relationships can change grouping.`));
 
  const activity=(report as InvestigationReport&{walletActivity?:WalletActivitySnapshot}).walletActivity;
  if(activity?.source.trim()&&freshDate(activity.observedAt)){

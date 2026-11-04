@@ -20,11 +20,13 @@ import {holderScope} from '@/lib/holder-scope';
 import {computeRiskMetrics} from '@/lib/risk-metrics';
 import RiskMeasurements from './risk-measurements';
 import DecisionOutput from './decision-output';
+import AssessmentHeadline from './assessment-headline';
 import type { InvestigationReport, WalletCategory } from '@/lib/investigation-types';
 import type { Selection } from './investigation-panels';
 import CheckBreakdown from './check-breakdown';
 import CryptoAgentPanel,{useCryptoReview} from './crypto-agent-panel';
 import './report-overview.css';
+import './assessment-headline.css';
 import ShareBasisSelector from './share-basis-selector';
 
 type Props = { report: InvestigationReport; selection?: Selection | null; onSelect: (selection: Selection) => void; onInspect: () => void; paused: boolean; shareBasis?:MapShareBasis; onShareBasisChange?:(basis:MapShareBasis)=>void };
@@ -178,8 +180,8 @@ export default function ReportOverview({ report, selection, onSelect, onInspect,
 
   return <section ref={root} className="report-overview" aria-label="Wallet network and assessment" data-paused={!animate} data-floating={floating}>
     <div className={`ro-assessment ro-status-${decision==='AVOID'?'critical':decision==='OK'?'clear':'caution'}`}>
-      <header className="ro-verdict-heading"><h2>Assessment</h2><span className="ro-coverage">{rating.hard?.length?'Stop rule triggered':observed?.judge.p?'Observed activity':inv.coverage.status === 'complete' ? 'Checks complete' : inv.coverage.status === 'partial' ? 'Incomplete checks' : 'Evidence unavailable'}</span></header>
-      <div className="ro-rating"><strong className="ro-decision">{decisionLabel(decision)}</strong><div className="ro-evidence-confidence" aria-label={`${verdictOutput.basis==='rule'?'Rule allocation':'Decision support'}: ${confidencePercent}%`}><span>{verdictOutput.basis==='rule'?'Rule allocation':'Decision support'}</span><strong>{confidencePercent.toLocaleString(undefined,{maximumFractionDigits:1})}<small>%</small></strong></div></div>
+      <header className="ro-verdict-heading"><h2>Verdict</h2><span className="ro-coverage">{rating.hard?.length?'Stop rule triggered':observed?.judge.p?'Observed activity':inv.coverage.status === 'complete' ? 'Checks complete' : inv.coverage.status === 'partial' ? 'Incomplete checks' : 'Evidence unavailable'}</span></header>
+      <AssessmentHeadline score={observed?.score??rating.score} decision={decision==='INSUFFICIENT'?'CAUTION':decision} confidence={confidencePercent} basis={verdictOutput.basis}/>
       <p className="ro-simple-reason">{presentationText(simpleReason)}</p>
       {!LLM_REVIEW_ENABLED&&<DecisionOutput output={verdictOutput}/>}
       {why.length>0&&<section className="ro-plain-reasons" aria-label={`Why ${decisionLabel(decision).toLowerCase()}?`}><h3>Why {decisionLabel(decision).toLowerCase()}?</h3><ul>{why.map((reason,index)=><li key={`${reason.title}:${index}`}><strong>{reason.title}</strong><p>{reason.detail}</p></li>)}</ul></section>}

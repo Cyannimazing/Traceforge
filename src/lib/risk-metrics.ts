@@ -71,14 +71,24 @@ export function computeRiskMetrics(report:InvestigationReport,options:{poolScena
  measure('top10-holder-supply','Ten largest observed non-infrastructure holders',participants.slice(0,10));
  measure('largest-holder-adjusted-float','Largest holder / adjusted supply',participants.slice(0,1),[],true);
  measure('top10-holder-adjusted-float','Top ten / adjusted supply',participants.slice(0,10),[],true);
- const creatorIds:string[]=[];
- const creators=participants.filter(h=>{
-  if(!h.wallet.categories.includes('creator')||h.wallet.categorySources?.creator==='swarm')return false;
-  const ids=h.wallet.evidenceIds.filter(id=>{const e=evidence.get(id);return e?.kind==='authority'&&!!e.transaction?.trim()&&normalize(id)===`identity:creator:${normalize(h.wallet.address)}`;});
-  creatorIds.push(...ids);return ids.length>0;
+ const creatorIds:string[]=[],creatorWallets=[...wallets.values()].filter(wallet=>{
+  if(!wallet.categories.includes('creator')||wallet.categorySources?.creator==='swarm'||infrastructure.has(normalize(wallet.address)))return false;
+  const ids=wallet.evidenceIds.filter(id=>{const e=evidence.get(id);return e?.kind==='authority'&&!!e.transaction?.trim()&&normalize(id)===`identity:creator:${normalize(wallet.address)}`;});creatorIds.push(...ids);return ids.length>0;
  });
+ const creators:typeof all=[];
+ for(const wallet of creatorWallets){
+  const address=normalize(wallet.address),positive=participants.find(h=>normalize(h.wallet.address)===address);if(positive){creators.push(positive);continue;}
+  // A measured zero is evidence about this address, not a positive holder row.
+  // Require current RPC provenance and exact token/address binding; absence from
+  // the holder sample or a provider-only creator claim cannot supply a zero.
+  const proof=wallet.evidenceIds.map(id=>evidence.get(id)).find(e=>e?.kind==='holding'&&normalize(e.id)===`holding:evm:${address}`&&e.to&&normalize(e.to)===address&&e.token&&normalize(e.token)===normalize(report.token)&&e.amountRaw==='0'&&Number.isInteger(e.decimals)&&e.decimals!>=0&&e.decimals!<=255&&e.source==='EVM RPC holder balances'&&Date.parse(e.timestamp)>=Date.parse(report.fetchedAt)-600_000&&holdingsSources.some(s=>s.name===e.source&&s.fetchedAt===e.timestamp));
+  if(!proof)continue;
+  const conflict=[...evidence.values()].some(e=>e.kind==='holding'&&e.to&&normalize(e.to)===address&&e.token&&normalize(e.token)===normalize(report.token)&&Date.parse(e.timestamp)>=Date.parse(proof.timestamp)&&e.amountRaw!==undefined&&/^[0-9]+$/.test(e.amountRaw)&&BigInt(e.amountRaw)>0n);
+  if(!conflict)creators.push({wallet,share:0,ids:[proof.id],sources:[proof.source]});
+ }
  measure('creator-supply','Observed creator holdings',creators,creatorIds);
  measure('creator-adjusted-float','Observed creator / adjusted supply',creators,creatorIds,true);
+ if(creators.length&&creators.length===creatorWallets.length&&creators.every(h=>h.share===0))for(const metric of metrics.slice(-2)){if(metric.value===0){metric.range={lower:0,upper:0};metric.scope='Direct balances of the transaction-backed creator addresses at the stated snapshot';metric.limitations.push('These explicitly read addresses hold zero at this snapshot. Creator-funded wallets and other creator-linked exposure remain unknown; a zero direct balance does not establish zero linked exposure.');}}
 
  // Concrete transfers can document a connection. They never establish beneficial
  // ownership or coordination. Common infrastructure funders are excluded.

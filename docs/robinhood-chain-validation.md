@@ -2,6 +2,8 @@
 
 Validated on November 4, 2026. This release adds independent Robinhood Chain investigation and source-supplied project links across supported networks. It does not import Swarm scores or change the decision model.
 
+The ZKBLAST measurements below describe the initial release capture. The subsequent [end-to-end comparison and corrections](robinhood-swarm-comparison-2026-11-04.md) supersede its holder exclusions and creator attribution.
+
 ## Network and evidence
 
 - Robinhood Chain uses chain ID 4663. Auto detection, the manual picker, discovery and token report routes recognize the network.

@@ -68,7 +68,7 @@ test('a complete flag without a verified timestamp anchor cannot establish zero 
 
 test('concentration unions documented current groups and uses the infrastructure-adjusted denominator',()=>{
  const r=report();for(let i=0;i<12;i++)holder(r,`w${i}`,5);holder(r,'pool',40,['pool']);r.investigation.wallets.at(-1)!.evidenceIds=['label:pool:pool'];r.investigation.evidence.push({id:'label:pool:pool',kind:'label',timestamp:at,source:'RPC',description:'Pool'});transfer(r,'group','w0','w1','mint');
- const f=factor(r,'concentration');assert.ok(Math.abs(f.value!-55/60)<1e-12);assert.equal(f.lower,f.upper);
+ const f=factor(r,'concentration');assert.ok(Math.abs(f.value!-55/60)<1e-12);assert.equal(f.lower,f.upper);assert.match(f.detail,/91\.6667% of adjusted supply \(55\.0000% of total supply\)/);
 });
 
 test('partial sniper evidence is a lower bound and historical-only wallets never inflate current exposure',()=>{

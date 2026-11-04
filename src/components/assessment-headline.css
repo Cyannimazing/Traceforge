@@ -1,0 +1,21 @@
+.ro-assessment{--verdict-accent:#f0be73}
+.ro-assessment.ro-status-clear{--verdict-accent:#70dba8}
+.ro-assessment.ro-status-critical{--verdict-accent:#ff9b91}
+.ro-assessment .ro-verdict-headline{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:24px;row-gap:20px;align-items:center;margin:24px 0 16px}
+.ro-overall-score>span{font-size:12px;color:#bbb}
+.ro-overall-value{display:flex;align-items:baseline;gap:8px;margin-top:6px;color:var(--verdict-accent)}
+.ro-overall-value>strong{font:500 clamp(56px,6vw,76px)/1.05 var(--font-mono,monospace);letter-spacing:-.035em;font-variant-numeric:tabular-nums}
+.ro-overall-value>span{font:400 15px/1.4 var(--font-mono,monospace);color:#aaa}
+.ro-overall-value.is-pending>strong{font:500 24px/1.3 var(--font-sans);letter-spacing:-.02em}
+.ro-headline-decision{display:flex;flex-direction:column;align-items:flex-end;min-width:0;text-align:right}
+.ro-assessment .ro-headline-decision>.ro-decision{margin:0 0 12px;color:var(--verdict-accent);font-size:clamp(24px,3vw,32px);line-height:1.15}
+.ro-headline-decision>span{font-size:11px;line-height:1.5;color:#bbb}
+.ro-headline-confidence{margin-top:3px;font:500 25px/1.2 var(--font-mono,monospace);color:#eee;font-variant-numeric:tabular-nums}
+.ro-headline-confidence small{font-size:13px;margin-left:2px;color:#bbb}
+.ro-overall-meter{grid-column:1/-1;height:4px;background:#252525;overflow:hidden}
+.ro-overall-meter>span{display:block;height:100%;background:var(--verdict-accent);transform-origin:left;animation:roOverallReveal 1.1s cubic-bezier(.16,1,.3,1) both}
+.ro-assessment .ro-visible-decision .is-selected dt,.ro-assessment .ro-visible-decision .is-selected .ro-weight-value{color:var(--verdict-accent)}
+.ro-assessment .ro-visible-decision .is-selected .ro-weight-track>span{background:var(--verdict-accent)}
+@keyframes roOverallReveal{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@media(max-width:420px){.ro-assessment .ro-verdict-headline{grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:14px;row-gap:16px}.ro-overall-value>strong{font-size:clamp(36px,11vw,46px)}.ro-overall-value>span{font-size:12px}.ro-headline-confidence{font-size:22px}.ro-assessment .ro-headline-decision>.ro-decision{font-size:23px}}
+@media(prefers-reduced-motion:reduce){.ro-overall-meter>span{animation:none}}
