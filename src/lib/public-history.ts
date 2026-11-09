@@ -98,6 +98,11 @@ class PublicRequestError extends Error {
 }
 
 /** No keys, recursive crawling, fabricated history, or launch-coverage claims. */
+/** Deep scans give holder requests this sub-deadline, leaving the rest of the
+ * 50 s budget for funding evidence. */
+export const HOLDER_PHASE_MS=27_000;
+/** The first holder page is one attempt that may use the whole phase. */
+export const HOLDER_FIRST_PAGE_TIMEOUT_MS=HOLDER_PHASE_MS;
 export function createPublicHistory(deps: {fetcher?: typeof fetch; now?: () => number; clock?:()=>number; sleep?:(ms:number,signal:AbortSignal)=>Promise<void>} = {}) {
   // An access denial is not a transient page failure. Do not fan out more
   // requests to the same denied origin during this scan or its funding phase.
@@ -110,7 +115,7 @@ export function createPublicHistory(deps: {fetcher?: typeof fetch; now?: () => n
     const clock=deps.clock||Date.now, startedAt=clock(),deadline=startedAt+50_000,sleep=deps.sleep||pause;
     // Deep scans reserve at least 23 seconds for incoming-address evidence.
     // Only holder requests use this sub-deadline; other tasks keep the shared one.
-    const holderDeadline=options.mode==='deep'?startedAt+27_000:deadline;
+    const holderDeadline=options.mode==='deep'?startedAt+HOLDER_PHASE_MS:deadline;
     const cap=Math.min(200,Math.max(1,Number.isFinite(options.limit)?Math.floor(options.limit):100));
     const expanded=cap>100,fundingBudget=expanded?32:24,retryBudget=expanded?6:4;
     // Budget reserves metadata + creator + holder pages + optional pool request,
@@ -193,7 +198,10 @@ export function createPublicHistory(deps: {fetcher?: typeof fetch; now?: () => n
           return value;
         }),
         run('Blockscout Holders','Bounded current token-holder pages. Omitted wallets have unknown holdings, not zero.',async()=>{
-          const value = await get(`${base}/tokens/${path}/holders`,18_000,holderDeadline);items(value);return value;
+          // The first page is the real-holder candidate list. Slow explorers often
+          // take 15-20 s here, so it gets the whole holder phase as one attempt:
+          // a retry after an 18 s timeout would be cut off by the phase anyway.
+          const value = await get(`${base}/tokens/${path}/holders`,HOLDER_FIRST_PAGE_TIMEOUT_MS,holderDeadline);items(value);return value;
         }),
         run('Blockscout creator','Explorer-reported deployment address and creation transaction; may identify a factory, not a person or current authority.',async()=>{
           const value = obj(await get(`${base}/addresses/${path}`));

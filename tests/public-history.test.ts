@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createPublicHistory, parsePoolTrades, parseExplorerHolders, parseExplorerTransfers } from '../src/lib/public-history';
+import { createPublicHistory, parsePoolTrades, parseExplorerHolders, parseExplorerTransfers, HOLDER_PHASE_MS, HOLDER_FIRST_PAGE_TIMEOUT_MS } from '../src/lib/public-history';
 import type { Report } from '../src/lib/analysis';
 
 const token='0x1111111111111111111111111111111111111111';
@@ -316,6 +316,20 @@ test('slow additional holder pages cannot consume the funding time reserve or di
   assert.equal(holderCalls,2);assert(firstFundingAt!==undefined&&firstFundingAt-start<=30_000);
   assert.equal(result.holders?.length,1);assert.equal(result.transfers.length,1);
   assert(result.sources.some(source=>source.detail.includes('holder phase deadline')));
+});
+
+test('a slow explorer holder list (22 s) is kept instead of timing out and retrying',async()=>{
+  const start=Date.parse(at);let clock=start,holderCalls=0;
+  const load=createPublicHistory({clock:()=>clock,sleep:async(ms)=>{clock+=ms;},fetcher:async(input,init)=>{
+    const url=String(input);
+    if(url.includes('/holders')){holderCalls++;clock+=22_000;if((init?.signal as AbortSignal|undefined)?.aborted)throw new TypeError('aborted');return Response.json({items:[{address:{hash:buyer},value:'20'}],next_page_params:null});}
+    if(url.includes('/transactions'))return Response.json({items:[normalFunding],next_page_params:null});
+    return baseResponse(url);
+  }});
+  const result=await load('ethereum',token,{report,mode:'deep',limit:100});
+  assert.equal(holderCalls,1);assert.equal(result.holders?.length,1);
+  assert.ok(HOLDER_FIRST_PAGE_TIMEOUT_MS>=HOLDER_PHASE_MS,'the first page is never cut off before the phase ends');
+  assert.equal(result.sources.find(source=>source.name==='Blockscout Holders')?.status,'available');
 });
 
 test('funding falls back to report holders when the new explorer holder phase fails',async()=>{
