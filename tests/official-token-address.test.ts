@@ -34,7 +34,8 @@ test('home token strip renders the complete selectable mint and accessible copy 
 test('shared footer retains official and legal destinations without token promotion',()=>{
  const html=renderToStaticMarkup(React.createElement(SiteFooter));
  assert(!html.includes(token.address));assert(!html.includes('solscan.io/token/'));
- for(const destination of ['https://x.com/traceengine17','https://portfolio-cyannimazing.vercel.app/','/privacy','/terms'])assert(html.includes(`href="${destination}"`));
+ for(const destination of ['https://portfolio-cyannimazing.vercel.app/','/privacy','/terms'])assert(html.includes(`href="${destination}"`));
+ assert(!html.includes('Official X'));assert(!html.includes('x.com/traceengine17'));
 });
 test('copy succeeds only after clipboard completion and preserves the exact full mint',async()=>{
  let copied='';let finish!:()=>void;const task=copyOfficialTokenAddress({writeText:async value=>{copied=value;await new Promise<void>(resolve=>{finish=resolve;});}},token);let settled=false;void task.then(()=>{settled=true;});await Promise.resolve();assert.equal(settled,false);assert.equal(copied,token.address);finish();assert.equal(await task,true);
