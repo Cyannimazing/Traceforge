@@ -5,14 +5,16 @@ import ReportOverview from './report-overview';
 import ReportHeader from './report-header';
 import {MethodologyPage} from './methodology-page';
 import DiscoveryRadar, {type DiscoveryProfile, type DiscoveryMeta} from './discovery-radar';
-import AmbientConsole from './ambient-console';
+import AmbientConsole,{SURGE_EVENT} from './ambient-console';
 import ReportFeed from './report-feed';
 import {rememberReport} from '../lib/report-feed';
 import {parseTokenPath,tokenReportPath,tokenRouteTarget,parseWorkspacePath,workspacePath,type WorkspaceView,type TokenRouteTarget} from '../lib/token-route';
 import { gsap } from 'gsap';
+import { reveal, splitHeadline, countUp, spotlight } from '../lib/motion';
 import EvidenceModal from './evidence-modal';
 import HolderWorkspace from './holder-workspace';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import {usePathname} from 'next/navigation';
 import {pageSeoForPath,robotsContent} from '@/lib/site-content';
 import { ArrowLeft, ArrowRight, ArrowUpRight, Bookmark, BookOpen, Check, Copy, Download, ExternalLink, Globe2, Link2, LoaderCircle, RefreshCw, ScanLine, Search, ShieldCheck, TriangleAlert, X } from 'lucide-react';
@@ -47,6 +49,7 @@ export default function Workbench({initialTarget,initialView='scanner'}:{initial
  const closeEvidence=useCallback(()=>{setEvidenceOpen(false);},[]);
  const [scanRun,setScanRun]=useState(0);
  const reportFocus=useRef<'heading'|'refresh'|null>(null);
+ const morphing=useRef(false);
  const lastScan=useRef<{chain:Chain;token:string;fresh:boolean;navigation:'push'|'none';detectNetwork:boolean}|null>(null);
  const input=useRef<HTMLInputElement>(null),abort=useRef<AbortController|null>(null),requestId=useRef(0),reportRef=useRef(report),loadingRef=useRef(false),completedReport=useRef<InvestigationReport|null>(null);
  reportRef.current=report;loadingRef.current=loading;
@@ -85,7 +88,7 @@ export default function Workbench({initialTarget,initialView='scanner'}:{initial
    if(reportRef.current&&(reportRef.current.chain!==chosenChain||!sameToken(chosenChain,reportRef.current.token,address)||reportRef.current.fixture)){setReport(null);reportRef.current=null;}
    const response=await fetch(searchRequestUrl(chosenChain,address,fresh),{signal:controller.signal});if(!response.ok){const data=await response.json().catch(()=>({}));throw new Error(data.error||('Scan could not start ('+response.status+').'));}if(!response.body)throw new Error('Streaming is unavailable. Retry the scan.');
    const reader=response.body.getReader(),decoder=new TextDecoder();let buffer='',received=false;
-   const process=(block:string)=>{const data=block.split('\n').filter(line=>line.startsWith('data:')).map(line=>line.slice(5).trim()).join('\n');if(!data)return;const event=JSON.parse(data) as ScanEvent;if(id!==requestId.current)return;if(event.type==='stage')setStages(previous=>[...previous.filter(s=>s.stage!==event.stage),event]);else if(event.type==='error')throw new Error(event.message);else if(event.type==='report'){received=true;reportFocus.current='heading';setEvidenceOpen(false);setSelection(null);setReport(event.report);setEditToken(false);completedReport.current=event.report;rememberReport(event.report);requestAnimationFrame(()=>window.scrollTo({top:0,behavior:'instant'}));}};
+   const process=(block:string)=>{const data=block.split('\n').filter(line=>line.startsWith('data:')).map(line=>line.slice(5).trim()).join('\n');if(!data)return;const event=JSON.parse(data) as ScanEvent;if(id!==requestId.current)return;if(event.type==='stage')setStages(previous=>[...previous.filter(s=>s.stage!==event.stage),event]);else if(event.type==='error')throw new Error(event.message);else if(event.type==='report'){received=true;reportFocus.current='heading';setEvidenceOpen(false);setSelection(null);const arrived=event.report;morph(()=>{if(id!==requestId.current)return;setReport(arrived);setEditToken(false);setLoading(false);});completedReport.current=event.report;rememberReport(event.report);requestAnimationFrame(()=>window.scrollTo({top:0,behavior:'instant'}));}};
    while(true){const {done,value}=await reader.read();if(done)break;buffer+=decoder.decode(value,{stream:true}).replaceAll('\r','');let boundary=buffer.indexOf('\n\n');while(boundary>=0){process(buffer.slice(0,boundary));buffer=buffer.slice(boundary+2);boundary=buffer.indexOf('\n\n');}}if(buffer.trim())process(buffer);if(!received)throw new Error('The scan ended before a report was returned. Please retry.');
   }catch(e){controller.abort();if(id===requestId.current&&e instanceof Error&&e.name!=='AbortError'){setError(e.message);const earlier=completedReport.current,retained=earlier&&earlier.chain===chosenChain&&sameToken(chosenChain,earlier.token,address)?earlier:null;reportFocus.current=retained?'refresh':null;setReport(retained);if(detectNetwork)setEditToken(true);}}
   finally{if(id===requestId.current)setLoading(false);}
@@ -93,6 +96,15 @@ export default function Workbench({initialTarget,initialView='scanner'}:{initial
 
  function retryScan(){const last=lastScan.current;return last?scan(last.chain,last.token,last.fresh,last.navigation,last.detectNetwork):scan();}
  async function example(initialSelection:Selection|null=null){if(window.location.pathname!=='/')window.history.pushState(null,'','/');abort.current?.abort();const id=++requestId.current;setLoading(false);setError('');setStages([]);try{const {fixtureReport}=await import('@/lib/investigation-fixture');if(id!==requestId.current)return;setReport(fixtureReport);setEditToken(false);requestAnimationFrame(()=>window.scrollTo({top:0,behavior:'instant'}));setChain(fixtureReport.chain);setToken(fixtureReport.token);setSelection(initialSelection);setEvidenceOpen(!!initialSelection);setView('scanner');}catch{if(id===requestId.current)setError('The example could not load. Try a live scan.');}}
+ // Morph between states with the View Transitions API while the nav and the
+ // flowing background stay live; a surge wave runs through the background.
+ function morph(update:()=>void){
+  window.dispatchEvent(new Event(SURGE_EVENT));
+  const doc=document as Document&{startViewTransition?:(callback:()=>void)=>{finished:Promise<void>}};
+  if(paused||!doc.startViewTransition){update();return;}
+  morphing.current=true;
+  try{doc.startViewTransition(()=>flushSync(update)).finished.finally(()=>{morphing.current=false;});}catch{morphing.current=false;update();}
+ }
  function goHome(navigate=true,focusPage=true){
 
   abort.current?.abort();++requestId.current;loadingRef.current=false;reportRef.current=null;
@@ -134,7 +146,17 @@ export default function Workbench({initialTarget,initialView='scanner'}:{initial
  const assessment=report?getDisplayAssessment(report):null;
  useEffect(()=>{if(!reportVisible||!reportFocus.current)return;const target=reportFocus.current==='refresh'?'.rh-refresh':'.rh-name h1';reportFocus.current=null;requestAnimationFrame(()=>document.querySelector<HTMLElement>(target)?.focus({preventScroll:true}));},[reportVisible,scanRun]);
  useEffect(()=>{if(loading&&view==='scanner'){document.querySelector<HTMLButtonElement>('.source-scan-controls button')?.focus({preventScroll:true});}},[loading,view]);
- useEffect(()=>{if(paused)return;const main=document.querySelector('.console-shell main');if(!main)return;const targets=Array.from(main.children).filter(element=>element.matches('.console-intro,.token-context,.report-overview,.discovery-radar,.utility-view,.methodology-view'));if(!targets.length)return;const context=gsap.context(()=>{gsap.fromTo(targets,{y:view==='discover'?0:12,opacity:.65},{y:0,opacity:1,duration:.55,stagger:.06,ease:'power3.out',clearProps:'transform,opacity'});});return()=>context.revert();},[view,report?.token,paused]);
+ useEffect(()=>{const shell=document.querySelector<HTMLElement>('.console-shell');return shell?spotlight(shell,'.dr-token-card,.ro-plain-reasons,.ro-decision-weights,.ro-funding-patterns'):undefined;},[]);
+ useEffect(()=>{if(paused)return;const main=document.querySelector('.console-shell main');if(!main)return;const targets=Array.from(main.children).filter(element=>element.matches('.console-intro,.token-context,.report-overview,.discovery-radar,.utility-view,.methodology-view'));if(!targets.length)return;const reverts:(()=>void)[]=[];
+  // Exaggerated entrance: depth reveal of each view block, masked headline rise,
+  // then scroll-triggered reveals for report and methodology sections.
+  const context=gsap.context(()=>{
+   if(!morphing.current)reveal(targets,{y:view==='discover'?28:64,stagger:.12});
+   const headline=main.querySelector<HTMLElement>('h1:not(.sr-only)');if(headline&&headline.offsetParent)reverts.push(splitHeadline(headline,.15));
+   main.querySelectorAll<HTMLElement>('.report-overview>section,.report-overview>div,.methodology-page>section,.mp-section').forEach((section,index)=>{if(index>0)reveal(section,{y:56,scroll:section});});
+   main.querySelectorAll<HTMLElement>('.rh-metrics dd:not([data-empty=true]),.ro-overall-value strong,.ro-findings-total').forEach(element=>reverts.push(countUp(element)));
+  });
+  return()=>{reverts.forEach(revert=>revert());context.revert();};},[view,report?.token,paused]);
 
  function cancelScan(){abort.current?.abort();++requestId.current;setLoading(false);const earlier=completedReport.current;const retained=earlier&&earlier.chain===chain&&sameToken(chain,earlier.token,token)?earlier:null;reportFocus.current=retained?'refresh':null;setReport(retained);setNotice(retained?'Scan canceled. The last completed report is preserved.':'Scan canceled.');if(!retained)setTimeout(()=>input.current?.focus({preventScroll:true}),0);}
  const scanEntry=<div className={report?'report-token-entry':'token-entry'}>
@@ -151,7 +173,7 @@ export default function Workbench({initialTarget,initialView='scanner'}:{initial
   {!report&&<p className="token-entry-note">Public blockchain data. No wallet connection.</p>}
  </div>;
 
- return <div className={`app-shell console-shell ${view==='scanner'?'studio-workspace':''} ${reportVisible&&view==='scanner'?'studio-active':''}`} data-motion={paused?'off':'on'}><div className="workspace"><div className="workspace-atmosphere"><AmbientConsole paused={paused}/></div><AppNavigation view={view} watchlistCount={saved.length} paused={paused} onNavigate={next=>showView(next)} onHome={()=>goHome()} onSearch={()=>{showView('scanner',true,false);setTimeout(()=>input.current?.focus(),0);}}/><main tabIndex={-1} className={reportVisible&&view==='scanner'?'has-report':view==='scanner'?'is-home':''}>
+ return <div className={`app-shell console-shell ${view==='scanner'?'studio-workspace':''} ${reportVisible&&view==='scanner'?'studio-active':''}`} data-motion={paused?'off':'on'}><div className="workspace"><div className="workspace-atmosphere"><AmbientConsole paused={paused} active={loading}/></div><AppNavigation view={view} watchlistCount={saved.length} paused={paused} onNavigate={next=>morph(()=>showView(next))} onHome={()=>morph(()=>goHome())} onSearch={()=>{showView('scanner',true,false);setTimeout(()=>input.current?.focus(),0);}}/><main tabIndex={-1} className={reportVisible&&view==='scanner'?'has-report':view==='scanner'?'is-home':''}>
  {view==='scanner'?<>
   {reportVisible&&report?<><ReportHeader report={report} refreshing={refreshing} watched={watched} editToken={editToken} search={scanEntry} onHome={()=>goHome()} onChangeToken={()=>{setEditToken(previous=>!previous);requestAnimationFrame(()=>input.current?.focus({preventScroll:true}));}} onWatch={toggleWatch} onCopyAddress={()=>void copy(report.token)} onCopyLink={()=>void copyReportLink()} onDownload={download} onRefresh={()=>void scan(report.chain,report.token,true)}/>
   {error&&<div className="error-strip" role="alert"><TriangleAlert size={17}/><span>{error} Your last completed report is still visible.</span><button className="text-link" onClick={()=>void retryScan()}>Retry</button><button aria-label="Dismiss error" onClick={()=>setError('')}><X size={15}/></button></div>}

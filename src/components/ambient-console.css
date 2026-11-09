@@ -1,1 +1,3 @@
-.ambient-console{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;opacity:.9}
+.ambient-console{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;opacity:1}
+/* Fade the grid gently toward the bottom so it never competes with lower content. */
+.workspace-atmosphere .ambient-console{-webkit-mask-image:linear-gradient(180deg,#000 0%,#000 55%,#0008 100%);mask-image:linear-gradient(180deg,#000 0%,#000 55%,#0008 100%)}

@@ -1,8 +1,8 @@
-.wallet-role-primary{display:flex;align-items:flex-start;flex-direction:column;gap:4px;color:#f1f1f1}
+.wallet-role-primary{display:flex;align-items:flex-start;flex-direction:column;gap:4px;color:#edf5f0}
 .wallet-role-primary>button,.wallet-role-primary>strong{font:500 13px/1.4 var(--font-sans);text-align:left;white-space:normal}
-.wallet-role-primary>button{min-height:44px;padding:5px 0;color:inherit;background:none;border:0;text-decoration:underline;text-decoration-color:#727272;text-underline-offset:4px;cursor:pointer}
-.wallet-role-primary>small{font-size:11px;color:#b4b4b4;line-height:1.4}
-.wallet-role-primary>button:focus-visible,.wallet-role-summary summary:focus-visible{outline:2px solid #d0d0d0;outline-offset:3px}
-.wallet-role-facts{min-width:0}.wallet-role-facts>p{font-size:13px;line-height:1.65;color:#c6c6c6;margin:0 0 12px}
-.wallet-role-facts ul{display:grid;gap:10px;margin:0 0 16px;padding:0;list-style:none}.wallet-role-facts li{display:grid;gap:4px;font-size:13px;line-height:1.5}.wallet-role-facts li strong{color:#e7e7e7;font-weight:500}.wallet-role-facts li span{color:#b1b1b1}
-.wallet-role-summary{padding-block:12px}.wallet-role-summary details{margin-top:8px}.wallet-role-summary summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-size:13px;color:#d1d1d1;text-decoration:underline;text-underline-offset:4px}.wallet-role-summary summary::before{content:'+';margin-right:9px}.wallet-role-summary details[open] summary::before{content:'−'}
+.wallet-role-primary>button{min-height:44px;padding:5px 0;color:inherit;background:none;border:0;text-decoration:underline;text-decoration-color:#687c71;text-underline-offset:4px;cursor:pointer}
+.wallet-role-primary>small{font-size:11px;color:#adbcb3;line-height:1.4}
+.wallet-role-primary>button:focus-visible,.wallet-role-summary summary:focus-visible{outline:2px solid #cbd5cf;outline-offset:3px}
+.wallet-role-facts{min-width:0}.wallet-role-facts>p{font-size:13px;line-height:1.65;color:#c0ccc5;margin:0 0 12px}
+.wallet-role-facts ul{display:grid;gap:10px;margin:0 0 16px;padding:0;list-style:none}.wallet-role-facts li{display:grid;gap:4px;font-size:13px;line-height:1.5}.wallet-role-facts li strong{color:#e0eee6;font-weight:500}.wallet-role-facts li span{color:#a9b9b0}
+.wallet-role-summary{padding-block:12px}.wallet-role-summary details{margin-top:8px}.wallet-role-summary summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-size:13px;color:#ccd6d0;text-decoration:underline;text-underline-offset:4px}.wallet-role-summary summary::before{content:'+';margin-right:9px}.wallet-role-summary details[open] summary::before{content:'−'}

@@ -4,6 +4,7 @@ import './legal.css';
 import '@/components/brand.css';
 import '@/components/official-x-link.css';
 import '@/components/official-token-link.css';
+import './premium.css';
 export const metadata=createRootMetadata();
 export default function RootLayout({
   children,

@@ -4,6 +4,7 @@ import { createInvestigationService } from './investigation-service';
 import { scanToken } from './providers';
 import { createPublicHistory } from './public-history';
 import {createPonsLaunchRecord} from './pons-launch-record';
+import {createFoboLaunchRecord} from './fobo-launch-record';
 import { createSolanaPublic } from './solana-public';
 import { createPoolLaunch } from './pool-launch';
 import { createEvidenceClock } from './evidence-clock';
@@ -66,6 +67,8 @@ export const independentInvestigationService = createInvestigationService({
   crossTokenMemory:createEvmCrossTokenMemory({fetcher:alchemyReads,rpcUrls:{...rpcUrls,robinhood:robinhoodAlchemyUrl},cache:{get:(chain,addresses)=>memoryProofs().get(chain,addresses),set:records=>memoryProofs().set(records)}}),
   publicScan: scanToken,
   ponsLaunch:createPonsLaunchRecord({fetcher:alchemyReads,rpcUrl:robinhoodRpc}),
+  // Indexed providers may restrict log spans; bounded logs use the public node.
+  foboLaunch:createFoboLaunchRecord({fetcher:alchemyReads,rpcUrl:robinhoodRpc,logRpcUrl:'https://rpc.mainnet.chain.robinhood.com'}),
   evmHolders:createEvmHolderFallback({fetcher:alchemyReads,rpcUrls:{...rpcUrls,robinhood:robinhoodRpc}}),
   bscHolders:createBscHolderFallback({fetcher:alchemyReads,rpcUrl:process.env.BSC_RPC_URL,proofStore:{get:(chain,token)=>savedLaunchProofs().get(chain,token),set:proof=>savedLaunchProofs().set(proof),delete:(chain,token)=>savedLaunchProofs().delete(chain,token)}}),
   evmPoolReserves:(chain,pool,token,options)=>createEvmPoolReserves({fetcher:alchemyReads,rpcUrl:chain==='bsc'?process.env.BSC_RPC_URL:rpcUrls[chain]})(chain,pool,token,options),
