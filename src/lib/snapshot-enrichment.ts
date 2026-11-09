@@ -19,7 +19,7 @@ export function createSnapshotEnrichment(deps:{rpcUrls?:Partial<Record<Chain,str
   options.signal?.throwIfAborted();
   const url=deps.rpcUrls?.[report.chain];if(!url)return {};
   const expanded=report.chain==='robinhood'&&options.activityScope?.kind==='pons-creation-ledger';
-  const timeoutMs=Math.min(deps.timeoutMs??(expanded?60000:10000),Math.max(1,options.timeoutMs??60_000)),deadline=AbortSignal.timeout(timeoutMs),signal=options.signal?AbortSignal.any([options.signal,deadline]):deadline;
+  const timeoutMs=Math.min(deps.timeoutMs??(expanded?60000:report.chain==='solana'?10000:30000),Math.max(1,options.timeoutMs??60_000)),deadline=AbortSignal.timeout(timeoutMs),signal=options.signal?AbortSignal.any([options.signal,deadline]):deadline;
   const pacingNow=deps.activityScheduler?.now||(()=>performance.now()),pacingWait=deps.activityScheduler?.wait||wait;
   // Code and nonce each cost20 throughput CU. A qualified full snapshot
   // shares a conservative250CU/s lane with its control/header reads.
@@ -74,7 +74,7 @@ export function createSnapshotEnrichment(deps:{rpcUrls?:Partial<Record<Chain,str
   };
   // Only the creation-qualified Robinhood path uses paced five-account
   // batches. Reserve time for the final canonical anchor recheck.
-  const batchDeadline=AbortSignal.timeout(Math.max(1,timeoutMs-3000));
+  const batchDeadline=AbortSignal.timeout(Math.max(1,timeoutMs-(expanded?3000:6000)));
   const rpcBatch:WalletActivityBatch=async(requests,requestSignal)=>{
    if(batchRateLimited)throw new WalletActivityRpcError('rate-limit');
    const combined=AbortSignal.any([signal,batchDeadline,...(requestSignal?[requestSignal]:[])]);
@@ -97,7 +97,9 @@ export function createSnapshotEnrichment(deps:{rpcUrls?:Partial<Record<Chain,str
   const norm=(a:string)=>report.chain==='solana'?a:a.toLowerCase();
   const holders=report.holders.filter(h=>!validateToken(report.chain,h.address)&&norm(h.address)!==norm(report.market?.pairAddress||'')&&!['pool','exchange','bridge','burn'].includes(h.tag.toLowerCase()));
   const activity=async():Promise<WalletActivitySnapshot>=>{
-   if(report.chain!=='solana')return readWalletActivity(report.chain,holders.map(h=>h.address),rpc,{signal:options.signal,now,...(expanded?{maxAddresses:options.activityScope!.maxAddresses,rpcBatch,batchSize:5,batchConcurrency:1}:{})});
+   // Batched reads keep a fixed reserve for the final anchor recheck, so finished
+   // reads are never discarded when the shared provider lane is busy.
+   if(report.chain!=='solana')return readWalletActivity(report.chain,holders.map(h=>h.address),rpc,{signal:options.signal,now,rpcBatch,...(expanded?{maxAddresses:options.activityScope!.maxAddresses,batchSize:5,batchConcurrency:1}:{batchSize:10,batchConcurrency:1})});
    const addresses=[...new Set(holders.map(h=>h.address))],selected=addresses.slice(0,100),cached=new Map<string,WalletActivity>();
    const cacheKey=(address:string)=>`${report.chain}:${url}:${address}`;
    for(const address of selected){

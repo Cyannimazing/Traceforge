@@ -19,6 +19,7 @@ import {holderMapDrift} from '@/lib/holder-map-motion';
 import {mapDisplayShare,resolveShareBasis,sharePercentText,type MapShareBasis} from '@/lib/holder-map-basis';
 import {holderScope} from '@/lib/holder-scope';
 import {topHolderCohort} from '@/lib/top-holder-cohort';
+import {realHolderReadiness} from '@/lib/real-holder-decision';
 import {HOLDER_DISPLAY_LIMIT} from '@/lib/holder-count-summary';
 import {computeRiskMetrics} from '@/lib/risk-metrics';
 import RiskMeasurements from './risk-measurements';
@@ -184,10 +185,11 @@ export default function ReportOverview({ report, selection, onSelect, onInspect,
    const factor=(id:string)=>observed.factors.find(f=>f.id===id)!;
    why.push({title:'Real-holder concentration',detail:`The largest real-holder group holds ${(observed.largestShare*100).toFixed(2)}% of adjusted supply. The top ten real-holder groups hold ${(factor('concentration').value*100).toFixed(2)}%.`});
    why.push({title:'Creator-linked holdings',detail:`${(factor('dev').value*100).toFixed(2)}% is held by the identified creator and directly linked wallets found in the retrieved records. Other funding paths remain unverified.`});
-   why.push({title:'Large-sale model',detail:`A hypothetical sale by the largest group moves the raw pool price ${(observed.impact*100).toFixed(1)}% in the model, before fees or token restrictions. This is not a verified trade quote.`});
+   why.push(observed.impact===0&&/unwrap/.test(factor('swarm').detail)?{title:'No sell impact',detail:factor('swarm').detail}:{title:'Large-sale model',detail:`A hypothetical sale by the largest group moves the raw pool price ${(observed.impact*100).toFixed(1)}% in the model, before fees or token restrictions. This is not a verified trade quote.`});
    const proxy=observed.scope.activityProxy;
    why.push({title:'Wallet activity checked',detail:proxy?`${proxy.lowNonce} of ${proxy.readable} selected readable wallets had an account nonce of ten or less. Nonces count outgoing transactions and, for delegated wallets, accepted authorizations. This is an activity proxy, not lifetime freshness. ${proxy.unread} unread wallet${proxy.unread===1?' is':'s are'} excluded.${proxy.outsideLimit?` ${proxy.outsideLimit} other readable wallets are outside the selected scope.`:''}`:`Fresh-wallet exposure is ${(factor('fresh').value*100).toFixed(1)}% among ${observed.scope.readableFreshWallets} readable non-creator wallets; ${observed.scope.unreadFreshWallets} unread wallets are excluded. Early-buyer findings use retrieved records, not complete launch history.`});
   }else{
+   const missing=realHolderReadiness(report,rating);if(missing)why.push({title:'Why no score',detail:missing});
    if(readiness.label==='Market data unavailable')why.push({title:'No usable market snapshot returned',detail:'Price, liquidity and selected-pool evidence are needed to model a large sale. These values were not usable in the retrieved sources; missing data is not treated as zero liquidity.'});
    if(largestHolding?.status==='observed'&&largestHolding.value!==null)why.push({title:'Real-holder concentration',detail:`The largest real holder holds ${largestHolding.value.toFixed(2)}% of measured snapshot float. Platform balances are excluded; this is not the holder's share of total token supply.`});
    if(rating.components.some(component=>component.id==='snipers'&&(component.state==='flagged'||component.state==='watch')))why.push({title:'First-minute buyers still hold tokens',detail:'Transaction evidence identifies buys in a verified first-minute window, and those buyers still have a current balance. The Sniper label describes entry timing in that venue; it does not prove bot activity.'});

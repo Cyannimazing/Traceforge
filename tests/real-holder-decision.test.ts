@@ -17,7 +17,7 @@ function report(chain:'ethereum'|'base'|'bsc'='ethereum'):InvestigationReport{
   investigation:{wallets:holders.map(h=>({address:h.address,share:h.share,categories:[h.address===exchange?'exchange':'unclassified'],evidenceIds:[`holding:evm:${h.address}`]})),evidence:[],relationships:[],timeline:[],findings:[],assessment:{status:'caution',title:'',summary:''},
    coverage:{status:'partial',launchVerified:false,truncated:true,holderLimit:100,buyerLimit:100,fundingHops:1,fetchedAt:at,source:'Bounded observations',reasons:[]}},
   walletActivity:{source:'EVM RPC wallet activity',observedAt:at,finality:'finalized',blockRef:'0x10:'+hash,blockTimestamp:at,truncated:false,wallets:[alice,bob,carol].map((address,i)=>({address,count:i===0?3:40,exact:true,fresh:null,basis:'evm-account-nonce' as const,reason:'Current account nonce',accountKind:'eoa' as const}))},
-  holderEnumeration:{kind:'real-holder-prefix',recordedAccounts:4,verifiedAccounts:4,complete:false,candidates:400,windowCandidates:300,ranked:{rawLimit:50,addresses:[exchange,alice,bob,carol],verified:true}}};
+  holderEnumeration:{kind:'real-holder-prefix',recordedAccounts:4,verifiedAccounts:4,complete:false,candidates:150,windowCandidates:100,unread:0,ranked:{rawLimit:4,addresses:[exchange,alice,bob,carol],verified:true},accountKinds:{[exchange]:'contract',[alice]:'eoa',[bob]:'eoa',[carol]:'delegated-eoa'}}};
  for(const h of holders)r.investigation.evidence.push({id:`holding:evm:${h.address}`,kind:'holding',to:h.address,token,amountRaw:String(h.share*10),decimals:0,timestamp:at,source:'EVM RPC holder balances',description:'Pinned finalized balance'});
  const label=`label:${exchange}:exchange`;r.investigation.evidence.push({id:label,kind:'label',source:'GoPlus Security holder tag',timestamp:at,description:'Exchange custody'});r.investigation.wallets[0].evidenceIds.push(label);
  return r;
@@ -32,7 +32,8 @@ test('large EVM tokens receive a real-holder score instead of "Not verified"',()
   assert.match(observed!.factors.find(f=>f.id==='dev')!.detail,/Creator not established/);
   // The exchange is infrastructure, not a real holder.
   assert.equal(observed!.scope.topHolders?.infrastructureCount,1);
-  assert.equal(observed!.factors.find(f=>f.id==='fresh')?.value,1/3);
+  // Weighted by balance: alice (12%) is the only low-nonce wallet among 12+6+2.
+  assert.equal(observed!.factors.find(f=>f.id==='fresh')?.value,12/20);
  }
 });
 

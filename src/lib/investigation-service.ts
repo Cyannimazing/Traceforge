@@ -150,7 +150,10 @@ export function createInvestigationService(deps: Dependencies & HolderDependenci
           if(!deps.enrichSnapshot)return undefined;
           const snapshot=chain==='solana'?await solanaTask:undefined;
           options.signal?.throwIfAborted();
-          const holderReport=snapshot?.holders?{...publicReport,holders:snapshot.holders.flatMap(h=>h.share===null?[]:[{address:h.address,share:h.share,contract:null,locked:null,tag:''}])}:publicReport;
+          const kinds=evmSnapshot?.snapshot?.holderEnumeration?.kind==='real-holder-prefix'?evmSnapshot.snapshot.holderEnumeration.accountKinds:undefined;
+          // Real wallets first so contracts never use up the activity read budget.
+          const ordered=kinds?{...publicReport,holders:[...publicReport.holders].sort((a,b)=>Number(kinds[a.address.toLowerCase()]==='contract')-Number(kinds[b.address.toLowerCase()]==='contract')||(b.share??0)-(a.share??0))}:publicReport;
+          const holderReport=snapshot?.holders?{...publicReport,holders:snapshot.holders.flatMap(h=>h.share===null?[]:[{address:h.address,share:h.share,contract:null,locked:null,tag:''}])}:ordered;
           stage('wallet-activity','running',`Checking activity for ${holderReport.holders.length} returned holder addresses; no exhaustive history crawl.`);
           const enumeration=chain==='robinhood'?evmSnapshot?.snapshot?.holderEnumeration:undefined;
           const enriched=await deps.enrichSnapshot!(holderReport,{signal:options.signal,timeoutMs:Math.max(1,103_000-(Date.now()-scanStarted)),...(enumeration?.kind==='pons-creation-ledger'?{activityScope:{kind:'pons-creation-ledger' as const,maxAddresses:Math.min(10000,holderReport.holders.length)}}:{})});
@@ -301,9 +304,9 @@ export function createInvestigationService(deps: Dependencies & HolderDependenci
         let transferWindow:TransferWindowResult|undefined;
         if((chain==='ethereum'||chain==='base'||chain==='robinhood'||chain==='bsc')&&deps.transferWindow){
           stage('transfer-window','running','Reading the most recent token transfers to find real holders.');
-          try{transferWindow=await deps.transferWindow(chain,token,{signal:options.signal,deadlineMs:mode==='deep'?22000:12000});}catch{options.signal?.throwIfAborted();}
+          try{transferWindow=await deps.transferWindow(chain,token,{signal:options.signal,deadlineMs:mode==='deep'?8000:5000});}catch{options.signal?.throwIfAborted();input.reasons.push('The transfer window could not run (its storage was unavailable); real holders were nominated from the provider holder list only.');}
           const w=transferWindow?.summary;
-          stage('transfer-window',w&&w.status!=='unavailable'?'complete':'unavailable',w?w.detail:'Transfer window unavailable; real holders use provider candidates.');
+          stage('transfer-window',w&&w.status!=='unavailable'?'complete':'unavailable',w?w.detail:'The transfer window could not run; real holders come from the provider holder list.');
           if(w)input.reasons.push(w.detail);
         }
         // Real holders are always balance-verified on EVM chains, even when a
@@ -343,7 +346,9 @@ export function createInvestigationService(deps: Dependencies & HolderDependenci
         }
         // EVM explorer holders may replace the early GoPlus list. Probe the actual final snapshot.
         enrichmentTask ||= startEnrichment();
-        historicalTask ||= startHistorical();
+        // Verdict-critical reads (real-holder balances, wallet activity) get the
+        // shared provider lane first; history lookups start once activity is done.
+        historicalTask ||= chain==='solana'?startHistorical():enrichmentTask.then(()=>startHistorical());
         const candidatePool=publicReport.market?.pairAddress||prior?.report.market?.pairAddress;
         const evmPool=candidatePool&&!validateToken(chain,candidatePool)?candidatePool:undefined;
         const evmReserveTask=(chain==='ethereum'||chain==='base'||chain==='bsc')&&evmPool&&deps.evmPoolReserves?deps.evmPoolReserves(chain,evmPool,token,{holders:publicReport.holders.map(h=>h.address),signal:options.signal}).catch(()=>undefined):Promise.resolve(undefined);
@@ -367,6 +372,7 @@ export function createInvestigationService(deps: Dependencies & HolderDependenci
         // reads finish. This provisional view is nomination input only: the final
         // matcher rechecks membership against the finished current-holder cohort.
         const memoryTask=mode==='deep'&&deps.crossTokenMemory?(async()=>{
+          if(chain!=='solana')await enrichmentTask;
           stage('cross-token-memory','running','Searching prior-token relationships and verifying their transactions.');
           try{return await deps.crossTokenMemory!({...publicReport,sources:[...publicReport.sources,...sourceTimes],investigation:analyzeInvestigation(input)},{signal:options.signal,deadlineMs:Math.min(45_000,Math.max(1,103_000-(Date.now()-scanStarted))),onProgress:detail=>stage('cross-token-memory','running',detail)});}
           catch{options.signal?.throwIfAborted();return {version:1 as const,chain,token,observedAt:new Date(now()).toISOString(),status:'unavailable' as const,records:[],scope:{selectedWallets:0,queriedWallets:0,candidateTokens:0,verifiedTransactions:0,truncated:true},reasons:['Independent cross-token verification was unavailable. No previous memory claim is carried into this scan.']};}
@@ -431,9 +437,11 @@ export function createInvestigationService(deps: Dependencies & HolderDependenci
           const enumeration=snapshot.holderEnumeration;
           const currentScope=enumeration?.complete&&input.currentHolderLimit===evmSnapshot.holders?.length&&enumeration.recordedAccounts===enumeration.verifiedAccounts&&enumeration.verifiedAccounts===evmSnapshot.holders?.length?'All recorded positive balances were checked and reconciled to same-block total supply at this anchor; this does not establish complete trading or funding history.':'Bounded candidate sample, not a holder census.';
           for(const balance of snapshot.balances.filter(b=>b.status==='observed'&&b.amountRaw!==undefined)){
-            const wallet=investigation.wallets.find(w=>w.address.toLowerCase()===balance.address);if(!wallet)continue;
+            // Evidence for every verified balance, so real hands beyond the traced
+            // wallet list keep their proof; only traced wallets link to it.
+            const wallet=investigation.wallets.find(w=>w.address.toLowerCase()===balance.address);
             const id=`holding:evm:${balance.address}`;
-            investigation.evidence.push({id,kind:'holding',to:balance.address,timestamp:snapshot.observedAt,amountRaw:balance.amountRaw,decimals:snapshot.decimals,token,source:EVM_HOLDER_SOURCE,description:`balanceOf(${balance.address}) = ${balance.amountRaw} raw units at ${snapshot.chain} ${snapshot.finality} block ${snapshot.blockNumber} (${snapshot.blockHash}); block time ${snapshot.blockTimestamp}. Same-block total supply ${snapshot.totalSupplyRaw}, decimals ${snapshot.decimals}; block hash rechecked. ${currentScope}${snapshot.finality==='safe'?' Safe state is not finalized; a reorganization can change this observation.':''}`});wallet.evidenceIds.push(id);
+            investigation.evidence.push({id,kind:'holding',to:balance.address,timestamp:snapshot.observedAt,amountRaw:balance.amountRaw,decimals:snapshot.decimals,token,source:EVM_HOLDER_SOURCE,description:`balanceOf(${balance.address}) = ${balance.amountRaw} raw units at ${snapshot.chain} ${snapshot.finality} block ${snapshot.blockNumber} (${snapshot.blockHash}); block time ${snapshot.blockTimestamp}. Same-block total supply ${snapshot.totalSupplyRaw}, decimals ${snapshot.decimals}; block hash rechecked. ${currentScope}${snapshot.finality==='safe'?' Safe state is not finalized; a reorganization can change this observation.':''}`});wallet?.evidenceIds.push(id);
           }
         }
         if(solana?.sources.some(source=>source.name==='Solana RPC Holders'&&source.status==='available')){

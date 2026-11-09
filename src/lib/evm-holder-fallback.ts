@@ -11,19 +11,19 @@ const networks={ethereum:{id:'0x1',name:'Ethereum',finality:'finalized'},base:{i
 /** Raw balance ranks considered when selecting real holders (EVM). */
 export const REAL_HOLDER_RAW_LIMIT=50;
 /** Candidate balances read per scan outside a full creation ledger. */
-export const REAL_HOLDER_CANDIDATE_LIMIT=400;
+export const REAL_HOLDER_CANDIDATE_LIMIT=150;
 // Published chain-specific deployment, independently code-checked below.
 // https://developers.uniswap.org/docs/protocols/v4/deployments
 const ROBINHOOD_POOL_MANAGER='0x8366a39cc670b4001a1121b8f6a443a643e40951';
 const DEAD='0x000000000000000000000000000000000000dead';
 const ROBINHOOD_LOG_RPC='https://rpc.mainnet.chain.robinhood.com';
 const ROBINHOOD_PONS_LOCKER='0x267444d099b10fb5ed7c3cc7b7c767adca574952'; // https://docs.ponsfamily.com/v2#contracts
-type Balance={address:string;status:'observed'|'unknown';amountRaw?:string};
+type Balance={address:string;status:'observed'|'unknown';amountRaw?:string;accountKind?:'eoa'|'delegated-eoa'|'contract'};
 export type HolderEnumeration={kind:'pons-creation-ledger';recordedAccounts:number;verifiedAccounts:number;complete:boolean;indexProvenance?:AlchemyPonsCandidateResult['indexProvenance'];ranked?:{rawLimit:50;addresses:string[];verified:true}}
  /** Largest independently verified balances among the nominated candidates
   * (provider holder list, transfer-window recipients, identities, activity).
   * Holders outside the candidate set are unknown, not zero. */
- |{kind:'real-holder-prefix';recordedAccounts:number;verifiedAccounts:number;complete:false;candidates:number;windowCandidates:number;indexProvenance?:never;ranked:{rawLimit:50;addresses:string[];verified:true}};
+ |{kind:'real-holder-prefix';recordedAccounts:number;verifiedAccounts:number;complete:false;candidates:number;windowCandidates:number;unread:number;indexProvenance?:never;ranked:{rawLimit:number;addresses:string[];verified:true};accountKinds:Record<string,'eoa'|'delegated-eoa'|'contract'>};
 export type EvmHolderResult=PublicHistoryResult&{snapshot?:{chain:Chain;finality:'safe'|'finalized';blockNumber:number;blockHash:string;blockTimestamp:string;observedAt:string;decimals:number;totalSupplyRaw:string;balances:Balance[];candidateCount:number;holderEnumeration?:HolderEnumeration}};
 type Dependencies={rpcUrls?:Partial<Record<Chain,string>>;fetcher?:typeof fetch;now?:()=>number;timeoutMs?:number;monotonic?:()=>number;wait?:(milliseconds:number,signal:AbortSignal)=>Promise<void>};
 export type EvmHolderOptions={candidateAddresses?:string[];priorityCandidateAddresses?:string[];windowCandidates?:string[];ponsSnapshot?:PonsLaunchSnapshot;signal?:AbortSignal};
@@ -62,8 +62,8 @@ export function createEvmHolderFallback(deps:Dependencies={}){
   if(!url)return fail('A configured chain RPC is required for candidate holder verification; balances remain unknown.');
   const indexedPrimary=chain==='robinhood'&&new URL(url).protocol==='https:'&&new URL(url).hostname==='robinhood-mainnet.g.alchemy.com';
   const controller=new AbortController(),abort=()=>controller.abort();options.signal?.addEventListener('abort',abort,{once:true});
-  const discoveryBudget=chain==='robinhood'?(indexedPrimary?35000:20000):20000;
-  const started=monotonic();let budgetMs=Math.max(50,Math.min(discoveryBudget,deps.timeoutMs??(chain==='robinhood'?discoveryBudget:15000))),deadline=started+budgetMs;
+  const discoveryBudget=chain==='robinhood'?(indexedPrimary?35000:20000):30000;
+  const started=monotonic();let budgetMs=Math.max(50,Math.min(discoveryBudget,deps.timeoutMs??(chain==='robinhood'?discoveryBudget:30000))),deadline=started+budgetMs;
   let timer=setTimeout(abort,budgetMs);let requestCount=0,id=0,maxRequests=chain==='robinhood'?72:30;
   const rateError=(response:Response,rpcCode?:unknown,publicRoute=false)=>{const retry=response.headers.get('retry-after'),seconds=retry===null?undefined:/^\d+(?:\.\d+)?$/.test(retry)?Number(retry):Number.isFinite(Date.parse(retry))?Math.max(0,(Date.parse(retry)-now())/1000):undefined;if(publicRoute)publicCooldownUntil=monotonic()+(typeof seconds==='number'&&Number.isFinite(seconds)?Math.max(1000,seconds*1000):60000);return new CandidateRpcRateLimitError({httpStatus:response.status,rpcCode:typeof rpcCode==='number'?rpcCode:undefined,retryAfterSeconds:seconds});};
   const batch=async(calls:{method:string;params:unknown[]}[],endpoint=url,maxBytes=1000000,timeoutMs?:number):Promise<unknown[]>=>{
@@ -134,28 +134,35 @@ export function createEvmHolderFallback(deps:Dependencies={}){
    result.reasons.push(discovery);
    const fullLedger=!!(ledger?.scope&&ledger.ledger),required=[report.market?.pairAddress,...(chain==='robinhood'?[ROBINHOOD_POOL_MANAGER,ROBINHOOD_PONS_LOCKER]:[]),DEAD,...(report.identities||[]).map(i=>i.address),...(options.priorityCandidateAddresses||[])];
    const candidates=[...new Set([...required,...(ledger?.candidates||[]),...(fullLedger?[]:[...report.holders.map(h=>h.address),...(options.windowCandidates||[]),...transferCandidates,...(options.candidateAddresses||[])])].map(address).filter((a):a is string=>!!a))],selected=fullLedger?candidates:candidates.slice(0,REAL_HOLDER_CANDIDATE_LIMIT),balances:Balance[]=selected.map(address=>({address,status:'unknown'}));
-   const groupSize=fullLedger?5:25;
+   // Smaller groups keep the shared lane's wait after any batch short.
+   const withCode=!fullLedger&&chain!=='robinhood',groupSize=fullLedger?5:withCode?15:25;
    if(fullLedger){const totalBudget=ledger?.indexProvenance?60000:38000;budgetMs=Math.max(50,Math.min(totalBudget,deps.timeoutMs??totalBudget));deadline=started+budgetMs;clearTimeout(timer);timer=setTimeout(abort,Math.max(1,deadline-monotonic()));maxRequests=Math.max(maxRequests,requestCount+Math.ceil(selected.length/groupSize)+6);}
    // Preserve a small proof/anchor reserve when current-holder links were
    // nominated. Unread lower-ranked balances remain explicit; a transfer
    // candidate never becomes a graph edge merely because its ledger was read.
-   const balanceReserve=Math.min(ledger?.directTransfers?.candidates.length||ledger?.directNominations?.length?4000:2000,budgetMs/5);
+   const balanceReserve=Math.min(ledger?.directTransfers?.candidates.length||ledger?.directNominations?.length?4000:withCode?2500:2000,budgetMs/5);
    let cursor=0,stopBalances=false,fatal:unknown;
    await Promise.all(Array.from({length:1},async()=>{
     while(!stopBalances){const start=cursor;cursor+=groupSize;if(start>=selected.length)return;
      const group=selected.slice(start,start+groupSize),remaining=deadline-monotonic()-balanceReserve;
-     if(fullLedger&&remaining<=0){stopBalances=true;return;}
-     try{const calls=group.map(a=>({method:'eth_call',params:[{to:token,data:'0x70a08231'+a.slice(2).padStart(64,'0')},anchor.number]}));
+     if((fullLedger||withCode)&&remaining<=0){stopBalances=true;return;}
+     try{const calls=group.flatMap(a=>[{method:'eth_call',params:[{to:token,data:'0x70a08231'+a.slice(2).padStart(64,'0')},anchor.number]},...(withCode?[{method:'eth_getCode',params:[a,anchor.number]}]:[])]);
       const balanceSignal=fullLedger?AbortSignal.any([controller.signal,AbortSignal.timeout(Math.max(1,Math.floor(remaining)))]):controller.signal;
-      const values=fullLedger?await paceBalance(url,balanceSignal,()=>batch(calls,url,1000000,Math.max(1,deadline-monotonic()-balanceReserve))):await batch(calls);
-      for(let i=0;i<group.length;i++){const value=word(values[i]);if(value!==null&&value>supply)throw Error('Distinct candidate balances exceed supply.');balances[start+i]=value===null?{address:group[i],status:'unknown'}:{address:group[i],status:'observed',amountRaw:value.toString()};}
-     }catch(error){options.signal?.throwIfAborted();stopBalances=true;if(!fullLedger||controller.signal.aborted||error instanceof Error&&['RPC rate limit reached; no retry was made.','Distinct candidate balances exceed supply.'].includes(error.message))fatal=error;}
+      // Each batch is bounded by the time left before the anchor-recheck reserve,
+      // so a slow provider stops further reads instead of discarding finished ones.
+      const values=fullLedger?await paceBalance(url,balanceSignal,()=>batch(calls,url,1000000,Math.max(1,deadline-monotonic()-balanceReserve))):withCode?await batch(calls,url,2000000,Math.max(1,Math.floor(remaining))):await batch(calls);
+      const stride=withCode?2:1;
+      for(let i=0;i<group.length;i++){const value=word(values[i*stride]);if(value!==null&&value>supply)throw Error('Distinct candidate balances exceed supply.');const code=withCode?values[i*stride+1]:undefined;const accountKind=typeof code==='string'&&/^0x(?:[0-9a-f]{2})*$/i.test(code)?(code==='0x'||/^0xef01000{40}$/i.test(code)?'eoa' as const:/^0xef0100[0-9a-f]{40}$/i.test(code)?'delegated-eoa' as const:'contract' as const):undefined;balances[start+i]=value===null?{address:group[i],status:'unknown'}:{address:group[i],status:'observed',amountRaw:value.toString(),...(accountKind?{accountKind}:{})};}
+     }catch(error){options.signal?.throwIfAborted();stopBalances=true;if(withCode&&!controller.signal.aborted&&!(error instanceof Error&&error.message==='Distinct candidate balances exceed supply.'))continue;if(!fullLedger||controller.signal.aborted||error instanceof Error&&['RPC rate limit reached; no retry was made.','Distinct candidate balances exceed supply.'].includes(error.message))fatal=error;}
     }
    }));
    if(fatal)throw fatal;
    const observed=balances.filter(b=>b.status==='observed');if(!observed.length)return fail('No candidate balances could be verified; missing values remain unknown, not zero.');
    if(observed.reduce((sum,b)=>sum+BigInt(b.amountRaw!),0n)>supply)throw Error('Distinct candidate balances exceed supply.');
-   const checked=object((await batch([{method:'eth_getBlockByNumber',params:[anchor.number,false]}]))[0]);if(checked.number!==anchor.number||checked.hash?.toLowerCase()!==anchor.hash.toLowerCase()||checked.timestamp!==anchor.timestamp)return fail('Pinned holder block changed or could not be rechecked; all candidate balances withheld.');
+   // Reads have stopped: the recheck gets its own bound instead of the overall
+   // read deadline, so queued lane time never discards finished, verified reads.
+   if(withCode){clearTimeout(timer);}
+   const checked=object((await batch([{method:'eth_getBlockByNumber',params:[anchor.number,false]}],url,1000000,withCode?10000:undefined))[0]);if(checked.number!==anchor.number||checked.hash?.toLowerCase()!==anchor.hash.toLowerCase()||checked.timestamp!==anchor.timestamp)return fail('Pinned holder block changed or could not be rechecked; all candidate balances withheld.');
    const observedAt=new Date(now()).toISOString(),blockTimestamp=new Date(blockTime*1000).toISOString();
    if(ledger?.identity)result.identities.push(ledger.identity);
    let holderEnumeration:HolderEnumeration|undefined;
@@ -172,7 +179,10 @@ export function createEvmHolderFallback(deps:Dependencies={}){
     // Real-holder ranking: the largest verified balances among all nominated
     // candidates. It never claims that unread addresses hold less.
     const positive=observed.filter(b=>BigInt(b.amountRaw!)>0n).sort((a,b)=>{const d=BigInt(b.amountRaw!)-BigInt(a.amountRaw!);return d>0n?1:d<0n?-1:a.address.localeCompare(b.address);});
-    if(positive.length)holderEnumeration={kind:'real-holder-prefix',recordedAccounts:positive.length,verifiedAccounts:positive.length,complete:false,candidates:selected.length,windowCandidates:new Set((options.windowCandidates||[]).map(address).filter(Boolean)).size,ranked:{rawLimit:REAL_HOLDER_RAW_LIMIT,addresses:positive.slice(0,REAL_HOLDER_RAW_LIMIT).map(b=>b.address),verified:true}};
+    const providerRanks=new Set(report.holders.slice(0,REAL_HOLDER_RAW_LIMIT).map(h=>address(h.address)).filter(Boolean));
+    const providerRead=balances.every(b=>!providerRanks.has(b.address)||b.status==='observed');
+    const accountKinds:Record<string,'eoa'|'delegated-eoa'|'contract'>={};for(const b of positive)if(b.accountKind)accountKinds[b.address]=b.accountKind;
+    if(positive.length&&providerRead)holderEnumeration={kind:'real-holder-prefix',recordedAccounts:positive.length,verifiedAccounts:positive.length,complete:false,candidates:selected.length,windowCandidates:new Set((options.windowCandidates||[]).map(address).filter(Boolean)).size,unread:balances.filter(b=>b.status==='unknown').length,ranked:{rawLimit:positive.length,addresses:positive.map(b=>b.address),verified:true},accountKinds};
    }
    result.holders=observed.filter(b=>BigInt(b.amountRaw!)>0n).map(b=>({address:b.address,balance:Number(BigInt(b.amountRaw!))/10**decimals,share:Number(BigInt(b.amountRaw!))/Number(supply)*100})).sort((a,b)=>b.share-a.share||a.address.localeCompare(b.address));
    if(chain==='robinhood'&&typeof managerCode==='string'&&/^0x(?:[0-9a-f]{2})+$/i.test(managerCode)&&result.holders.some(h=>h.address===ROBINHOOD_POOL_MANAGER)){

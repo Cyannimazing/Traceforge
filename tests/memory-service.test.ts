@@ -6,17 +6,14 @@ import type {Report} from '../src/lib/analysis';
 const at='2026-11-04T10:00:00.000Z',token='0x'+'1'.repeat(40),wallet='0x'+'2'.repeat(40);
 const publicReport:Report={chain:'ethereum',token,name:'Token',symbol:'T',fetchedAt:at,market:null,holders:[{address:wallet,share:10,contract:false,locked:null,tag:''}],holderCount:1,checks:[],sources:[{name:'GoPlus Security',status:'available',fetchedAt:at,detail:'Current snapshot'}]};
 
-test('deep scan starts independent memory while activity is still running and attaches its scope before verdicts',async()=>{
- let called=0,releaseActivity:()=>void=()=>{};
- const pendingActivity=new Promise<void>(resolve=>{releaseActivity=resolve;});
+test('deep EVM scan runs memory after wallet activity, so verdict reads get the provider lane first, and attaches its scope',async()=>{
+ let called=0,activityDone=false;
  const service=createInvestigationService({now:()=>Date.parse(at),publicScan:async()=>structuredClone(publicReport),makeClient:()=>({configured:false,request:async()=>null}),
-  enrichSnapshot:async()=>{await pendingActivity;return {};},
-  crossTokenMemory:async(report:any)=>{called++;assert.equal(report.token,token);assert.equal(report.holders[0].address,wallet);releaseActivity();return {version:1,chain:'ethereum',token,observedAt:at,status:'partial',records:[],scope:{selectedWallets:1,queriedWallets:1,candidateTokens:0,verifiedTransactions:0,truncated:true},reasons:['A bounded search does not certify absence.']};},
+  enrichSnapshot:async()=>{await new Promise(r=>setTimeout(r,20));activityDone=true;return {};},
+  crossTokenMemory:async(report:any)=>{called++;assert.ok(activityDone,'memory starts only after wallet activity');assert.equal(report.token,token);assert.equal(report.holders[0].address,wallet);return {version:1,chain:'ethereum',token,observedAt:at,status:'partial',records:[],scope:{selectedWallets:1,queriedWallets:1,candidateTokens:0,verifiedTransactions:0,truncated:true},reasons:['A bounded search does not certify absence.']};},
  } as any);
- const abort=new AbortController(),timeout=setTimeout(()=>{releaseActivity();abort.abort();},1000);
- try{const events:string[]=[];const result=await service.scan('ethereum',token,{signal:abort.signal,onEvent:e=>{if(e.type==='stage')events.push(e.stage);}});
+ const events:string[]=[];const result=await service.scan('ethereum',token,{onEvent:e=>{if(e.type==='stage')events.push(e.stage);}});
  assert.equal(called,1);assert.equal((result as any).crossTokenMemory.scope.queriedWallets,1);assert(events.includes('cross-token-memory'));assert(result.sources.some(s=>s.name==='Independent cross-token memory'));assert.equal(result.investigation.relationships.length,0);
- }finally{clearTimeout(timeout);}
 });
 
 test('memory failure returns the independently available report without carrying a previous memory claim',async()=>{

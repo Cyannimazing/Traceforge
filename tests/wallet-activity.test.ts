@@ -10,7 +10,7 @@ test('qualified Robinhood activity checks all 239 accounts in bounded batches an
  assert.equal(r.wallets.length,239);assert.equal(r.truncated,false);assert.equal(r.wallets.filter(w=>w.count===1).length,238);assert.equal(r.wallets[110].count,null);assert.equal(batches,10);assert(peak<=2);assert(r.wallets.every(w=>w.fresh===null));
 });
 const evm=async(method:string,params:unknown[])=>method==='eth_chainId'?'0x1':method==='eth_getBlockByNumber'?{number:'0x20',hash}:method==='eth_getCode'?'0x':params[0]===a?'0xa':'0xb';
-test('expanded activity options do not expand other chains or unbatched Robinhood reads',async()=>{const addresses=Array.from({length:120},(_,i)=>'0x'+(i+1).toString(16).padStart(40,'0'));let batches=0;const r=await readWalletActivity('ethereum',addresses,evm,{maxAddresses:120,rpcBatch:async()=>{batches++;return [];}});assert.equal(r.wallets.length,100);assert.equal(r.truncated,true);assert.equal(batches,0);});
+test('other chains use batched reads but never expand past 100 wallets',async()=>{const addresses=Array.from({length:120},(_,i)=>'0x'+(i+1).toString(16).padStart(40,'0'));let batches=0;const r=await readWalletActivity('ethereum',addresses,evm,{maxAddresses:120,rpcBatch:async()=>{batches++;return [];}});assert.equal(r.wallets.length,100);assert.equal(r.truncated,true);assert.ok(batches>0);});
 test('batched activity stops dispatch at deadline and rechecks the canonical anchor',async()=>{
  const addresses=Array.from({length:239},(_,i)=>'0x'+(i+1).toString(16).padStart(40,'0')),now=Date.parse('2026-11-04T02:00:00Z');let calls=0,headers=0;
  const rpc=async(m:string)=>m==='eth_chainId'?'0x1237':{number:'0x20',hash:++headers>2?'0x'+'2'.repeat(64):hash,timestamp:'0x'+Math.floor(now/1000).toString(16)};

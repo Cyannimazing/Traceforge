@@ -16,6 +16,14 @@ const raw=(v:unknown)=>typeof v==='string'&&/^\d{1,78}$/.test(v)&&BigInt(v)<2n**
 const hash=(v:unknown)=>typeof v==='string'&&/^0x[0-9a-f]{64}$/i.test(v);
 const HOLDINGS='EVM RPC holder balances';
 const CHAINS=new Set(['ethereum','base','bsc','robinhood']);
+/** Canonical wrapped native tokens: always redeemable 1:1 for the chain's native
+ * coin, so a holder can exit without selling into any pool (sell impact is zero).
+ * Symbols confirmed on-chain on 2026-11-09. */
+export const WRAPPED_NATIVE:Record<string,{symbol:string;native:string}>={
+ 'ethereum:0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2':{symbol:'WETH',native:'ETH'},
+ 'base:0x4200000000000000000000000000000000000006':{symbol:'WETH',native:'ETH'},
+ 'bsc:0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c':{symbol:'WBNB',native:'BNB'},
+};
 
 /** Real-holder point model for every EVM token without a stronger launchpad
  * model. Real holders are the largest independently balance-verified accounts
@@ -31,13 +39,13 @@ export function realHolderDecision(report:InvestigationReport,strict:TrustRating
  const source=(name:string)=>report.sources.some(s=>s.name===name&&s.status==='available'&&fresh(s.fetchedAt));
  if(!source(HOLDINGS)||!source('DEX Screener'))return null;
  const inventory=report.holderEnumeration;
- if(inventory?.kind!=='real-holder-prefix'||inventory.ranked?.verified!==true||!Array.isArray(inventory.ranked.addresses)||!inventory.ranked.addresses.length||inventory.ranked.addresses.length>50)return null;
+ if(inventory?.kind!=='real-holder-prefix'||inventory.ranked?.verified!==true||!Array.isArray(inventory.ranked.addresses)||!inventory.ranked.addresses.length)return null;
  const supply=report.totalSupply;if(!positive(supply))return null;
  const scope=holderScope(report),cohort=topHolderCohort(report),graph=buildCurrentHolderGraph(report,{limit:10000});
  if(!cohort.holders.length||graph.truncated)return null;
- // The cohort must be exactly the verified ranking: no provider-only rows.
+ // The leaders must be exactly the top of the verified ranking: no provider-only rows.
  const ranked=inventory.ranked.addresses.map(norm);
- if(cohort.rawRanked.length!==ranked.length||cohort.rawRanked.some((h,i)=>norm(h.address)!==ranked[i]))return null;
+ if(cohort.rawRanked.length>ranked.length||cohort.rawRanked.some((h,i)=>norm(h.address)!==ranked[i]))return null;
  const evidence=new Map(report.investigation.evidence.filter(e=>e.attribution!=='provider-reported'&&!!e.source.trim()).map(e=>[e.id,e]));
  let decimals:number|undefined;const amounts=new Map<string,number>();let rankedRaw=0n;
  for(const h of cohort.rawRanked){
@@ -58,12 +66,15 @@ export function realHolderDecision(report:InvestigationReport,strict:TrustRating
  groups.sort((a,b)=>share(b)-share(a)||a[0].localeCompare(b[0]));const largest=groups[0],q=largest.reduce((sum,a)=>sum+(amounts.get(a)||0),0);
  const market=report.market,price=Number(market?.priceUsd),liquidity=market?.liquidity?.usd,quoteAddress=(market?.quoteToken as {address?:unknown}|undefined)?.address;
  if(!market||market.chainId!==report.chain||norm(market.baseToken.address)!==norm(report.token)||typeof quoteAddress==='string'&&norm(quoteAddress)===norm(report.token)||!positive(price)||!positive(liquidity)||!positive(q))return null;
- const x=liquidity/(2*price),impact=1-(x/(x+q))**2;if(!positive(x)||!Number.isFinite(impact)||impact<0||impact>1)return null;
+ const wrapped=WRAPPED_NATIVE[`${report.chain}:${norm(report.token)}`];
+ const x=liquidity/(2*price),impact=wrapped?0:1-(x/(x+q))**2;if(!positive(x)||!Number.isFinite(impact)||impact<0||impact>1)return null;
  const activity=report.walletActivity;if(!activity||activity.source!=='EVM RPC wallet activity'||!source(activity.source)||!fresh(activity.observedAt)||activity.finality!=='finalized'||!activity.blockRef?.trim())return null;
  const rows=new Map(activity.wallets.map(w=>[norm(w.address),w])),eligible=cohort.holders.filter(h=>!creators.has(norm(h.address)));
  const readable=eligible.filter(h=>{const w=rows.get(norm(h.address));return w&&['evm-outgoing-count','evm-account-nonce'].includes(w.basis)&&w.exact===true&&Number.isSafeInteger(w.count)&&w.count!>=0;});
  const candidates=new Set(cohort.activityCandidates.map(h=>norm(h.address))),selected=readable.filter(h=>candidates.has(norm(h.address)));if(!selected.length)return null;
- const low=selected.filter(h=>rows.get(norm(h.address))!.count!<=10).length,unread=eligible.length-readable.length,outside=readable.length-selected.length;
+ const lowWallets=selected.filter(h=>rows.get(norm(h.address))!.count!<=10),low=lowWallets.length,unread=eligible.length-readable.length,outside=readable.length-selected.length;
+ // Share-weighted: what fraction of the readable real-hand supply sits in low-activity wallets.
+ const readShare=selected.reduce((sum,h)=>sum+h.share,0),lowShare=lowWallets.reduce((sum,h)=>sum+h.share,0),freshValue=readShare>0?lowShare/readShare:0;
  const transfers=[...evidence.values()].filter(e=>e.kind==='transfer'&&hash(e.transaction)&&!!e.from&&!!e.to&&(positive(e.amount)||(raw(e.amountRaw)??0n)>0n));
  const funded=new Set(transfers.filter(e=>creators.has(norm(e.from!))&&shares.has(norm(e.to!))&&norm(e.token||'')===norm(report.token)).map(e=>norm(e.to!)));
  const early=new Set(funded),launch=report.investigation.coverage.launchVerified&&dated(report.investigation.coverage.earliestTradeAt)?Date.parse(report.investigation.coverage.earliestTradeAt!):null;
@@ -75,8 +86,8 @@ export function realHolderDecision(report:InvestigationReport,strict:TrustRating
  const windowNote=capped?` Token too large for a full crawl: activity is limited to the most recent ${window!.limit.toLocaleString('en-US')} transfers.`:'';
  const exposure=(id:'insiders'|'snipers'|'dev',value:number,detail:string):ObservedFactor=>({id,value,basis:value>0?'observed-exposure':'observed-none',detail:`${detail} ${value===0?'No matches were recorded in the returned scope; this is not verified zero lifetime exposure. ':''}Unread transfers, earlier venues and other controlled wallets remain outside this point model.${windowNote}`});
  const factors:ObservedFactor[]=[
-  {id:'swarm',value:impact,basis:'conditional-scenario',detail:`Nominal balanced pool x=L/(2P)=${x} token units from selected DEX liquidity $${liquidity} and price $${price}; largest real-holder group q=${q} token units. Impact=1-(x/(x+q))². Assumes equal-value sides, zero fees and constant-product updates; concentrated ranges, routing and other venues are not modeled.`},
-  {id:'fresh',value:low/selected.length,basis:'account-nonce-proxy',detail:`${low}/${selected.length} readable real holders among the first ${cohort.activityCandidates.length} have account nonce at most ten. This low-account-nonce proxy is not verified lifetime freshness. ${unread} unread rows and ${outside} other readable real-holder rows are excluded from this denominator.`},
+  wrapped?{id:'swarm',value:0,basis:'conditional-scenario',detail:`${wrapped.symbol} is the canonical wrapped ${wrapped.native}: any holder can unwrap it 1:1 into ${wrapped.native} at any time, so exiting does not require selling into a pool. Sell impact is zero.`}:{id:'swarm',value:impact,basis:'conditional-scenario',detail:`Nominal balanced pool x=L/(2P)=${x} token units from selected DEX liquidity $${liquidity} and price $${price}; largest real-holder group q=${q} token units. Impact=1-(x/(x+q))². Assumes equal-value sides, zero fees and constant-product updates; concentrated ranges, routing and other venues are not modeled.`},
+  {id:'fresh',value:freshValue,basis:'account-nonce-proxy',detail:`${low} of ${selected.length} readable real hands have account nonce at most ten, holding ${(freshValue*100).toFixed(1)}% of the readable real-hand supply (weighted by balance, so larger holders count more). This low-account-nonce proxy is not verified lifetime freshness. ${unread} unread real hands are excluded from this measure, not assumed fresh or established.`},
   exposure('insiders',insiders,creators.size?'Documented creator-origin recipients and verified prelaunch recipients among real holders.':'Creator not established; only verified prelaunch recipients among real holders are counted.'),
   {id:'concentration',value:concentration,basis:'observed-holdings',detail:`Top ten documented real-holder groups divided by ${denominator}% of total supply after setting aside measured infrastructure and code-proven contracts. Connections do not prove common ownership; unobserved relationships are excluded.`},
   exposure('snipers',sniper,launch===null?'Launch timing not established for this token (for large or old tokens the launch is outside the transfer window).':'Current real holders with transaction-backed buys in verified first-minute intervals.'),
@@ -87,11 +98,28 @@ export function realHolderDecision(report:InvestigationReport,strict:TrustRating
  const memory=qualifyCrossTokenMemory(report);
  const security=context.guard.critical?null:strict.judgeInputs?.security??null,judge=decisionModel({score:{lower:scored.score,upper:scored.score},danger:hard.length>0,security,memoryHits:memory.count,dumpImpact:{lower:impact,upper:impact},hard});
  const windowDetail=window?window.detail:'No transfer window was read; real holders come from provider and activity candidates.';
- return {score:scored.score,scoreBand:scored.decision,judge,factors,impact,largestShare:share(largest),scope:{holderCount:cohort.holders.length,readableFreshWallets:selected.length,unreadFreshWallets:unread+outside,activityProxy:{kind:'low-account-nonce',limit:cohort.activityCandidates.length,readable:selected.length,lowNonce:low,unread,outsideLimit:outside},topHolders:{rawLimit:cohort.rawLimit,rawCount:cohort.rawRanked.length,selectedCount:cohort.holders.length,infrastructureCount:cohort.infrastructure.length,contractCount:cohort.contracts.length,activityLimit:15,floatDenominator:denominator,allAnalyzedCount:scope.holders.length},notes:[
+ return {score:scored.score,scoreBand:scored.decision,judge,factors,impact,largestShare:share(largest),scope:{holderCount:cohort.holders.length,readableFreshWallets:selected.length,unreadFreshWallets:unread+outside,activityProxy:{kind:'low-account-nonce',limit:cohort.activityCandidates.length,readable:selected.length,lowNonce:low,unread,outsideLimit:outside},topHolders:{rawLimit:cohort.rawLimit,rawCount:cohort.rawRanked.length,selectedCount:cohort.holders.length,infrastructureCount:cohort.infrastructure.length,contractCount:cohort.contracts.length,activityLimit:cohort.activityCandidates.length,floatDenominator:denominator,allAnalyzedCount:scope.holders.length},notes:[
   'Real-holder point model of verified current balances. Strict evidence bounds remain separate; this score is not a safety probability or a complete audit.',
-  `Real holders: the largest ${cohort.rawRanked.length} verified balances among ${inventory.candidates} nominated accounts (provider holder list${inventory.windowCandidates?`, ${inventory.windowCandidates} transfer-window candidates`:''}, identities and observed activity), after setting aside ${cohort.infrastructure.length} infrastructure and ${cohort.contracts.length} code-proven contracts. Accounts outside the candidate set are unknown, not zero.`,
+  `Real hands: all ${cohort.holders.length} verified real accounts holding at least 0.1% of the circulating supply (${denominator.toFixed(2)}% of total supply after setting aside ${cohort.infrastructure.length} infrastructure and ${cohort.contracts.length} code-proven contracts among the leaders). Found among ${inventory.candidates} nominated accounts (provider holder list${inventory.windowCandidates?`, ${inventory.windowCandidates} transfer-window candidates`:''}, identities and observed activity).${'leadersMayContinue' in cohort&&cohort.leadersMayContinue?' Even the smallest verified balance still leads, so more leading accounts may exist outside the candidate set.':' Accounts below the 0.1% line hold too little to lead.'}`,
   capped?`Large token: this verdict uses the most recent ${TRANSFER_WINDOW_LIMIT.toLocaleString('en-US')} transfers. The full history is too large to crawl, so older activity isn't included. ${windowDetail}`:windowDetail,
   'Low account nonce is not verified lifetime-fresh status. Unknown wallets are excluded from that proxy, not assigned favorable counts.',
   `${memory.count} independently qualified prior-token group claim(s) contribute to this calculation. ${memory.notes.join(' ')}`,
  ]}};
+}
+
+/** First reason a real-holder score could not be issued, in plain words, or
+ * null when the inputs are present. Presentation only; it never scores. */
+export function realHolderReadiness(report:InvestigationReport,strict:TrustRating):string|null{
+ if(!CHAINS.has(report.chain)||report.providerAnalysis)return null;
+ const available=(name:string)=>report.sources.some(s=>s.name===name&&s.status==='available');
+ if(strict.coreVerified!==true||agentEvidenceContext(report).guard.missingCore)return 'Contract controls or current holder data could not be verified, so no score was issued.';
+ if(!available(HOLDINGS))return 'Real-holder balances could not be verified on-chain in this scan (the provider was slow or rate-limited), so no score was issued.';
+ if(report.holderEnumeration?.kind!=='real-holder-prefix')return 'The real-holder ranking could not be confirmed in this scan, so no score was issued.';
+ const cohort=topHolderCohort(report);
+ if(!cohort.holders.length)return 'No real wallet holds at least 0.1% of the circulating supply among the verified accounts, so no score was issued.';
+ const market=report.market;
+ if(!market||market.chainId!==report.chain||norm(market.baseToken.address)!==norm(report.token)||!positive(Number(market.priceUsd))||!positive(market.liquidity?.usd))return 'No usable DEX market (price and liquidity) for this token, so the sell-impact factor and the score could not be computed.';
+ const activity=report.walletActivity;
+ if(!activity||!available('EVM RPC wallet activity')||!activity.wallets.some(w=>w.count!==null))return 'Wallet activity for the real holders could not be read in this scan, so the fresh-wallet factor and the score could not be computed.';
+ return null;
 }

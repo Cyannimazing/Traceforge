@@ -7,6 +7,7 @@ import {holderMapFloatBasis} from './holder-map-basis';
  * account, never a claim that the account is a pool, locker or one real person.
  * The complete report and strict risk model retain every holder. */
 export function topHolderCohort(report:InvestigationReport){
+ const real=realHolderCohort(report);if(real)return real;
  const normalize=(a:string)=>report.chain==='solana'?a:a.toLowerCase(),scope=holderScope(report),rawLimit=report.chain==='solana'?20:50;
  const rawRanked=scope.allSnapshot.filter(h=>Number.isFinite(h.share)&&h.share>0&&h.share<=100).sort((a,b)=>b.share-a.share||normalize(a.address).localeCompare(normalize(b.address))).slice(0,rawLimit);
  const infrastructureAddresses=new Set(scope.infrastructureAddresses.map(normalize)),infrastructure=rawRanked.filter(h=>infrastructureAddresses.has(normalize(h.address)));
@@ -26,4 +27,36 @@ export function topHolderCohort(report:InvestigationReport){
  // float, just as it does for the full snapshot.
  const setAside=[...scope.infrastructure,...contracts],required=[...scope.currentInfrastructureAddresses,...contracts.map(h=>h.address)],floatBasis=holderMapFloatBasis(setAside,required,report.chain==='solana',scope.allSnapshot);
  return {rawLimit,rawRanked,holders,infrastructure,contracts,activityCandidates:holders.slice(0,15),denominator:floatBasis.denominator,floatBasis,infrastructureAddresses:infrastructure.map(h=>h.address),contractAddresses:contracts.map(h=>h.address)};
+}
+
+/** A real account "leads" when it holds at least this fraction of the
+ * circulating supply (total supply minus infrastructure and contract balances). */
+export const REAL_HAND_MIN_FLOAT_SHARE=0.001;
+
+/** Real hands for EVM reports with a verified real-holder ranking. There is no
+ * fixed count: every independently balance-verified account that is not
+ * attributed infrastructure, has no contract code at the same anchor, and holds
+ * at least 0.1% of the circulating supply is a real hand. Accounts without a
+ * code proof are never counted, and provider "contract" flags are never used. */
+export function realHolderCohort(report:InvestigationReport){
+ const inventory=report.holderEnumeration;
+ if(report.chain==='solana'||inventory?.kind!=='real-holder-prefix'||!inventory.ranked?.verified||!inventory.accountKinds)return null;
+ const normalize=(a:string)=>a.toLowerCase(),scope=holderScope(report),kinds=inventory.accountKinds;
+ const byAddress=new Map(scope.allSnapshot.map(h=>[normalize(h.address),h]));
+ const ranked=inventory.ranked.addresses.map(a=>byAddress.get(normalize(a))).filter((h):h is NonNullable<typeof h>=>!!h&&Number.isFinite(h.share)&&h.share>0&&h.share<=100);
+ // The ranking must descend by verified balance; anything else is not trusted.
+ if(ranked.length!==inventory.ranked.addresses.length||ranked.some((h,i)=>i>0&&h.share>ranked[i-1].share))return null;
+ const infrastructureAddresses=new Set(scope.infrastructureAddresses.map(normalize));
+ const kindOf=(h:{address:string})=>{const key=normalize(h.address);return infrastructureAddresses.has(key)?'infrastructure':kinds[key]==='contract'?'contract':kinds[key]==='eoa'||kinds[key]==='delegated-eoa'?'real':'unproven';};
+ const allContracts=ranked.filter(h=>kindOf(h)==='contract');
+ const setAside=[...scope.infrastructure,...allContracts],required=[...scope.currentInfrastructureAddresses,...allContracts.map(h=>h.address)],floatBasis=holderMapFloatBasis(setAside,required,false,scope.allSnapshot);
+ const denominator=floatBasis.denominator,threshold=denominator===null?Infinity:denominator*REAL_HAND_MIN_FLOAT_SHARE;
+ // Ranked descending, so the leading real accounts form a prefix of the real ones.
+ let cut=0;for(let i=0;i<ranked.length;i++){if(ranked[i].share<threshold)break;cut=i+1;}
+ const rawRanked=ranked.slice(0,cut);
+ const holders=rawRanked.filter(h=>kindOf(h)==='real'),infrastructure=rawRanked.filter(h=>kindOf(h)==='infrastructure'),contracts=rawRanked.filter(h=>kindOf(h)==='contract'),unproven=rawRanked.filter(h=>kindOf(h)==='unproven');
+ // If even the smallest verified balance still leads, more leaders may sit
+ // outside the verified candidate set; the verdict states this.
+ const smallest=ranked.at(-1);
+ return {rawLimit:rawRanked.length,rawRanked,holders,infrastructure,contracts,activityCandidates:holders,denominator,floatBasis,infrastructureAddresses:infrastructure.map(h=>h.address),contractAddresses:contracts.map(h=>h.address),unprovenAddresses:unproven.map(h=>h.address),leaderThreshold:threshold,leadersMayContinue:!!smallest&&smallest.share>=threshold};
 }

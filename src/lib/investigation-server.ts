@@ -71,7 +71,7 @@ export const independentInvestigationService = createInvestigationService({
   // Indexed providers may restrict log spans; bounded logs use the public node.
   foboLaunch:createFoboLaunchRecord({fetcher:alchemyReads,rpcUrl:robinhoodRpc,logRpcUrl:'https://rpc.mainnet.chain.robinhood.com'}),
   evmHolders:createEvmHolderFallback({fetcher:alchemyReads,rpcUrls:{...rpcUrls,robinhood:robinhoodRpc,bsc:process.env.BSC_RPC_URL||'https://bsc-rpc.publicnode.com'}}),
-  transferWindow:(chain,token,options)=>transferWindowStore().advance(chain,token,{pages:30,...options}),
+  transferWindow:(chain,token,options)=>transferWindowStore().advance(chain,token,{pages:4,...options}),
   bscHolders:createBscHolderFallback({fetcher:alchemyReads,rpcUrl:process.env.BSC_RPC_URL,proofStore:{get:(chain,token)=>savedLaunchProofs().get(chain,token),set:proof=>savedLaunchProofs().set(proof),delete:(chain,token)=>savedLaunchProofs().delete(chain,token)}}),
   evmPoolReserves:(chain,pool,token,options)=>createEvmPoolReserves({fetcher:alchemyReads,rpcUrl:chain==='bsc'?process.env.BSC_RPC_URL:rpcUrls[chain]})(chain,pool,token,options),
   enrichSnapshot:createSnapshotEnrichment({fetcher:alchemyReads,rpcUrls:{...rpcUrls,robinhood:robinhoodRpc,solana:process.env.SOLANA_RPC_URL,bsc:process.env.BSC_RPC_URL||'https://bsc-rpc.publicnode.com'}}),

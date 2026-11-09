@@ -46,7 +46,7 @@ export async function readWalletActivity(chain:Chain,addresses:string[],rpc:Rpc,
      const count=Number(BigInt(nonce as string));result.wallets[index]={address,count,exact:true,fresh:null,basis,accountKind:delegated?'delegated-eoa':'eoa',codeProof,reason:`${delegated?'EIP-7702 delegated EOA:':'Empty-code EOA:'} exact account nonce ${count} at the fixed finalized block. Nonce includes outgoing transactions and accepted EIP-7702 authorization increments, including prior delegation that may have been revoked. Incoming, internal and sponsored execution history is not counted. Neither a low nor high nonce proves lifetime freshness.`};
  };
  let cursor=0;
- if(chain==='robinhood'&&options.rpcBatch){
+ if(chain!=='solana'&&options.rpcBatch){
   let stopped=false;
   const size=Number.isSafeInteger(options.batchSize)?Math.max(1,Math.min(25,options.batchSize!)):25,concurrency=options.batchConcurrency===1?1:2;
   await Promise.all(Array.from({length:Math.min(concurrency,Math.ceil(selected.length/size))},async()=>{
