@@ -73,3 +73,7 @@ html body footer.site-footer .site-footer-brand:hover{opacity:.85}
 html body .console-shell>.workspace{min-height:100dvh;display:flex;flex-direction:column}
 html body .console-shell>.workspace>main{flex:1 0 auto}
 html body .console-shell>.workspace>footer.site-footer{flex:none}
+
+/* Large-token transfer-window notice under the verdict headline. */
+html body .report-overview .ro-window-note{display:flex;flex-wrap:wrap;gap:4px 8px;margin:12px 0 0;padding:10px 12px;border:1px solid #e5bc7c59;border-left:2px solid var(--warning);border-radius:var(--ui-radius,2px);background:#e5bc7c0f;color:#e8dcc7;font-size:12.5px;line-height:1.55}
+html body .report-overview .ro-window-note strong{color:var(--warning);font-weight:600}

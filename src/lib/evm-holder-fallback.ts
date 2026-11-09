@@ -6,8 +6,12 @@ import {verifyDirectTransferCandidates,verifyIndexedTransferCandidates,DIRECT_TR
 import {readAlchemyPonsCandidates,AlchemyIndexAccessDeniedError,type AlchemyPonsCandidateResult} from './alchemy-pons-candidates';
 
 export const EVM_HOLDER_SOURCE='EVM RPC holder balances';
-type Chain='ethereum'|'base'|'robinhood';
-const networks={ethereum:{id:'0x1',name:'Ethereum',finality:'finalized'},base:{id:'0x2105',name:'Base',finality:'safe'},robinhood:{id:'0x1237',name:'Robinhood Chain',finality:'safe'}} as const;
+type Chain='ethereum'|'base'|'robinhood'|'bsc';
+const networks={ethereum:{id:'0x1',name:'Ethereum',finality:'finalized'},base:{id:'0x2105',name:'Base',finality:'safe'},robinhood:{id:'0x1237',name:'Robinhood Chain',finality:'safe'},bsc:{id:'0x38',name:'BNB Chain',finality:'finalized'}} as const;
+/** Raw balance ranks considered when selecting real holders (EVM). */
+export const REAL_HOLDER_RAW_LIMIT=50;
+/** Candidate balances read per scan outside a full creation ledger. */
+export const REAL_HOLDER_CANDIDATE_LIMIT=400;
 // Published chain-specific deployment, independently code-checked below.
 // https://developers.uniswap.org/docs/protocols/v4/deployments
 const ROBINHOOD_POOL_MANAGER='0x8366a39cc670b4001a1121b8f6a443a643e40951';
@@ -15,10 +19,14 @@ const DEAD='0x000000000000000000000000000000000000dead';
 const ROBINHOOD_LOG_RPC='https://rpc.mainnet.chain.robinhood.com';
 const ROBINHOOD_PONS_LOCKER='0x267444d099b10fb5ed7c3cc7b7c767adca574952'; // https://docs.ponsfamily.com/v2#contracts
 type Balance={address:string;status:'observed'|'unknown';amountRaw?:string};
-export type HolderEnumeration={kind:'pons-creation-ledger';recordedAccounts:number;verifiedAccounts:number;complete:boolean;indexProvenance?:AlchemyPonsCandidateResult['indexProvenance'];ranked?:{rawLimit:50;addresses:string[];verified:true}};
+export type HolderEnumeration={kind:'pons-creation-ledger';recordedAccounts:number;verifiedAccounts:number;complete:boolean;indexProvenance?:AlchemyPonsCandidateResult['indexProvenance'];ranked?:{rawLimit:50;addresses:string[];verified:true}}
+ /** Largest independently verified balances among the nominated candidates
+  * (provider holder list, transfer-window recipients, identities, activity).
+  * Holders outside the candidate set are unknown, not zero. */
+ |{kind:'real-holder-prefix';recordedAccounts:number;verifiedAccounts:number;complete:false;candidates:number;windowCandidates:number;indexProvenance?:never;ranked:{rawLimit:50;addresses:string[];verified:true}};
 export type EvmHolderResult=PublicHistoryResult&{snapshot?:{chain:Chain;finality:'safe'|'finalized';blockNumber:number;blockHash:string;blockTimestamp:string;observedAt:string;decimals:number;totalSupplyRaw:string;balances:Balance[];candidateCount:number;holderEnumeration?:HolderEnumeration}};
 type Dependencies={rpcUrls?:Partial<Record<Chain,string>>;fetcher?:typeof fetch;now?:()=>number;timeoutMs?:number;monotonic?:()=>number;wait?:(milliseconds:number,signal:AbortSignal)=>Promise<void>};
-export type EvmHolderOptions={candidateAddresses?:string[];priorityCandidateAddresses?:string[];ponsSnapshot?:PonsLaunchSnapshot;signal?:AbortSignal};
+export type EvmHolderOptions={candidateAddresses?:string[];priorityCandidateAddresses?:string[];windowCandidates?:string[];ponsSnapshot?:PonsLaunchSnapshot;signal?:AbortSignal};
 const HASH=/^0x[0-9a-f]{64}$/i,ADDRESS=/^0x[0-9a-f]{40}$/i,HEX=/^0x(?:0|[1-9a-f][0-9a-f]*)$/i;
 const address=(v:unknown)=>typeof v==='string'&&ADDRESS.test(v)&&!/^0x0{40}$/i.test(v)?v.toLowerCase():null;
 const word=(v:unknown)=>typeof v==='string'&&HASH.test(v)?BigInt(v):null;
@@ -54,9 +62,9 @@ export function createEvmHolderFallback(deps:Dependencies={}){
   if(!url)return fail('A configured chain RPC is required for candidate holder verification; balances remain unknown.');
   const indexedPrimary=chain==='robinhood'&&new URL(url).protocol==='https:'&&new URL(url).hostname==='robinhood-mainnet.g.alchemy.com';
   const controller=new AbortController(),abort=()=>controller.abort();options.signal?.addEventListener('abort',abort,{once:true});
-  const discoveryBudget=chain==='robinhood'?(indexedPrimary?35000:20000):12000;
-  const started=monotonic();let budgetMs=Math.max(50,Math.min(discoveryBudget,deps.timeoutMs??(chain==='robinhood'?discoveryBudget:6000))),deadline=started+budgetMs;
-  let timer=setTimeout(abort,budgetMs);let requestCount=0,id=0,maxRequests=chain==='robinhood'?72:12;
+  const discoveryBudget=chain==='robinhood'?(indexedPrimary?35000:20000):20000;
+  const started=monotonic();let budgetMs=Math.max(50,Math.min(discoveryBudget,deps.timeoutMs??(chain==='robinhood'?discoveryBudget:15000))),deadline=started+budgetMs;
+  let timer=setTimeout(abort,budgetMs);let requestCount=0,id=0,maxRequests=chain==='robinhood'?72:30;
   const rateError=(response:Response,rpcCode?:unknown,publicRoute=false)=>{const retry=response.headers.get('retry-after'),seconds=retry===null?undefined:/^\d+(?:\.\d+)?$/.test(retry)?Number(retry):Number.isFinite(Date.parse(retry))?Math.max(0,(Date.parse(retry)-now())/1000):undefined;if(publicRoute)publicCooldownUntil=monotonic()+(typeof seconds==='number'&&Number.isFinite(seconds)?Math.max(1000,seconds*1000):60000);return new CandidateRpcRateLimitError({httpStatus:response.status,rpcCode:typeof rpcCode==='number'?rpcCode:undefined,retryAfterSeconds:seconds});};
   const batch=async(calls:{method:string;params:unknown[]}[],endpoint=url,maxBytes=1000000,timeoutMs?:number):Promise<unknown[]>=>{
    const signal=timeoutMs===undefined?controller.signal:AbortSignal.any([controller.signal,AbortSignal.timeout(Math.max(1,Math.floor(timeoutMs)))]);
@@ -125,7 +133,7 @@ export function createEvmHolderFallback(deps:Dependencies={}){
    }
    result.reasons.push(discovery);
    const fullLedger=!!(ledger?.scope&&ledger.ledger),required=[report.market?.pairAddress,...(chain==='robinhood'?[ROBINHOOD_POOL_MANAGER,ROBINHOOD_PONS_LOCKER]:[]),DEAD,...(report.identities||[]).map(i=>i.address),...(options.priorityCandidateAddresses||[])];
-   const candidates=[...new Set([...required,...(ledger?.candidates||[]),...(fullLedger?[]:[...report.holders.map(h=>h.address),...transferCandidates,...(options.candidateAddresses||[])])].map(address).filter((a):a is string=>!!a))],selected=fullLedger?candidates:candidates.slice(0,100),balances:Balance[]=selected.map(address=>({address,status:'unknown'}));
+   const candidates=[...new Set([...required,...(ledger?.candidates||[]),...(fullLedger?[]:[...report.holders.map(h=>h.address),...(options.windowCandidates||[]),...transferCandidates,...(options.candidateAddresses||[])])].map(address).filter((a):a is string=>!!a))],selected=fullLedger?candidates:candidates.slice(0,REAL_HOLDER_CANDIDATE_LIMIT),balances:Balance[]=selected.map(address=>({address,status:'unknown'}));
    const groupSize=fullLedger?5:25;
    if(fullLedger){const totalBudget=ledger?.indexProvenance?60000:38000;budgetMs=Math.max(50,Math.min(totalBudget,deps.timeoutMs??totalBudget));deadline=started+budgetMs;clearTimeout(timer);timer=setTimeout(abort,Math.max(1,deadline-monotonic()));maxRequests=Math.max(maxRequests,requestCount+Math.ceil(selected.length/groupSize)+6);}
    // Preserve a small proof/anchor reserve when current-holder links were
@@ -160,6 +168,12 @@ export function createEvmHolderFallback(deps:Dependencies={}){
     if(reconciled){result.holderCount=ledger.scope.positiveCandidates;ledger.source.detail+=` Transfer-ledger count: ${result.holderCount} recorded holder accounts at this safe anchor. Net minted-minus-burned supply matches independently read totalSupply, and every successful sampled balanceOf agrees with the ledger. ${complete?`All ${verifiedAccounts} recorded positive holder accounts and required infrastructure/creator accounts were independently balanceOf-verified; aggregate balances reconcile 100% of same-block totalSupply.`:`Current balances independently checked for ${observed.length} of ${selected.length} selected accounts; not all accounts are RPC-verified.`}`;}
     else ledger.source.detail+=' Recorded holder count withheld: ledger supply or sampled balances did not reconcile with independent same-block contract reads.';
    }
+   if(!holderEnumeration){
+    // Real-holder ranking: the largest verified balances among all nominated
+    // candidates. It never claims that unread addresses hold less.
+    const positive=observed.filter(b=>BigInt(b.amountRaw!)>0n).sort((a,b)=>{const d=BigInt(b.amountRaw!)-BigInt(a.amountRaw!);return d>0n?1:d<0n?-1:a.address.localeCompare(b.address);});
+    if(positive.length)holderEnumeration={kind:'real-holder-prefix',recordedAccounts:positive.length,verifiedAccounts:positive.length,complete:false,candidates:selected.length,windowCandidates:new Set((options.windowCandidates||[]).map(address).filter(Boolean)).size,ranked:{rawLimit:REAL_HOLDER_RAW_LIMIT,addresses:positive.slice(0,REAL_HOLDER_RAW_LIMIT).map(b=>b.address),verified:true}};
+   }
    result.holders=observed.filter(b=>BigInt(b.amountRaw!)>0n).map(b=>({address:b.address,balance:Number(BigInt(b.amountRaw!))/10**decimals,share:Number(BigInt(b.amountRaw!))/Number(supply)*100})).sort((a,b)=>b.share-a.share||a.address.localeCompare(b.address));
    if(chain==='robinhood'&&typeof managerCode==='string'&&/^0x(?:[0-9a-f]{2})+$/i.test(managerCode)&&result.holders.some(h=>h.address===ROBINHOOD_POOL_MANAGER)){
     const source='Uniswap V4 deployment registry + RPC code';
@@ -185,7 +199,7 @@ export function createEvmHolderFallback(deps:Dependencies={}){
     result.transfers.push(...proofs.transfers);result.reasons.push(proofs.detail);result.sources.push({name:DIRECT_TRANSFER_SOURCE,status:proofs.transfers.length?'available':'unavailable',fetchedAt:new Date(now()).toISOString(),detail:proofs.detail});
    }
    result.totalSupply=totalSupply;result.snapshot={chain,finality,blockNumber,blockHash:anchor.hash.toLowerCase(),blockTimestamp,observedAt,decimals,totalSupplyRaw:supply.toString(),balances,candidateCount:selected.length,...(holderEnumeration?{holderEnumeration}:{})};
-   const detail=`${result.holders.length} positive balances from ${selected.length} candidates at ${networks[chain].name} ${finality} block ${blockNumber} (${anchor.hash}); block time ${blockTimestamp}, retrieved ${observedAt}. Same-block balanceOf, totalSupply and decimals, followed by block-hash revalidation.${fullLedger?' Qualified full-holder reads use batches of five, one shared endpoint lane and at least 600ms between starts; no rate-limit retries.':''} ${balances.length-observed.length} reads unavailable; ${observed.filter(b=>b.amountRaw==='0').length} verified zero balances excluded; ${fullLedger?`All ${ledger!.scope!.positiveCandidates} recorded positive holder accounts were selected; ${selected.length-observed.length} selected accounts remain unread or unavailable.`:`${Math.max(0,candidates.length-selected.length)} candidates outside the 100-address bound.`} ${holderEnumeration?.complete?`All ${holderEnumeration.verifiedAccounts} positive holder accounts verified and reconciled to 100% of totalSupply at this anchor.`:result.holderCount===null?'This sampled snapshot is not a complete holder census; full holder count is unknown.':`Separate Transfer-ledger count: ${result.holderCount} recorded holder accounts; the sampled balance checks do not independently verify every account.`}${finality==='safe'?' Safe means posted L1 data, not finalized L1 data; a reorganization can still change this snapshot.':''}`;
+   const detail=`${result.holders.length} positive balances from ${selected.length} candidates at ${networks[chain].name} ${finality} block ${blockNumber} (${anchor.hash}); block time ${blockTimestamp}, retrieved ${observedAt}. Same-block balanceOf, totalSupply and decimals, followed by block-hash revalidation.${fullLedger?' Qualified full-holder reads use batches of five, one shared endpoint lane and at least 600ms between starts; no rate-limit retries.':''} ${balances.length-observed.length} reads unavailable; ${observed.filter(b=>b.amountRaw==='0').length} verified zero balances excluded; ${fullLedger?`All ${ledger!.scope!.positiveCandidates} recorded positive holder accounts were selected; ${selected.length-observed.length} selected accounts remain unread or unavailable.`:`${Math.max(0,candidates.length-selected.length)} candidates outside the ${REAL_HOLDER_CANDIDATE_LIMIT}-address bound.`} ${holderEnumeration?.complete?`All ${holderEnumeration.verifiedAccounts} positive holder accounts verified and reconciled to 100% of totalSupply at this anchor.`:result.holderCount===null?'This sampled snapshot is not a complete holder census; full holder count is unknown.':`Separate Transfer-ledger count: ${result.holderCount} recorded holder accounts; the sampled balance checks do not independently verify every account.`}${finality==='safe'?' Safe means posted L1 data, not finalized L1 data; a reorganization can still change this snapshot.':''}`;
    result.reasons.push(detail);result.sources.push({name:EVM_HOLDER_SOURCE,status:'available',fetchedAt:observedAt,detail});return result;
   }catch(error){options.signal?.throwIfAborted();return fail(controller.signal.aborted?'Candidate holder verification reached its bounded deadline; no unverified balances were returned.':error instanceof Error&&['RPC rate limit reached; no retry was made.','Distinct candidate balances exceed supply.'].includes(error.message)?error.message:'Candidate holder RPC verification was unavailable; missing values remain unknown.');}
   finally{clearTimeout(timer);options.signal?.removeEventListener('abort',abort);}

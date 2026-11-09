@@ -12,6 +12,8 @@ export function assessmentReadiness(
 ):{label:string;summary:string}{
  if(rating.hard?.length)return {label:'Stop rule triggered',summary:rating.hard[0]};
  if(rating.soft?.length)return {label:'Warning found',summary:rating.soft[0]};
+ const window=report.investigation.coverage.transferWindow;
+ if(score!==null&&Number.isFinite(score)&&window&&(window.status==='capped'||(window.total!==null&&window.total>window.limit)))return {label:'Bounded history',summary:decision==='OK'?'No stop rule was triggered among the real holders found in the most recent transfers.':'The real holders found in the most recent transfers raised warning signs.'};
  if(score!==null&&Number.isFinite(score)&&score>=0&&score<=100)return {label:'Observed activity',summary:decision==='OK'?'No stop rule was triggered in the observed activity.':'The observed activity raised warning signs.'};
  if(!rating.coreVerified)return {label:'Current data unavailable',summary:'Some current contract controls or holder balances could not be verified. The source details explain what was returned.'};
  const market=report.market,price=Number(market?.priceUsd),liquidity=market?.liquidity?.usd;

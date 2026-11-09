@@ -174,18 +174,22 @@ export default function ReportOverview({ report, selection, onSelect, onInspect,
   const confidencePercent=decisionDisplayPercentages(verdictOutput.p)[verdictOutput.decision.toLowerCase() as 'avoid'|'caution'|'ok'];
   const unresolved=new Set(rating.components.filter(component=>component.state==='unknown').map(component=>component.id));
   const earlyBuying=earlyBuyingExplanation(inv.coverage);
+  // Large tokens: the verdict is explicitly based on a bounded transfer window.
+  const transferWindow=inv.coverage.transferWindow;
+  const windowLarge=!!transferWindow&&(transferWindow.status==='capped'||(transferWindow.total!==null&&transferWindow.total>transferWindow.limit));
+  const windowNotice=!transferWindow?null:windowLarge?{title:'Large token',detail:`This verdict uses the most recent ${transferWindow.limit.toLocaleString('en-US')} transfers. The full history${transferWindow.total!==null?` (${transferWindow.total.toLocaleString('en-US')} transfers)`:''} is too large to crawl, so older activity isn't included.${transferWindow.status==='capped'?'':` Reading the window: ${transferWindow.read.toLocaleString('en-US')} of ${transferWindow.limit.toLocaleString('en-US')}.`}`}:transferWindow.status==='partial'||transferWindow.status==='cooldown'?{title:'Reading transfers',detail:`${transferWindow.read.toLocaleString('en-US')} recent transfers read so far; the verdict updates as more real holders are found.`}:null;
   const why: {title:string;detail:string}[]=[];
   for(const reason of [...(rating.hard||[]),...(rating.soft||[])])why.push({title:'Verified warning',detail:reason});
   if(observed?.judge.p){
    const factor=(id:string)=>observed.factors.find(f=>f.id===id)!;
-   why.push({title:'Holder concentration',detail:`The largest documented holder group holds ${(observed.largestShare*100).toFixed(2)}% of adjusted supply. The top ten groups hold ${(factor('concentration').value*100).toFixed(2)}%.`});
+   why.push({title:'Real-holder concentration',detail:`The largest real-holder group holds ${(observed.largestShare*100).toFixed(2)}% of adjusted supply. The top ten real-holder groups hold ${(factor('concentration').value*100).toFixed(2)}%.`});
    why.push({title:'Creator-linked holdings',detail:`${(factor('dev').value*100).toFixed(2)}% is held by the identified creator and directly linked wallets found in the retrieved records. Other funding paths remain unverified.`});
    why.push({title:'Large-sale model',detail:`A hypothetical sale by the largest group moves the raw pool price ${(observed.impact*100).toFixed(1)}% in the model, before fees or token restrictions. This is not a verified trade quote.`});
    const proxy=observed.scope.activityProxy;
    why.push({title:'Wallet activity checked',detail:proxy?`${proxy.lowNonce} of ${proxy.readable} selected readable wallets had an account nonce of ten or less. Nonces count outgoing transactions and, for delegated wallets, accepted authorizations. This is an activity proxy, not lifetime freshness. ${proxy.unread} unread wallet${proxy.unread===1?' is':'s are'} excluded.${proxy.outsideLimit?` ${proxy.outsideLimit} other readable wallets are outside the selected scope.`:''}`:`Fresh-wallet exposure is ${(factor('fresh').value*100).toFixed(1)}% among ${observed.scope.readableFreshWallets} readable non-creator wallets; ${observed.scope.unreadFreshWallets} unread wallets are excluded. Early-buyer findings use retrieved records, not complete launch history.`});
   }else{
    if(readiness.label==='Market data unavailable')why.push({title:'No usable market snapshot returned',detail:'Price, liquidity and selected-pool evidence are needed to model a large sale. These values were not usable in the retrieved sources; missing data is not treated as zero liquidity.'});
-   if(largestHolding?.status==='observed'&&largestHolding.value!==null)why.push({title:'Holder concentration',detail:`The largest returned holder holds ${largestHolding.value.toFixed(2)}% of measured snapshot float. Platform balances are excluded; this is not the holder's share of total token supply.`});
+   if(largestHolding?.status==='observed'&&largestHolding.value!==null)why.push({title:'Real-holder concentration',detail:`The largest real holder holds ${largestHolding.value.toFixed(2)}% of measured snapshot float. Platform balances are excluded; this is not the holder's share of total token supply.`});
    if(rating.components.some(component=>component.id==='snipers'&&(component.state==='flagged'||component.state==='watch')))why.push({title:'First-minute buyers still hold tokens',detail:'Transaction evidence identifies buys in a verified first-minute window, and those buyers still have a current balance. The Sniper label describes entry timing in that venue; it does not prove bot activity.'});
    if(unresolved.has('fresh'))why.push({title:'Some holder histories are unread',detail:'Lifetime activity has not been verified for every current holder, so the fresh-wallet check is incomplete.'});
    if(unresolved.has('snipers'))why.push({title:earlyBuying.title,detail:earlyBuying.detail});
@@ -202,6 +206,7 @@ export default function ReportOverview({ report, selection, onSelect, onInspect,
       <header className="ro-verdict-heading"><h2>Verdict</h2><span className="ro-coverage">{readiness.label}</span></header>
       <AssessmentHeadline score={observed?.score??rating.score} decision={decision==='INSUFFICIENT'?'CAUTION':decision} confidence={confidencePercent} basis={verdictOutput.basis}/>
       <p className="ro-simple-reason">{presentationText(simpleReason)}</p>
+      {windowNotice&&<p className="ro-window-note" role="note"><strong>{windowNotice.title}</strong>{windowNotice.detail}</p>}
       {!LLM_REVIEW_ENABLED&&verdictOutput.basis!=='uncertainty-allocation'&&<DecisionOutput output={verdictOutput}/>}
       {observed&&<ObservedScoreBreakdown factors={observed.factors}/>}
       {why.length>0&&<section className="ro-plain-reasons" aria-label={`Why ${decisionLabel(decision).toLowerCase()}?`}><h3>Why {decisionLabel(decision).toLowerCase()}?</h3><ul>{why.map((reason,index)=><li key={`${reason.title}:${index}`}><strong>{reason.title}</strong><p>{reason.detail}</p></li>)}</ul></section>}
@@ -222,7 +227,7 @@ export default function ReportOverview({ report, selection, onSelect, onInspect,
         <dl aria-label="Holder snapshot and investigation scope">
           <div><dt>Snapshot holders</dt><dd>{snapshot.holders.length.toLocaleString()}</dd></div>
           <div><dt>Addresses traced</dt><dd>{inv.wallets.length.toLocaleString()}</dd></div>
-          {largestHolding?.value!=null&&<div><dt>Largest / adjusted supply</dt><dd>{largestHolding.value.toFixed(2)}%</dd></div>}
+          {largestHolding?.value!=null&&<div><dt>Largest real holder / adjusted supply</dt><dd>{largestHolding.value.toFixed(2)}%</dd></div>}
         </dl>
         <p>Holder counts exclude {snapshot.infrastructure.length.toLocaleString()} observed infrastructure address{snapshot.infrastructure.length===1?'':'es'}. Traced addresses also include historical activity.{largestHolding?.value!=null?' Adjusted supply excludes observed infrastructure balances.':''}</p>
       </div>
@@ -257,7 +262,7 @@ export default function ReportOverview({ report, selection, onSelect, onInspect,
     <div className="ro-map ro-map-designed">
       <header className="ro-map-heading"><h2>Holder map <Crosshair size={17} aria-hidden="true" /></h2><ShareBasisSelector value={shareBasis} onChange={changeShareBasis} floatAvailable={floatBasis.denominator!==null} describedBy={`${id}-map-basis`} label="Holder map percentage basis"/></header>
       {floatBasis.reason&&<p className="ro-map-basis-unavailable">{floatBasis.reason} Showing total supply.</p>}
-      <div className="ro-map-metrics"><span><strong>{graph.nodes.length}</strong>Top wallets</span><span><strong>{graph.edges.length}</strong>Documented links</span><span title="Connected wallets count as one group when transaction evidence supports the link. This is not a count of people."><strong>{graph.walletGroups}</strong>Wallet groups</span></div>
+      <div className="ro-map-metrics"><span><strong>{graph.nodes.length}</strong>Real hands</span><span><strong>{graph.edges.length}</strong>Documented links</span><span title="Connected wallets count as one group when transaction evidence supports the link. This is not a count of people."><strong>{graph.walletGroups}</strong>Wallet groups</span></div>
       <div className="ro-canvas">
         <svg viewBox={`${mapOriginX} 0 ${mapWidth} ${HEIGHT}`} role="group" aria-labelledby={`${id}-map-title`} aria-describedby={`${id}-map-help`} tabIndex={0}
           onFocusCapture={()=>setMapFocusHeld(true)} onBlurCapture={event=>{if(!event.currentTarget.contains(event.relatedTarget as Node|null))setMapFocusHeld(false);}}

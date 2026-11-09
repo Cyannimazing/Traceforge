@@ -70,7 +70,7 @@ export function computeRiskMetrics(report:InvestigationReport,options:{poolScena
  measure('largest-holder-supply','Largest observed non-infrastructure holder',participants.slice(0,1));
  measure('top10-holder-supply','Ten largest observed non-infrastructure holders',participants.slice(0,10));
  measure('largest-holder-adjusted-float','Largest holder / adjusted supply',participants.slice(0,1),[],true);
- measure('top10-holder-adjusted-float','Top ten / adjusted supply',participants.slice(0,10),[],true);
+ measure('top10-holder-adjusted-float','Top ten real holders / adjusted supply',participants.slice(0,10),[],true);
  const creatorIds:string[]=[],creatorWallets=[...wallets.values()].filter(wallet=>{
   if(!wallet.categories.includes('creator')||wallet.categorySources?.creator==='swarm'||infrastructure.has(normalize(wallet.address)))return false;
   const ids=wallet.evidenceIds.filter(id=>{const e=evidence.get(id);return e?.kind==='authority'&&!!e.transaction?.trim()&&normalize(id)===`identity:creator:${normalize(wallet.address)}`;});creatorIds.push(...ids);return ids.length>0;

@@ -19,6 +19,7 @@ import {FOUR_MEME_MANAGER,isBscCustodyOnly,type BscHolderFallbackResult} from '.
 import type {EvmReserveChain,EvmPoolReserveResult} from './evm-pool-reserves';
 import {EVM_HOLDER_SOURCE,type EvmHolderResult,type EvmHolderOptions} from './evm-holder-fallback';
 import {PONS_FACTORY,PONS_DEPLOYER,type PonsLaunchRecordResult,type PonsLaunchOptions} from './pons-launch-record';
+import type {TransferWindowResult,WindowChain} from './transfer-window-types';
 import {FOBO_FACTORY,FOBO_HOOK,FOBO_VESTING,FOBO_LAUNCH_SOURCE,type FoboLaunchRecordResult,type FoboLaunchOptions} from './fobo-launch-record';
 import {qualifiedEvmEoas} from './qualified-evm-eoa';
 import type {CrossTokenMemory} from './cross-token-memory';
@@ -27,7 +28,7 @@ import {crossTokenMemoryEvidence} from './cross-token-memory-evidence';
 export type ScanOptions = { mode?: 'deep' | 'market' | 'holders'; expanded?: boolean; fresh?: boolean; signal?: AbortSignal; onEvent?: (event: ScanEvent) => void };
 type Dependencies = { crossTokenMemory?:(report:InvestigationReport,options:{signal?:AbortSignal;deadlineMs?:number;onProgress?:(detail:string)=>void})=>Promise<CrossTokenMemory>; evmPoolReserves?:(chain:EvmReserveChain,pool:string,token:string,options:{holders?:string[];signal?:AbortSignal})=>Promise<EvmPoolReserveResult>; bscHolders?:(report:Report,options:{signal?:AbortSignal;history?:boolean;candidateAddresses?:string[]})=>Promise<BscHolderFallbackResult>; enrichSnapshot?:(report:Report,options:SnapshotEnrichmentOptions)=>Promise<SnapshotEnrichment>; publicScan: (chain: Chain, token: string, options: {mode?: 'deep' | 'market' | 'holders'; signal?: AbortSignal}) => Promise<Report>; makeClient: (signal?: AbortSignal) => BitqueryClient; publicHistory?: (chain: Chain, token: string, options: PublicHistoryOptions) => Promise<PublicHistoryResult>; historicalEvidence?: (chain:Chain,token:string,options:PublicHistoryOptions)=>Promise<PublicHistoryResult|undefined>; solanaPublic?: (token:string,options:{signal?:AbortSignal})=>Promise<SolanaPublicResult>; poolLaunch?:(chain:Chain,token:string,pool:string,options:{signal?:AbortSignal;validationTime?:number;creationTimeHint?:number})=>Promise<PoolLaunchResult>; poolReserves?:(pool:string,token:string,options:{signal?:AbortSignal})=>Promise<SolanaPoolReserveResult>; resolveClock?:(options:{signal?:AbortSignal})=>Promise<EvidenceClock>; now?: () => number };
 type Cached = { expires: number; report: InvestigationReport };
-type HolderDependencies={evmHolders?:(report:Report,options:EvmHolderOptions)=>Promise<EvmHolderResult>;ponsLaunch?:(chain:Chain,token:string,options:PonsLaunchOptions)=>Promise<PonsLaunchRecordResult>;foboLaunch?:(chain:Chain,token:string,options:FoboLaunchOptions)=>Promise<FoboLaunchRecordResult>};
+type HolderDependencies={evmHolders?:(report:Report,options:EvmHolderOptions)=>Promise<EvmHolderResult>;ponsLaunch?:(chain:Chain,token:string,options:PonsLaunchOptions)=>Promise<PonsLaunchRecordResult>;foboLaunch?:(chain:Chain,token:string,options:FoboLaunchOptions)=>Promise<FoboLaunchRecordResult>;transferWindow?:(chain:WindowChain,token:string,options:{signal?:AbortSignal;deadlineMs?:number})=>Promise<TransferWindowResult>};
 const batch = <T>(items: T[], size: number) => Array.from({length:Math.ceil(items.length/size)},(_,i)=>items.slice(i*size,(i+1)*size));
 const cacheLifetime=(report:InvestigationReport)=>{
   const holderSources=report.sources.filter(source=>/^(Bitquery|Blockscout|Solana RPC) Holders$/i.test(source.name)||source.name==='BSC RPC finalized holder balances'||source.name===EVM_HOLDER_SOURCE);
@@ -295,12 +296,25 @@ export function createInvestigationService(deps: Dependencies & HolderDependenci
           input.reasons.push('The canonical FOBO factory TokenLaunched event, its receipt and the hook pool record identify the launch creator and transaction. The shared factory is not treated as the token creator.');
         }}
         let evmSnapshot:EvmHolderResult|undefined;
-        if((chain==='robinhood'||(chain==='base'||chain==='ethereum')&&!input.holders.some(h=>h.share!==null&&h.share>0))&&deps.evmHolders){
-          stage('holder-rpc','running',`Verifying ${chain==='robinhood'?'Robinhood safe':chain==='base'?'Base safe':'Ethereum finalized'} candidate balances at one block.`);
+        // Newest-first transfer window (capped at 150,000) nominates real-holder
+        // candidates. Large tokens keep reading in the background between scans.
+        let transferWindow:TransferWindowResult|undefined;
+        if((chain==='ethereum'||chain==='base'||chain==='robinhood'||chain==='bsc')&&deps.transferWindow){
+          stage('transfer-window','running','Reading the most recent token transfers to find real holders.');
+          try{transferWindow=await deps.transferWindow(chain,token,{signal:options.signal,deadlineMs:mode==='deep'?22000:12000});}catch{options.signal?.throwIfAborted();}
+          const w=transferWindow?.summary;
+          stage('transfer-window',w&&w.status!=='unavailable'?'complete':'unavailable',w?w.detail:'Transfer window unavailable; real holders use provider candidates.');
+          if(w)input.reasons.push(w.detail);
+        }
+        // Real holders are always balance-verified on EVM chains, even when a
+        // provider already returned a holder list (it only nominates candidates).
+        if((chain==='robinhood'||chain==='base'||chain==='ethereum'||chain==='bsc'&&!bscSnapshot?.holders?.length)&&deps.evmHolders){
+          stage('holder-rpc','running',`Verifying real-holder balances at one ${chain==='robinhood'?'Robinhood safe':chain==='base'?'Base safe':chain==='bsc'?'BNB Chain finalized':'Ethereum finalized'} block.`);
           const candidateAddresses=[...new Set([...input.holders.map(h=>h.address),...(prior?.report.holders||[]).map(h=>h.address),...input.trades.map(t=>t.wallet),...input.transfers.filter(t=>!t.native&&t.token.toLowerCase()===token.toLowerCase()).flatMap(t=>[t.from,t.to])])];
-          try{evmSnapshot=await deps.evmHolders({...publicReport,market:publicReport.market??prior?.report.market??null},{signal:options.signal,candidateAddresses,ponsSnapshot:ponsVerified?ponsSnapshot:undefined,priorityCandidateAddresses:[...(ponsVerified?[ponsSnapshot!.launcher,ponsSnapshot!.creatorFeeRecipient,ponsSnapshot!.curve]:[]),...(foboVerified?[foboSnapshot!.creator,...(foboSnapshot!.currentCreator?[foboSnapshot!.currentCreator]:[]),FOBO_VESTING,FOBO_HOOK]:[])]});}catch{options.signal?.throwIfAborted();}
+          const providerTags=new Map(publicReport.holders.filter(h=>h.tag).map(h=>[h.address.toLowerCase(),h.tag]));
+          try{evmSnapshot=await deps.evmHolders({...publicReport,market:publicReport.market??prior?.report.market??null},{signal:options.signal,candidateAddresses,windowCandidates:transferWindow?.candidates,ponsSnapshot:ponsVerified?ponsSnapshot:undefined,priorityCandidateAddresses:[...(ponsVerified?[ponsSnapshot!.launcher,ponsSnapshot!.creatorFeeRecipient,ponsSnapshot!.curve]:[]),...(foboVerified?[foboSnapshot!.creator,...(foboSnapshot!.currentCreator?[foboSnapshot!.currentCreator]:[]),FOBO_VESTING,FOBO_HOOK]:[])]});}catch{options.signal?.throwIfAborted();}
           if(evmSnapshot){const provenCreators=evmSnapshot.identities.filter(i=>i.role==='creator'&&i.transaction);if(provenCreators.length){input.identities=[...provenCreators,...input.identities.filter(i=>!provenCreators.some(p=>p.role===i.role&&p.address.toLowerCase()===i.address.toLowerCase()))];publicReport={...publicReport,identities:input.identities};}sourceTimes.push(...evmSnapshot.sources);input.reasons.push(...evmSnapshot.reasons);input.labels.push(...evmSnapshot.labels);input.transfers.push(...evmSnapshot.transfers);input.truncated=true;
-            if(evmSnapshot.snapshot&&evmSnapshot.holders){const knownInfrastructure=new Map(evmSnapshot.labels.filter(l=>['pool','burn','exchange','bridge'].includes(l.category)).map(l=>[l.address.toLowerCase(),l.category]));if(selectedPool)knownInfrastructure.set(selectedPool.toLowerCase(),'pool');input.holders=evmSnapshot.holders;publicReport={...publicReport,holderCount:evmSnapshot.holderCount??null,totalSupply:evmSnapshot.totalSupply??publicReport.totalSupply,holders:evmSnapshot.holders.flatMap(h=>h.share===null?[]:[{address:h.address,share:h.share,contract:knownInfrastructure.get(h.address.toLowerCase())==='pool'?true:null,locked:null,tag:knownInfrastructure.get(h.address.toLowerCase())||''}])};}
+            if(evmSnapshot.snapshot&&evmSnapshot.holders){const knownInfrastructure=new Map(evmSnapshot.labels.filter(l=>['pool','burn','exchange','bridge'].includes(l.category)).map(l=>[l.address.toLowerCase(),l.category]));if(selectedPool)knownInfrastructure.set(selectedPool.toLowerCase(),'pool');input.holders=evmSnapshot.holders;publicReport={...publicReport,holderCount:evmSnapshot.holderCount??null,totalSupply:evmSnapshot.totalSupply??publicReport.totalSupply,holders:evmSnapshot.holders.flatMap(h=>h.share===null?[]:[{address:h.address,share:h.share,contract:knownInfrastructure.get(h.address.toLowerCase())==='pool'?true:null,locked:null,tag:knownInfrastructure.get(h.address.toLowerCase())||providerTags.get(h.address.toLowerCase())||''}])};}
           }
           // This bound applies only to already-verified current balances. The
           // historical holder/buyer query limits remain unchanged.
@@ -450,6 +464,7 @@ export function createInvestigationService(deps: Dependencies & HolderDependenci
         // A holder refresh may retain historical categories. Do not reintroduce
         // a provider-only contract category disproven by the current code proof.
         applyEoaQualification(result.investigation);
+        if(transferWindow)result.investigation.coverage.transferWindow=transferWindow.summary;
         if(foboVerified){
           result.identities=[...input.identities.filter(i=>i.role==='creator'),...(result.identities||[]).filter(i=>i.role!=='creator')];
           const id=`identity:creator:${FOBO_FACTORY}`,removeIds=new Set(result.investigation.evidence.filter(e=>e.id===id&&e.source!==FOBO_LAUNCH_SOURCE).map(e=>e.id));

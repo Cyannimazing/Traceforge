@@ -44,7 +44,8 @@ test('an RPC rate denial takes precedence over ambiguous log-result-limit wordin
  const m=setup();let denied=0;
  const fetcher:typeof fetch=async(url,init)=>{const payload=JSON.parse(String(init?.body));if(payload.method==='eth_getLogs'){denied++;return Response.json({jsonrpc:'2.0',id:payload.id,error:{code:429,message:'Rate limit: logs query exceeds limit of 10000'}});}return m.fetcher(url,init);};
  const r=await createEvmHolderFallback({...m,fetcher,rpcUrls:{robinhood:'https://rpc.invalid'}})(m.report,{candidateAddresses:[buyer],ponsSnapshot:{basis:'safe',blockNumber:'0x5208',blockHash:hash,blockTimestamp:new Date(now).toISOString(),factory:PONS_FACTORY,deployerContract:PONS_DEPLOYER,curve:sold,launcher:buyer,creatorFeeRecipient:buyer,phase:2}});
- assert.equal(denied,1);assert.match(r.sources.find(s=>s.name==='Robinhood Pons Transfer candidate history')?.detail||'',/rate limited/);assert.equal(r.snapshot?.holderEnumeration,undefined);
+ assert.equal(denied,1);assert.match(r.sources.find(s=>s.name==='Robinhood Pons Transfer candidate history')?.detail||'',/rate limited/);// A rate-limited ledger never yields a ledger census; only a verified real-holder ranking remains.
+ assert.notEqual(r.snapshot?.holderEnumeration?.kind,'pons-creation-ledger');
 });
 
 test('Robinhood canonical V4 manager needs same-block code and positive balance; custody is not pool reserves',async()=>{for(const mode of ['verified','no-code'] as const){const m=setup({manager:mode}),r=await createEvmHolderFallback({...m,rpcUrls:{robinhood:'https://rpc.invalid'}})(m.report);assert.equal(r.holders?.find(h=>h.address===manager)?.share,40);assert.equal(r.labels.some(l=>l.address===manager&&l.category==='pool'),mode==='verified');if(mode==='verified'){assert.match(r.labels[0].label,/aggregate|shared/i);assert.match(r.sources.map(s=>s.detail).join(' '),/not.*pool reserves/i);}}});

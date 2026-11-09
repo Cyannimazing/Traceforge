@@ -4,7 +4,7 @@ export const FACTORS:Record<FactorId,{label:string;maximum:number;clearAt:number
  swarm:{label:'Largest-hand sell impact',maximum:30,clearAt:.1,zeroAt:.6},
  fresh:{label:'Fresh wallets',maximum:20,clearAt:.15,zeroAt:.8},
  insiders:{label:'Early / creator-origin exposure',maximum:15,clearAt:.02,zeroAt:.2},
- concentration:{label:'Top-ten hands concentration',maximum:15,clearAt:.3,zeroAt:.8},
+ concentration:{label:'Top-ten real-hand concentration',maximum:15,clearAt:.3,zeroAt:.8},
  snipers:{label:'First-minute buyer exposure',maximum:10,clearAt:.03,zeroAt:.25},
  dev:{label:'Creator-linked exposure',maximum:10,clearAt:.02,zeroAt:.15},
 };

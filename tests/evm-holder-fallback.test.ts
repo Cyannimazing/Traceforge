@@ -20,7 +20,7 @@ test('wrong chain, changed anchor, undeployed token and rate failure withhold cu
 test('missing configuration and cancellation are bounded without leaking credentials',async()=>{const m=setup();assert.equal((await createEvmHolderFallback(m)(m.report)).holders,undefined);assert.equal(m.calls.length,0);await assert.rejects(createEvmHolderFallback({...m,rpcUrls:{base:'https://rpc.invalid'}})(m.report,{signal:AbortSignal.abort()}),{name:'AbortError'});});
 
 test('candidate cap and transport deadline remain bounded',async()=>{
- const m=setup(),candidates=Array.from({length:120},(_,i)=>'0x'+(i+100).toString(16).padStart(40,'0'));const r=await createEvmHolderFallback({...m,rpcUrls:{base:'https://rpc.invalid'}})(m.report,{candidateAddresses:candidates});assert.equal(r.snapshot?.candidateCount,100);assert.equal(m.calls.filter(c=>c.method==='eth_call'&&c.params[0].data.startsWith('0x70a08231')).length,100);assert.match(r.reasons.join(' '),/22 candidates outside/);
+ const m=setup(),candidates=Array.from({length:420},(_,i)=>'0x'+(i+100).toString(16).padStart(40,'0'));const r=await createEvmHolderFallback({...m,rpcUrls:{base:'https://rpc.invalid'}})(m.report,{candidateAddresses:candidates});assert.equal(r.snapshot?.candidateCount,400);assert.equal(m.calls.filter(c=>c.method==='eth_call'&&c.params[0].data.startsWith('0x70a08231')).length,400);assert.match(r.reasons.join(' '),/22 candidates outside/);
  const start=Date.now(),fetcher:typeof fetch=()=>new Promise(()=>{}),timed=await createEvmHolderFallback({rpcUrls:{base:'https://rpc.invalid'},fetcher,timeoutMs:50})(m.report);assert.equal(timed.snapshot,undefined);assert(Date.now()-start<1000);assert.match(timed.reasons.join(' '),/deadline/);
 });
 
@@ -56,9 +56,9 @@ test('service retains verified zero creator balances as evidence without adding 
 });
 
 test('service forwards all bounded history candidates for accurate truncation accounting while adapter limits RPC reads',async()=>{
- const m=setup(),at=new Date(now).toISOString(),addresses=Array.from({length:130},(_,i)=>'0x'+(i+100).toString(16).padStart(40,'0'));let supplied=0;
+ const m=setup(),at=new Date(now).toISOString(),addresses=Array.from({length:430},(_,i)=>'0x'+(i+100).toString(16).padStart(40,'0'));let supplied=0;
  const adapter=createEvmHolderFallback({...m,rpcUrls:{base:'https://rpc.invalid'}});const service=createInvestigationService({now:m.now,publicScan:async()=>({...m.report,name:'Example',symbol:'EX',fetchedAt:at,holderCount:null,checks:[],sources:[]}),makeClient:()=>({configured:false,request:async()=>null}),publicHistory:async()=>({trades:addresses.map((wallet,i)=>({id:String(i),wallet,side:'buy',amount:1,timestamp:at,transaction:hash,source:'bounded feed'})),transfers:[],identities:[],labels:[],sources:[],reasons:[],truncated:true}),evmHolders:async(r,o)=>{supplied=o.candidateAddresses?.length||0;return adapter(r,o);}});
- const r=await service.scan('base',token);assert.equal(supplied,130);assert.equal(m.calls.filter(c=>c.method==='eth_call'&&c.params[0].data.startsWith('0x70a08231')).length,100);assert.match(r.sources.find(s=>s.name==='EVM RPC holder balances')!.detail,/32 candidates outside/);
+ const r=await service.scan('base',token);assert.equal(supplied,430);assert.equal(m.calls.filter(c=>c.method==='eth_call'&&c.params[0].data.startsWith('0x70a08231')).length,400);assert.match(r.sources.find(s=>s.name==='EVM RPC holder balances')!.detail,/32 candidates outside/);
 });
 
 test('canonical dead address is measured and labeled only for its positive balance, without excluding generic contracts',async()=>{

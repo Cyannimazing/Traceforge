@@ -10,6 +10,7 @@ import {decisionModel,type DecisionModelResult} from './decision-model';
 import {PUMPSWAP_PROGRAM} from './solana-pool-reserves';
 import {clockReferenceTime} from './evidence-clock';
 import {robinhoodObservedDecision} from './robinhood-observed-decision';
+import {realHolderDecision} from './real-holder-decision';
 import {topHolderCohort} from './top-holder-cohort';
 
 export type ObservedFactor={id:ScoringFactorId;value:number;basis:'observed-holdings'|'readable-wallets'|'account-nonce-proxy'|'observed-exposure'|'observed-none'|'conditional-scenario';detail:string};
@@ -22,7 +23,10 @@ const uint64=(value:string)=>/^\d{1,20}$/.test(value)&&BigInt(value)<=1844674407
  * The initial nominal reserve scenario supports verified base-side PumpSwap.
  */
 export function observedDecision(report:InvestigationReport,strictRating:TrustRating=trustRating(report)):ObservedDecision|null{
- if(report.chain==='robinhood')return robinhoodObservedDecision(report,strictRating);
+ // Stronger launchpad models first (Robinhood Pons ledger, Solana pump.fun);
+ // every other token is assessed from its verified real holders.
+ if(report.chain==='robinhood')return robinhoodObservedDecision(report,strictRating)??realHolderDecision(report,strictRating);
+ if(report.chain==='ethereum'||report.chain==='base'||report.chain==='bsc')return realHolderDecision(report,strictRating);
  if(report.providerAnalysis||strictRating.coreVerified!==true||report.chain!=='solana')return null;
  const context=agentEvidenceContext(report);if(context.guard.missingCore)return null;
  const captured=Date.parse(report.fetchedAt),historyClock=clockReferenceTime(report.investigation.coverage.clock,Date.parse(report.investigation.coverage.fetchedAt));

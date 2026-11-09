@@ -63,6 +63,24 @@ export default function Workbench({initialTarget,initialView='scanner'}:{initial
   const refresh=async(mode:'market'|'holders')=>{if(loadingRef.current||document.hidden)return;const controller=new AbortController(),generation=requestId.current;controllers.add(controller);setRefreshing(mode);try{const response=await fetch(`/api/scan?chain=${current.chain}&token=${encodeURIComponent(current.token)}&mode=${mode}${current.expanded?'&expanded=1':''}`,{signal:controller.signal});if(!response.ok)throw new Error('Refresh unavailable');const next:InvestigationReport=await response.json();if(alive&&generation===requestId.current)setReport(previous=>!previous||previous.fixture||previous.chain!==current.chain||!sameToken(previous.chain,previous.token,current.token)?previous:mergeReportRefresh(previous,next,mode));}catch(e){if(alive&&e instanceof Error&&e.name!=='AbortError')setNotice('Live refresh unavailable. Your last completed report is preserved.');}finally{controllers.delete(controller);if(alive)setRefreshing('');}};
   const market=setInterval(()=>void refresh('market'),60000),holders=setInterval(()=>void refresh('holders'),300000);return()=>{alive=false;clearInterval(market);clearInterval(holders);controllers.forEach(c=>c.abort());};
  },[report?.chain,report?.token,report?.fixture,report?.investigation.coverage.holderLimit,report?.providerAnalysis?.provider,visible,view]);
+ // Keep reading the bounded transfer window in the background while a report is
+ // open; progress is shown under the verdict, and the verdict refreshes from the
+ // real holders found once the window is complete or capped at 150,000.
+ const windowStatus=report?.investigation.coverage.transferWindow?.status;
+ useEffect(()=>{if(!report||report.fixture||!visible||view!=='scanner'||!(windowStatus==='partial'||windowStatus==='cooldown')||!['ethereum','base','robinhood','bsc'].includes(report.chain))return;
+  const current={chain:report.chain,token:report.token};let alive=true;const controller=new AbortController();
+  const same=(r:InvestigationReport|null)=>!!r&&r.chain===current.chain&&sameToken(current.chain,r.token,current.token);
+  (async()=>{for(let pass=0;alive&&pass<200;pass++){
+   if(document.hidden||loadingRef.current){await new Promise(r=>setTimeout(r,4000));continue;}
+   try{const response=await fetch(`/api/history/window?chain=${current.chain}&token=${encodeURIComponent(current.token)}`,{method:'POST',signal:controller.signal,cache:'no-store'});const data=await response.json();if(!alive||!response.ok||!data.window)break;
+    const summary=data.window;setReport(previous=>same(previous)?{...previous!,investigation:{...previous!.investigation,coverage:{...previous!.investigation.coverage,transferWindow:summary}}}:previous);
+    if(summary.status==='complete'||summary.status==='capped'){const next=await fetch(`/api/scan?chain=${current.chain}&token=${encodeURIComponent(current.token)}&mode=holders`,{signal:controller.signal});if(alive&&next.ok){const fresh:InvestigationReport=await next.json();setReport(previous=>same(previous)&&same(fresh)?fresh:previous);}break;}
+    if(summary.status==='unavailable')break;
+    await new Promise(r=>setTimeout(r,summary.status==='cooldown'?15000:1500));
+   }catch{break;}
+  }})();
+  return()=>{alive=false;controller.abort();};
+ },[report?.chain,report?.token,report?.fixture,windowStatus,visible,view]);
  async function scan(nextChain=chain,nextToken=token,fresh=false,navigation:'push'|'none'='push',detectNetwork=false){
   lastScan.current={chain:nextChain,token:nextToken,fresh,navigation,detectNetwork};
   let chosenChain=nextChain,address=nextToken.trim();
