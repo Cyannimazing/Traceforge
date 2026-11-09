@@ -15,6 +15,8 @@ export type InvestigationInput = {
   /** Server-attested current RPC inventory bound. Does not widen historical queries or buyer sampling. */
   currentHolderLimit?:number;
   earlyBuyerAddresses?: string[];
+  /** Code-proven real wallets (no contract code at the holder anchor). Only these can be token distributors. */
+  eoaAddresses?: string[];
   trades: TradeRecord[]; transfers: TransferRecord[]; identities: IdentityRecord[]; labels: LabelRecord[];
   launchVerified: boolean; curveTiming?:CurveTimingProof; poolTiming?:PoolTimingProof; poolTimings?:PoolTimingProof[]; clock?:EvidenceClock; earliestTradeAt?: string; complete: boolean; reasons: string[]; fetchedAt: string;
   holderLimit: number; buyerLimit: number; fundingHops: number; truncated: boolean;
@@ -176,6 +178,29 @@ export function analyzeInvestigation(input: InvestigationInput): Investigation {
     if(unknownTradeAmounts.has(w.address)){delete w.bought;delete w.sold;}
     if (!unknownTradeAmounts.has(w.address)&&!isInfrastructure(w.address) && (w.bought || 0) > (w.sold || 0)) category(w.address, 'accumulator');
   }
+  // SWARM-style link: two or more holders buying in the same transaction.
+  const buysByTx=new Map<string,TradeRecord[]>();
+  for(const t of trades)if(t.side==='buy'&&t.transaction&&!isInfrastructure(t.wallet)){const list=buysByTx.get(t.transaction)||[];list.push(t);buysByTx.set(t.transaction,list);}
+  for(const [tx,list] of buysByTx){
+   const members=[...new Set(list.map(t=>address(t.wallet)))];if(members.length<2)continue;
+   const ids=list.map(t=>`trade:${t.id}:${address(t.wallet)}:buy`);
+   for(const m of members)category(m,'bundled');
+   for(const m of members.slice(1))relationships.push({id:`bundle:${tx}:${m}`,from:members[0],to:m,kind:'bundle',evidenceIds:ids,description:'Both bought in the same transaction. A shared transaction suggests one operator; it does not prove common ownership.'});
+   findings.push({id:`bundle:${tx}`,title:'Bundled buy observed',observedFrom:list[0].timestamp,observedTo:list[0].timestamp,description:`${members.length} wallets bought in one transaction (${tx}). ${holderContext(members)} Bundled buys are a common sign of one operator splitting a position.`,level:'warning',certainty:'inferred',wallets:members,evidenceIds:ids});
+  }
+  // Entered together: first buys within 12 seconds, only inside a verified
+  // first-trading-minute window (busy tokens have many unrelated buys per block).
+  const firstTimed=[...wallets.values()].flatMap(w=>{const t=trades.find(x=>x.side==='buy'&&address(x.wallet)===w.address&&timedTrade(x));const start=t?timingStartFor(t):undefined;return t&&start&&!isInfrastructure(w.address)&&time(t.timestamp)-time(start)>=0&&time(t.timestamp)-time(start)<=60_000?[t]:[];}).sort((a,b)=>time(a.timestamp)-time(b.timestamp));
+  for(let i=0;i<firstTimed.length;){
+   let j=i+1;while(j<firstTimed.length&&time(firstTimed[j].timestamp)-time(firstTimed[i].timestamp)<=12_000)j++;
+   const group=firstTimed.slice(i,j),members=[...new Set(group.map(t=>address(t.wallet)))];
+   if(members.length>=2&&new Set(group.map(t=>t.transaction)).size>=2){
+    const ids=group.map(t=>`trade:${t.id}:${address(t.wallet)}:buy`);
+    for(const m of members)category(m,'pack');
+    for(const m of members.slice(1))relationships.push({id:`pack:${members[0]}:${m}`,from:members[0],to:m,kind:'pack',evidenceIds:ids,description:'Both first bought within twelve seconds of each other in the verified first trading minute. Entering together suggests coordination; it does not prove common ownership.'});
+   }
+   i=j;
+  }
   const transferKeys = new Set<string>();
   const funders = new Map<string, { to: string; evidenceId: string }[]>();
   const observationOnly=new Set<string>();
@@ -205,6 +230,14 @@ export function analyzeInvestigation(input: InvestigationInput): Investigation {
     }
   }
   if(belowSolanaFundingFloor)input.reasons.push(`${belowSolanaFundingFloor} native receipt(s) below the 0.0001 SOL per-transfer inference floor remain visible as observations but do not establish funding, creator links or connected selling. This conservative policy is not proof of spam and can omit genuine small funding; split receipts are not summed to bypass the floor. No equivalent EVM or token-amount threshold is applied.`);
+  const eoas=new Set((input.eoaAddresses||[]).map(address));
+  const distributors=new Map<string,{to:string;evidenceId:string}[]>();
+  for(const t of input.transfers){const from=address(t.from),to=address(t.to);if(t.native||!from||!to||from===to||address(t.token)!==address(input.token)||!eoas.has(from)||isInfrastructure(from)||isInfrastructure(to)||!Number.isFinite(t.amount)||t.amount<=0)continue;const list=distributors.get(from)||[];list.push({to,evidenceId:`transfer:${t.id}:${from}:${to}`});distributors.set(from,list);}
+  for(const [sender,list] of distributors){
+   const recipients=[...new Set(list.map(t=>t.to))].filter(r=>r!==sender);if(recipients.length<2)continue;
+   for(const r of recipients)category(r,'distributed');
+   for(const r of recipients.slice(1))relationships.push({id:`distributor:${sender}:${r}`,from:recipients[0],to:r,kind:'distributor',evidenceIds:list.filter(t=>[recipients[0],r].includes(t.to)).map(t=>t.evidenceId),description:`Both received this token from ${sender}. A shared distributor suggests one operator; it does not prove common ownership.`});
+  }
   const evidenceTimes=new Map(evidence.map(e=>[e.id,time(e.timestamp)]));
   for (const [funder, transfers] of funders) {
     const recipients = [...new Set(transfers.map(t => t.to))];

@@ -327,6 +327,8 @@ export function createInvestigationService(deps: Dependencies & HolderDependenci
             const positives=new Set(currentSnapshot.balances.filter(b=>b.status==='observed'&&typeof b.amountRaw==='string'&&/^[1-9]\d{0,77}$/.test(b.amountRaw)).map(b=>b.address.toLowerCase()));
             if(evmSnapshot.holders.every(h=>!validateToken(chain,h.address)&&typeof h.share==='number'&&Number.isFinite(h.share)&&h.share>0&&positives.has(h.address.toLowerCase())))input.currentHolderLimit=Math.min(10000,evmSnapshot.holders.length);
           }
+          const proven=evmSnapshot?.snapshot?.holderEnumeration?.kind==='real-holder-prefix'?evmSnapshot.snapshot.holderEnumeration.accountKinds:undefined;
+          if(proven)input.eoaAddresses=Object.entries(proven).filter(([,kind])=>kind==='eoa'||kind==='delegated-eoa').map(([address])=>address);
           stage('holder-rpc',evmSnapshot?.snapshot?'complete':'unavailable',evmSnapshot?.snapshot?`${evmSnapshot.holders?.length||0} positive candidate balances verified at ${evmSnapshot.snapshot.finality} block ${evmSnapshot.snapshot.blockNumber}. ${evmSnapshot.holderCount!=null?`Separate transfer-ledger count: ${evmSnapshot.holderCount} recorded accounts.`:'Full holder count remains unknown.'}`:'Candidate balances could not be verified; missing values remain unknown.');
         }
         const solana=await solanaTask;

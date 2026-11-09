@@ -73,6 +73,21 @@ test('canonical wrapped native tokens have zero sell impact; other tokens keep t
  assert.ok(wrapped.score>=plain.score);
 });
 
+test('bundled wallets count as one hand: concentration and the largest group combine them',()=>{
+ const r=report(),buyTx='0x'+'c'.repeat(64);
+ const separate=observedDecision(r,trustRating(r))!;
+ for(const [n,w] of [[1,alice],[2,bob]] as const){
+  const id=`trade:${n}:${w}:buy`;
+  r.investigation.evidence.push({id,kind:'trade',transaction:buyTx,timestamp:at,amount:10,token,description:'Synthetic buy',source:'Synthetic receipts'});
+  r.investigation.wallets.find(x=>x.address===w)!.evidenceIds.push(id);
+ }
+ r.investigation.relationships.push({id:`bundle:${buyTx}:${bob}`,from:alice,to:bob,kind:'bundle',evidenceIds:[`trade:1:${alice}:buy`,`trade:2:${bob}:buy`],description:'Same transaction'});
+ const grouped=observedDecision(r,trustRating(r))!;
+ // Alice 12% and Bob 6% of a 70% circulating supply now form one hand.
+ assert.ok(Math.abs(grouped.largestShare-18/70)<1e-9);
+ assert.ok(grouped.largestShare>separate.largestShare);
+});
+
 test('a ranking that does not descend by verified balance is not trusted',()=>{
  const r=report();(r.holderEnumeration as Prefix).ranked.addresses=[alice,exchange,bob,carol];
  assert.equal(realHolderCohort(r),null);

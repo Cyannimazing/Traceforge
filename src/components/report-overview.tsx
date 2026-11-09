@@ -264,7 +264,7 @@ export default function ReportOverview({ report, selection, onSelect, onInspect,
     <div className="ro-map ro-map-designed">
       <header className="ro-map-heading"><h2>Holder map <Crosshair size={17} aria-hidden="true" /></h2><ShareBasisSelector value={shareBasis} onChange={changeShareBasis} floatAvailable={floatBasis.denominator!==null} describedBy={`${id}-map-basis`} label="Holder map percentage basis"/></header>
       {floatBasis.reason&&<p className="ro-map-basis-unavailable">{floatBasis.reason} Showing total supply.</p>}
-      <div className="ro-map-metrics"><span><strong>{graph.nodes.length}</strong>Real hands</span><span><strong>{graph.edges.length}</strong>Documented links</span><span title="Connected wallets count as one group when transaction evidence supports the link. This is not a count of people."><strong>{graph.walletGroups}</strong>Wallet groups</span></div>
+      <div className="ro-map-metrics"><span><strong>{graph.nodes.length}</strong>Real hands</span></div>
       <div className="ro-canvas">
         <svg viewBox={`${mapOriginX} 0 ${mapWidth} ${HEIGHT}`} role="group" aria-labelledby={`${id}-map-title`} aria-describedby={`${id}-map-help`} tabIndex={0}
           onFocusCapture={()=>setMapFocusHeld(true)} onBlurCapture={event=>{if(!event.currentTarget.contains(event.relatedTarget as Node|null))setMapFocusHeld(false);}}

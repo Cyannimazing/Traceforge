@@ -1,16 +1,16 @@
 import type {InvestigationReport, InvestigatedWallet, WalletCategory} from './investigation-types';
 
 export type WalletRoleFact = WalletCategory | 'funder' | 'funding-recipient' | 'seller';
-export const walletRoleNames: Record<WalletRoleFact,string> = {creator:'Creator',authority:'Contract control',sniper:'Possible sniper',fresh:'Fresh wallet',insider:'Possible insider','early-buyer':'Early buyer',accumulator:'Accumulator',funder:'Funding source','funding-recipient':'Funding recipient',seller:'Seller','shared-funder':'Shared funding recipient','deployer-linked':'Creator-linked','coordinated-seller':'Related seller',pool:'Liquidity pool',exchange:'Exchange',bridge:'Bridge',burn:'Burn address',contract:'Contract address',unclassified:'No additional flag identified'};
+export const walletRoleNames: Record<WalletRoleFact,string> = {creator:'Creator',authority:'Contract control',sniper:'Possible sniper',fresh:'Fresh wallet',insider:'Possible insider','early-buyer':'Early buyer',accumulator:'Accumulator',funder:'Funding source','funding-recipient':'Funding recipient',seller:'Seller','shared-funder':'Shared funding recipient',bundled:'Bundled buy',distributed:'Same distributor',pack:'Entered together','deployer-linked':'Creator-linked','coordinated-seller':'Related seller',pool:'Liquidity pool',exchange:'Exchange',bridge:'Bridge',burn:'Burn address',contract:'Contract address',unclassified:'No additional flag identified'};
 export const simpleRoleNames={all:'All flags',creator:'Creator',control:'Owner',sniper:'Sniper',early:'Early buyer',connected:'Linked wallets',holder:'Holder'} as const;
 export type SimpleRole = keyof typeof simpleRoleNames;
-export type RolePresentation = {label:string;description:string;earlyExplanation:string|null;platformCustody:boolean;reported:boolean;roles:WalletRoleFact[];reportedRoles:WalletRoleFact[];matches:SimpleRole[]};
+export type RolePresentation = {label:string;badges:string[];description:string;earlyExplanation:string|null;platformCustody:boolean;reported:boolean;roles:WalletRoleFact[];reportedRoles:WalletRoleFact[];matches:SimpleRole[]};
 
-export function classifyWalletRoles(roles:WalletRoleFact[],reportedRoles:WalletRoleFact[],currentHolder:boolean,timingVerified:boolean,launchVerified=false,context:{platformCustody?:boolean;earlyScope?:'selected-launchpad'}={}):RolePresentation {
+function primaryWalletRole(roles:WalletRoleFact[],reportedRoles:WalletRoleFact[],currentHolder:boolean,timingVerified:boolean,launchVerified=false,context:{platformCustody?:boolean;earlyScope?:'selected-launchpad'}={}):Omit<RolePresentation,'badges'> {
  const has=(value:WalletRoleFact)=>roles.includes(value),reported=(values:WalletRoleFact[])=>values.length>0&&values.every(value=>reportedRoles.includes(value));
  const infrastructure=(['pool','exchange','bridge','burn'] as const).find(has);
  const early=roles.filter(value=>value==='sniper'||value==='early-buyer');
- const connected=roles.filter(value=>['funder','funding-recipient','shared-funder','deployer-linked'].includes(value));
+ const connected=roles.filter(value=>['funder','funding-recipient','shared-funder','deployer-linked','bundled','distributed','pack'].includes(value));
  const matches:SimpleRole[]=['all'];
  if(has('creator'))matches.push('creator');if(has('authority'))matches.push('control');if(has('sniper'))matches.push('sniper');if(early.length)matches.push('early');if(connected.length)matches.push('connected');if(currentHolder&&!infrastructure)matches.push('holder');
  const independentSniper=has('sniper')&&!reportedRoles.includes('sniper');
@@ -24,8 +24,17 @@ export function classifyWalletRoles(roles:WalletRoleFact[],reportedRoles:WalletR
  if(independentSniper&&timingVerified)return {...base,label:'Sniper',reported:false,description:earlyExplanation!};
  if(has('deployer-linked'))return {...base,label:'Dev-linked',reported:reported(['deployer-linked']),description:'A documented or provider-reported link to the token creator. This does not establish common ownership, developer ownership of this wallet, or coordinated behavior.'};
  if(early.length)return {...base,label:'Early buyer',reported:reported(early),description:earlyExplanation!};
- if(connected.length)return {...base,label:'Linked wallet',reported:reported(connected),description:'A funding link is documented or provider-reported. A connection does not establish common ownership or coordinated behavior.'};
+ if(has('bundled'))return {...base,label:'Bundled buy',reported:reported(['bundled']),description:'Bought in the same transaction as another holder. A shared transaction suggests one operator, but it does not prove common ownership.'};
+ if(connected.length)return {...base,label:'Linked wallet',reported:reported(connected),description:'A funding, distributor, or entry link to another holder is documented. A connection does not establish common ownership or coordinated behavior.'};
  return {...base,label:currentHolder?'Holder':'Traced wallet',reported:false,description:currentHolder?'An address in the current holder snapshot. No more specific primary flag is established; additional activity facts may appear in Details.':'An address found in retrieved activity. Current token ownership is not established by this label.'};
+}
+
+const BADGE_SKIP=new Set<WalletRoleFact>(['unclassified','pool','exchange','bridge','burn']);
+/** Primary label plus every other established fact as a secondary flag. */
+export function classifyWalletRoles(roles:WalletRoleFact[],reportedRoles:WalletRoleFact[],currentHolder:boolean,timingVerified:boolean,launchVerified=false,context:{platformCustody?:boolean;earlyScope?:'selected-launchpad'}={}):RolePresentation {
+ const primary=primaryWalletRole(roles,reportedRoles,currentHolder,timingVerified,launchVerified,context);
+ const names=[...new Set(roles.filter(role=>!BADGE_SKIP.has(role)&&!(role==='sniper'&&!timingVerified)).map(role=>walletRoleNames[role]).filter(Boolean))];
+ return {...primary,badges:names.filter(name=>name!==primary.label&&!(primary.label==='Sniper'&&name==='Possible sniper'))};
 }
 
 export function presentWalletRole(report:InvestigationReport,wallet:InvestigatedWallet):RolePresentation {
@@ -37,6 +46,10 @@ export function presentWalletRole(report:InvestigationReport,wallet:Investigated
  if(creatorLinks.length)add('deployer-linked',creatorLinks.every(edge=>edge.attribution==='provider-reported'));
  const sales=report.investigation.timeline.filter(event=>event.kind==='sell'&&normalize(event.wallet)===address);
  if(sales.length)add('seller',sales.every(event=>report.investigation.evidence.find(evidence=>evidence.id===event.evidenceId)?.attribution==='provider-reported'));
+ const activity=report.walletActivity?.wallets.find(row=>normalize(row.address)===address);
+ if(activity&&activity.exact&&activity.count!==null&&activity.count<=10&&(activity.accountKind==='eoa'||activity.accountKind==='delegated-eoa'))add('fresh',false);
+ const kinds=report.holderEnumeration?.kind==='real-holder-prefix'?report.holderEnumeration.accountKinds:undefined;
+ if(activity?.accountKind==='contract'||kinds?.[address]==='contract')add('contract',false);
  const coverage=report.investigation.coverage;
  const curve=coverage.curveTiming;
  const launchpadTiming=!!curve?.verified&&curve.scope==='selected-launchpad'&&curve.chain===report.chain&&normalize(curve.token)===normalize(report.token)&&curve.eligibleTradeIds.some(id=>{
