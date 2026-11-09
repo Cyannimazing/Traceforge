@@ -5,7 +5,11 @@ import {renderToStaticMarkup} from 'react-dom/server';
 import OfficialTokenAddress,{copyOfficialTokenAddress} from '../src/components/official-token-address';
 import OfficialTokenLink from '../src/components/official-token-link';
 import SiteFooter from '../src/components/site-footer';
-import {officialToken} from '../src/lib/official-token';
+import {officialToken,OFFICIAL_TOKEN} from '../src/lib/official-token';
+
+test('the configured official token is Trace Engine ($TRACE) on Robinhood Chain',()=>{
+ assert.deepEqual(OFFICIAL_TOKEN,{address:'0x252e757b2b89b856c8232cc1bcdb45355bfb46cc',chain:'robinhood',network:'Robinhood Chain',name:'Trace Engine',symbol:'TRACE',explorer:'https://robinhoodchain.blockscout.com/token/0x252e757b2b89b856c8232cc1bcdb45355bfb46cc'});
+});
 
 const mint='3FkBmeVAdijXSV5a6exfmPzXGpMhakp9GGFnWrjnpump';
 const token=officialToken({address:mint})!;

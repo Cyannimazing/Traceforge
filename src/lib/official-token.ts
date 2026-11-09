@@ -16,11 +16,12 @@ export function officialToken(env:OfficialTokenEnv):OfficialToken|null{
  return {address:normalized,chain,network:CHAINS[chain].name,name,symbol,explorer:`${CHAINS[chain].explorer}/token/${normalized}`};
 }
 
-// NEXT_PUBLIC_* values are inlined at build time, so each must be read by its
-// literal name. Leave NEXT_PUBLIC_OFFICIAL_TOKEN_ADDRESS empty to hide the token.
+/** The official project token. Set `address` to '' to hide it everywhere.
+ * Trace Engine ($TRACE) on Robinhood Chain; name and symbol read from the
+ * contract on 2026-11-09. */
 export const OFFICIAL_TOKEN=officialToken({
- address:process.env.NEXT_PUBLIC_OFFICIAL_TOKEN_ADDRESS,
- chain:process.env.NEXT_PUBLIC_OFFICIAL_TOKEN_CHAIN,
- symbol:process.env.NEXT_PUBLIC_OFFICIAL_TOKEN_SYMBOL,
- name:process.env.NEXT_PUBLIC_OFFICIAL_TOKEN_NAME,
+ address:'0x252e757b2b89b856c8232cc1bcdb45355bfb46cc',
+ chain:'robinhood',
+ symbol:'TRACE',
+ name:'Trace Engine',
 });

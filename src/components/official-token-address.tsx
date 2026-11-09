@@ -9,7 +9,7 @@ export async function copyOfficialTokenAddress(clipboard?:Pick<Clipboard,'writeT
  try{await clipboard.writeText(token.address);return true;}catch{return false;}
 }
 
-/** Renders nothing when no official token is configured (NEXT_PUBLIC_OFFICIAL_TOKEN_ADDRESS). */
+/** Renders nothing when no official token is configured (see src/lib/official-token.ts). */
 export default function OfficialTokenAddress(props:{token?:OfficialToken|null}){
  const token=props.token===undefined?OFFICIAL_TOKEN:props.token;
  const [state,setState]=useState<'idle'|'copying'|'copied'|'failed'>('idle'),statusId=useId();
